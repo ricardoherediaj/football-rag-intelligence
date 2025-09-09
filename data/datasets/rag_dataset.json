@@ -1,0 +1,334 @@
+{
+    "examples": [
+        {
+            "query": "Here are two questions based on the context information provided:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "i \n \n \nSample Human Resource Manual   \nCERTIFIED PUBLIC ACCOUNTANTS    \n \n \n \n      \n      \n \n \n \nHUMAN RESOURCE  \nMANAGEMENT MANUAL \n \n \nYEAR."
+            ],
+            "reference_answer": "Based on the context information provided, here are the answers to the two questions:\n\n1. What is the page_label for the given context information?\n   The page_label is 1.\n\n2. What is the file_path for the given context information?\n   The file_path is /Users/pedro.azevedo/llmops-python-package/data/documents/sample_hr_manual.pdf.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What is the title of the document mentioned in the context information?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "i \n \n \nSample Human Resource Manual   \nCERTIFIED PUBLIC ACCOUNTANTS    \n \n \n \n      \n      \n \n \n \nHUMAN RESOURCE  \nMANAGEMENT MANUAL \n \n \nYEAR."
+            ],
+            "reference_answer": "Based on the context information provided, the title of the document is \"Sample Human Resource Manual\".",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \nii \n \nINTRODUCTION \n \nABC & Associates was established in 20xx with an objective of providing quality driven \nassurance and consultancy services. In order to achieve this objective, the firm employs a \nworkforce whose terms and conditions of services are determined by the provisions of this \nHuman Resources Management Manual.  \n \nThis Manual embodies the terms and conditions of service of ABC & Associates and shall apply \nto all staff of the firm except where they are at variance with  the laws of Uganda or as \notherwise provided in this Manual. \n \nThe board reserves the right to amend this manual or any part thereof as may be deemed \nnecessary. \n \nAny issues arising out of the interpretation or application of this Manual shall be referred to \nthe Managing partner whose decision shall be final.  \n \n \n \n \n \n \n \n \n \n \n \nMonth, Year."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. What is the main objective of ABC & Associates as stated in the introduction?\n\n2. According to the introduction, what is the purpose of the Human Resources Management Manual for ABC & Associates?\n\nThese questions focus on extracting key information from the introduction section, such as the company's objective and the purpose of the HR manual, which are central to understanding the context provided.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What was the main objective of establishing ABC & Associates according to the introduction?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \nii \n \nINTRODUCTION \n \nABC & Associates was established in 20xx with an objective of providing quality driven \nassurance and consultancy services. In order to achieve this objective, the firm employs a \nworkforce whose terms and conditions of services are determined by the provisions of this \nHuman Resources Management Manual.  \n \nThis Manual embodies the terms and conditions of service of ABC & Associates and shall apply \nto all staff of the firm except where they are at variance with  the laws of Uganda or as \notherwise provided in this Manual. \n \nThe board reserves the right to amend this manual or any part thereof as may be deemed \nnecessary. \n \nAny issues arising out of the interpretation or application of this Manual shall be referred to \nthe Managing partner whose decision shall be final.  \n \n \n \n \n \n \n \n \n \n \n \nMonth, Year."
+            ],
+            "reference_answer": "According to the introduction, the main objective of establishing ABC & Associates was to provide quality driven assurance and consultancy services.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "Here are two questions based on the context information provided:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \niii \n \nTABLE OF CONTENTS \nINTRODUCTION ............................................................................................................................................. ii \n1.0  HUMAN RESOURCE MANAGEMENT POLICY ..................................................................................... 1 \n1.1 PURPOSE OF THE MANUAL. .......................................................................................................... 1 \n1.2 HUMAN RESOURCE MANAGEMENT OBJECTIVES. ........................................................................ 1 \n1.3  HUMAN RESOURCE MANAGEMENT STRATEGY. ........................................................................... 1 \n2.0 RECRUITMENT AND APPOINTMENT. ................................................................................................ 1 \n2.1 Recruitment Policy. ....................................................................................................................... 1 \n2.2 Recruitment Procedures. .............................................................................................................. 2 \n2.2.1  Job Applications. .................................................................................................................. 2 \n2.2.2 Selection Tests. ..................................................................................................................... 2 \n2.3 Staff Appointments. ...................................................................................................................... 2 \n2.3.1  Acceptance. ........................................................................................................................... 2 \n2.4 Induction ....................................................................................................................................... 2 \n2.5 Continuous Professional Development. ....................................................................................... 3 \n3.0 CONDITIONS OF APPOINTMENT. ...................................................................................................... 3 \n3.1 Probation. ..................................................................................................................................... 3 \n3.2 Termination. .................................................................................................................................. 3 \n3.3 Confirmation. ................................................................................................................................ 3 \n3.4 Use of firms resources. ................................................................................................................. 3 \n4.0 STAFF DEVELOPMENT. ...................................................................................................................... 3 \n4.1 STAFF CAREER DEVELOPMENT. .................................................................................................... 4 \n5.0 PERFORMANCE EVALUATION. .......................................................................................................... 4 \n5.1 Performance Reviews. .................................................................................................................. 4 \n5.2 Annual Performance Review Cycle. .............................................................................................. 4 \n5.3  Mode of Appraisal Exercise .......................................................................................................... 4 \n5.4 Management of Performance Appraisal Recommendations. ...................................................... 5 \n5.0 COMPENSATION PACKAGE. .............................................................................................................. 5 \n5.1 Salary Payments and Deductions. ................................................................................................. 5 \n5.2 Overtime Allowance ...................................................................................................................... 5 \n6.0 FACILITATION. ................................................................................................................................... 5"
+            ],
+            "reference_answer": "Based on the context information provided, here are the answers to the two questions:\n\n1. What is the page_label and file_path of the document?\n   - The page_label is 3.\n   - The file_path is /Users/pedro.azevedo/llmops-python-package/data/documents/sample_hr_manual.pdf.\n\n2. What is the title of the document?\n   - The title of the document is \"Sample Human Resource Manual [Year]\".",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What is the purpose of the Human Resource Management Policy manual as stated in the document?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \niii \n \nTABLE OF CONTENTS \nINTRODUCTION ............................................................................................................................................. ii \n1.0  HUMAN RESOURCE MANAGEMENT POLICY ..................................................................................... 1 \n1.1 PURPOSE OF THE MANUAL. .......................................................................................................... 1 \n1.2 HUMAN RESOURCE MANAGEMENT OBJECTIVES. ........................................................................ 1 \n1.3  HUMAN RESOURCE MANAGEMENT STRATEGY. ........................................................................... 1 \n2.0 RECRUITMENT AND APPOINTMENT. ................................................................................................ 1 \n2.1 Recruitment Policy. ....................................................................................................................... 1 \n2.2 Recruitment Procedures. .............................................................................................................. 2 \n2.2.1  Job Applications. .................................................................................................................. 2 \n2.2.2 Selection Tests. ..................................................................................................................... 2 \n2.3 Staff Appointments. ...................................................................................................................... 2 \n2.3.1  Acceptance. ........................................................................................................................... 2 \n2.4 Induction ....................................................................................................................................... 2 \n2.5 Continuous Professional Development. ....................................................................................... 3 \n3.0 CONDITIONS OF APPOINTMENT. ...................................................................................................... 3 \n3.1 Probation. ..................................................................................................................................... 3 \n3.2 Termination. .................................................................................................................................. 3 \n3.3 Confirmation. ................................................................................................................................ 3 \n3.4 Use of firms resources. ................................................................................................................. 3 \n4.0 STAFF DEVELOPMENT. ...................................................................................................................... 3 \n4.1 STAFF CAREER DEVELOPMENT. .................................................................................................... 4 \n5.0 PERFORMANCE EVALUATION. .......................................................................................................... 4 \n5.1 Performance Reviews. .................................................................................................................. 4 \n5.2 Annual Performance Review Cycle. .............................................................................................. 4 \n5.3  Mode of Appraisal Exercise .......................................................................................................... 4 \n5.4 Management of Performance Appraisal Recommendations. ...................................................... 5 \n5.0 COMPENSATION PACKAGE. .............................................................................................................. 5 \n5.1 Salary Payments and Deductions. ................................................................................................. 5 \n5.2 Overtime Allowance ...................................................................................................................... 5 \n6.0 FACILITATION. ................................................................................................................................... 5"
+            ],
+            "reference_answer": "According to the context information provided, the purpose of the Human Resource Management Policy manual is stated in section 1.1, which says \"PURPOSE OF THE MANUAL.\" The manual states that the purpose is to outline the \"Human Resource Management Objectives\" and the \"Human Resource Management Strategy\" for the organization.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would like to set up the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \niv \n \n7.0 DISCIPLINE. ........................................................................................................................................ 5 \n7.1 Offences. ....................................................................................................................................... 5 \n7.2 Disciplinary Procedures. ................................................................................................................ 6 \n7.3 Disciplinary Action. ....................................................................................................................... 6 \n8.0 LEAVE ................................................................................................................................................ 6 \n8.1 Annual Leave. ................................................................................................................................ 6 \n8.2 Maternity Leave. ........................................................................................................................... 6 \n8.3 Sick Leave. ..................................................................................................................................... 6 \n8.4 Compassionate leave. ................................................................................................................... 6 \n9.0 TERMINATION OF SERVICE. .............................................................................................................. 7 \n9.1 Notice Periods. .............................................................................................................................. 7 \n9.2 Handing over on termination. ....................................................................................................... 7 \n10.0  SAFETY AND SECURITY. .................................................................................................................... 7 \n10.1 Compensation. .............................................................................................................................. 7"
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions that a teacher/professor could set up:\n\n1. What are the four main types of leave covered in the HR manual?\n   - Annual leave\n   - Maternity leave\n   - Sick leave\n   - Compassionate leave\n\n2. What are the two key aspects of termination of service covered in the HR manual?\n   - Notice periods\n   - Handing over on termination\n\nThese questions cover important topics related to employee leave and termination of service, which are commonly found in HR manuals. They test the student's understanding of the key policies and procedures outlined in the provided context.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What are the four types of leave mentioned in the HR manual?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \niv \n \n7.0 DISCIPLINE. ........................................................................................................................................ 5 \n7.1 Offences. ....................................................................................................................................... 5 \n7.2 Disciplinary Procedures. ................................................................................................................ 6 \n7.3 Disciplinary Action. ....................................................................................................................... 6 \n8.0 LEAVE ................................................................................................................................................ 6 \n8.1 Annual Leave. ................................................................................................................................ 6 \n8.2 Maternity Leave. ........................................................................................................................... 6 \n8.3 Sick Leave. ..................................................................................................................................... 6 \n8.4 Compassionate leave. ................................................................................................................... 6 \n9.0 TERMINATION OF SERVICE. .............................................................................................................. 7 \n9.1 Notice Periods. .............................................................................................................................. 7 \n9.2 Handing over on termination. ....................................................................................................... 7 \n10.0  SAFETY AND SECURITY. .................................................................................................................... 7 \n10.1 Compensation. .............................................................................................................................. 7"
+            ],
+            "reference_answer": "Based on the context information provided, the four types of leave mentioned in the HR manual are:\n\n1. Annual Leave\n2. Maternity Leave\n3. Sick Leave\n4. Compassionate Leave\n\nThe section \"8.0 LEAVE\" lists these four types of leave that are covered in the HR manual.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a Teacher/Professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n1 \n \n1.0  HUMAN RESOURCE MANAGEMENT POLICY \n1.1 PURPOSE OF THE MANUAL. \n \nThis manual is intended to guide staff regarding their rights and obligations.  \nThese guidelines shall be followed by all staff of ABC & Associates including the Senior \nManagement Team and part time staff who may be employed by the firm from time to \ntime. \n1.2 HUMAN RESOURCE MANAGEMENT OBJECTIVES. \nThe firm shall endeavor to achieve the following objectives; \na) Appropriate remuneration for all staff for services rendered. \nb) Fair hearing for all staff as provided for in this manual. \nc) Equal employment opportunities. \nd) Provision of appropriate training and facilitation. \n1.3  HUMAN RESOURCE MANAGEMENT STRATEGY. \n The firm shall endeavor to attract, engage and retain high quality staff and optimally \nuse their services. \n2.0 RECRUITMENT AND APPOINTMENT. \n2.1 Recruitment Policy. \n \nABC & Associates shall not  recruit staff , other than support staff  who do not have \nknowledge in accounting and audit unless the partners identify a strong will and \npotential from a given candidate in which case it shall be upon ABC & Associates to \nensure that such a candidate, if employed is enrolled for an accounting & Audit course \npreferably a professional accounting course like CPA, ACCA, CMA. \n \nPositions in the firm will be filled transparently and on merit using open competition \nas the basis of selection."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. What are the four main human resource management objectives outlined in the HR manual?\n\n2. Describe the recruitment policy of ABC & Associates as stated in the HR manual.\n\nThe first question tests the student's understanding of the key HR management objectives mentioned in the manual, which include appropriate remuneration, fair hearing for staff, equal employment opportunities, and provision of training and facilitation.\n\nThe second question requires the student to summarize the recruitment policy of ABC & Associates, which states that the firm will only hire support staff without accounting/audit knowledge, unless they identify strong potential in a candidate, in which case the firm will ensure the candidate is enrolled in an accounting/audit course.\n\nThese questions cover important details and policies outlined in the provided HR manual context, assessing the student's comprehension of the key information presented.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What is the main purpose of the Human Resource Manual described in the document?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n1 \n \n1.0  HUMAN RESOURCE MANAGEMENT POLICY \n1.1 PURPOSE OF THE MANUAL. \n \nThis manual is intended to guide staff regarding their rights and obligations.  \nThese guidelines shall be followed by all staff of ABC & Associates including the Senior \nManagement Team and part time staff who may be employed by the firm from time to \ntime. \n1.2 HUMAN RESOURCE MANAGEMENT OBJECTIVES. \nThe firm shall endeavor to achieve the following objectives; \na) Appropriate remuneration for all staff for services rendered. \nb) Fair hearing for all staff as provided for in this manual. \nc) Equal employment opportunities. \nd) Provision of appropriate training and facilitation. \n1.3  HUMAN RESOURCE MANAGEMENT STRATEGY. \n The firm shall endeavor to attract, engage and retain high quality staff and optimally \nuse their services. \n2.0 RECRUITMENT AND APPOINTMENT. \n2.1 Recruitment Policy. \n \nABC & Associates shall not  recruit staff , other than support staff  who do not have \nknowledge in accounting and audit unless the partners identify a strong will and \npotential from a given candidate in which case it shall be upon ABC & Associates to \nensure that such a candidate, if employed is enrolled for an accounting & Audit course \npreferably a professional accounting course like CPA, ACCA, CMA. \n \nPositions in the firm will be filled transparently and on merit using open competition \nas the basis of selection."
+            ],
+            "reference_answer": "Based on the context provided, the main purpose of the Human Resource Manual described in the document is to guide staff regarding their rights and obligations. Specifically, the manual states that \"This manual is intended to guide staff regarding their rights and obligations. These guidelines shall be followed by all staff of ABC & Associates including the Senior Management Team and part time staff who may be employed by the firm from time to time.\"",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n2 \n \n2.2 Recruitment Procedures. \nThe nature of audit and consultancy is such that all is dependent of the quality of \nstaff. ABC & Associates shall strive to attract and retain the best talent within the \nfirm\u2019s financial capacity. \n2.2.1  Job Applications. \n \nAll candidates shall put their applications in writing. No staff shall be recruited \nthrough a \u201cback door\u201d approach. \n \nThe partners reserve the right to headhunt or advertise in an effort to obtain the best \naffordable talent in the labour market \u2013 In this case no applications may be necessary. \n2.2.2 Selection Tests. \n \nCandidates shall be subjected to relevant interviews and tests as determined by the \nManaging and staff partner. \n2.3 Staff Appointments. \n  \nAll staff shall be employed on a permanent basis , subject to successful annual  \nperformance appraisals. \nABC & Associates shall not recruit any person who did not score at least a credit in \nEnglish and Mathematics at O -Level and at least 2 principal passes at A -Level unless \nsuch a person is  to be employed in other positions that are n ot technical. Technical \npositions in this  context shall mean positions that shall require staff to offer audit, \nassurance, tax and any form of advisory services to clients. \n2.3.1  Acceptance. \na) Appointees shall accept the offer of employment within 14 days f rom the date of \noffer by filling and signing the Appointment Acceptance Form. \n \nb) The appointee shall report for duty not later than one month from the date of \nacceptance. \n2.4 Induction \nAll staff joining the firm shall be subjected to an induction to familiar ise them with \naudit and consultancy operations. All staff including non technical staff shall be \nrequired to gain at least the basic understanding of audit processes and general \noperations of an audit firm."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. Describe the key recruitment procedures outlined in the HR manual for ABC & Associates. Specifically, discuss the requirements for job applications, selection tests, and staff appointments.\n\nThis question would test the student's understanding of the recruitment process described in sections 2.2 and 2.3 of the HR manual, including the requirements for written job applications, selection tests, and permanent staff appointments.\n\n2. Explain the induction process for new staff joining ABC & Associates. What are the key objectives and requirements of the induction program as per the HR manual?\n\nThis question would assess the student's comprehension of the induction process detailed in section 2.4 of the HR manual, including the requirement for all staff to gain a basic understanding of audit processes and the general operations of an audit firm.\n\nThese two questions would allow the teacher/professor to evaluate the students' understanding of the recruitment and onboarding procedures outlined in the provided HR manual context.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "According to the HR manual, what is the minimum educational requirement for technical positions at ABC & Associates?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n2 \n \n2.2 Recruitment Procedures. \nThe nature of audit and consultancy is such that all is dependent of the quality of \nstaff. ABC & Associates shall strive to attract and retain the best talent within the \nfirm\u2019s financial capacity. \n2.2.1  Job Applications. \n \nAll candidates shall put their applications in writing. No staff shall be recruited \nthrough a \u201cback door\u201d approach. \n \nThe partners reserve the right to headhunt or advertise in an effort to obtain the best \naffordable talent in the labour market \u2013 In this case no applications may be necessary. \n2.2.2 Selection Tests. \n \nCandidates shall be subjected to relevant interviews and tests as determined by the \nManaging and staff partner. \n2.3 Staff Appointments. \n  \nAll staff shall be employed on a permanent basis , subject to successful annual  \nperformance appraisals. \nABC & Associates shall not recruit any person who did not score at least a credit in \nEnglish and Mathematics at O -Level and at least 2 principal passes at A -Level unless \nsuch a person is  to be employed in other positions that are n ot technical. Technical \npositions in this  context shall mean positions that shall require staff to offer audit, \nassurance, tax and any form of advisory services to clients. \n2.3.1  Acceptance. \na) Appointees shall accept the offer of employment within 14 days f rom the date of \noffer by filling and signing the Appointment Acceptance Form. \n \nb) The appointee shall report for duty not later than one month from the date of \nacceptance. \n2.4 Induction \nAll staff joining the firm shall be subjected to an induction to familiar ise them with \naudit and consultancy operations. All staff including non technical staff shall be \nrequired to gain at least the basic understanding of audit processes and general \noperations of an audit firm."
+            ],
+            "reference_answer": "According to the HR manual, the minimum educational requirement for technical positions at ABC & Associates is:\n\nABC & Associates shall not recruit any person who did not score at least a credit in English and Mathematics at O-Level and at least 2 principal passes at A-Level unless such a person is to be employed in other positions that are not technical. Technical positions in this context shall mean positions that shall require staff to offer audit, assurance, tax and any form of advisory services to clients.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n3 \n \n2.5 Continuous Professional Development. \nAll staff shall be expected to undergo C ontinuous Professional Development  (CPD) \nsessions organised by the firm. The firm\u2019s management may from time to time change \nthe mode of delivering CPD sessions to staff. This may involve having technical \npresentations at office, attending seminars and workshops organised by  professional \nbodies like ICPAU and ACCA. \n3.0 CONDITIONS OF APPOINTMENT. \n3.1 Probation. \nOn appointment to the firm, staff shall undergo a two months probationary period \nafter which the appointment will be confirmed after a positive performance appraisal. \n3.2 Termination. \na) The firm may at any time terminate the appointment  of any staff on probation on \naccount of unsatisfactory performance or conduct. \nb) On the termination of the services of an employee, they shall be given one month\u2019s \nnotice or one month\u2019s pay in lieu of notice. \n3.3 Confirmation. \nConfirmation shall be subject to satisfactory performance reports from the immediate \nsupervisor.  \nStaff shall be notified of their confirmation in writing. \n3.4 Use of firms resources. \nStaff will as much as possible exercise due responsibility while using the firm\u2019s \nresources in the course of performing their duties. The firm\u2019s assets and resources \nshall be used only to perform the firm\u2019s work. This may include computers, printers, \nphotocopier, stationery, telephone, internet connection; furniture etc. unauthorised \nuse of the firm\u2019s resources to gain personal benefit may result into a disciplinary \naction taken against the responsible staff. \nThe firm\u2019s management shall put an effort in enforcing efficiency and effectiveness in \nusage of the firm\u2019s resources. However, staff shall be expected to exercise natural \njudgment in ensuring their acts do not expose the firm to avoidable costs. \n4.0 STAFF DEVELOPMENT. \nThe firm shall plan, develop and implement human resource training and development \nprograms in accordance with set guidelines."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. Explain the firm's policy on Continuous Professional Development (CPD) for its staff. What are the different modes of CPD sessions mentioned in the manual?\n\nThis question tests the student's understanding of the firm's expectations around continuous professional development for its employees, as outlined in Section 2.5 of the HR manual.\n\n2. Describe the firm's policies and procedures regarding the termination and confirmation of employment. What are the key points related to probation, termination, and confirmation of employment?\n\nThis question covers the key aspects of the firm's employment conditions as described in Section 3.0 of the HR manual, including probation, termination, and confirmation of employment.\n\nThese questions assess the student's comprehension of the HR policies and procedures detailed in the provided context, focusing on the sections related to professional development and employment conditions.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "What is the expected duration of the probationary period for new staff members at the firm?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n3 \n \n2.5 Continuous Professional Development. \nAll staff shall be expected to undergo C ontinuous Professional Development  (CPD) \nsessions organised by the firm. The firm\u2019s management may from time to time change \nthe mode of delivering CPD sessions to staff. This may involve having technical \npresentations at office, attending seminars and workshops organised by  professional \nbodies like ICPAU and ACCA. \n3.0 CONDITIONS OF APPOINTMENT. \n3.1 Probation. \nOn appointment to the firm, staff shall undergo a two months probationary period \nafter which the appointment will be confirmed after a positive performance appraisal. \n3.2 Termination. \na) The firm may at any time terminate the appointment  of any staff on probation on \naccount of unsatisfactory performance or conduct. \nb) On the termination of the services of an employee, they shall be given one month\u2019s \nnotice or one month\u2019s pay in lieu of notice. \n3.3 Confirmation. \nConfirmation shall be subject to satisfactory performance reports from the immediate \nsupervisor.  \nStaff shall be notified of their confirmation in writing. \n3.4 Use of firms resources. \nStaff will as much as possible exercise due responsibility while using the firm\u2019s \nresources in the course of performing their duties. The firm\u2019s assets and resources \nshall be used only to perform the firm\u2019s work. This may include computers, printers, \nphotocopier, stationery, telephone, internet connection; furniture etc. unauthorised \nuse of the firm\u2019s resources to gain personal benefit may result into a disciplinary \naction taken against the responsible staff. \nThe firm\u2019s management shall put an effort in enforcing efficiency and effectiveness in \nusage of the firm\u2019s resources. However, staff shall be expected to exercise natural \njudgment in ensuring their acts do not expose the firm to avoidable costs. \n4.0 STAFF DEVELOPMENT. \nThe firm shall plan, develop and implement human resource training and development \nprograms in accordance with set guidelines."
+            ],
+            "reference_answer": "According to the context information provided, the probationary period for new staff members at the firm is two months. Specifically, the manual states that \"On appointment to the firm, staff shall undergo a two months probationary period after which the appointment will be confirmed after a positive performance appraisal.\"",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n4 \n \n4.1 STAFF CAREER DEVELOPMENT. \nIn cases where staff is sponsored staff for training, such staff will be required to sign a \nBond committing them to serve the firm for such a period as may be determined by \nthe partners. \n5.0 PERFORMANCE EVALUATION. \nThe performance appraisal guidelines have been prepared to guide the firm in \nappraising her staff to ensure that performance if appropriately measured against the \nset parameters. Its primary objective is to ensure that staff performance is improved \nat all times for the benefit of both the firm and the individual staff. The staff \nperformance guide shall also form a key basis for establishing the appropriate level of \ncompensation that is commensurate to performance. \n5.1 Performance Reviews. \nThere shall be periodic performance reviews for the purpose of monitoring staff \nperformance which will form the basi s for staff reward, development and other \nmanagement decisions. \n5.2 Annual Performance Review Cycle. \nThe performance of all staff shall be appraised twice a year at an interval of six  (06) \nmonths. \nThe Appraisal exercise shall be carried out in the first week following that in which \nthe appraisal cycle ends. This shall therefore be the first week of January and the \nfirst week of July to appraise staff performance for the cycles ending 31st Dec and \n30th June of every year respectively. \n5.3  Mode of Appraisal Exercise \nThe exercise shall be performed in form of a peer review by way of a round -table \ndiscussion of each of the individual\u2019s performance for the cycle ended. Each appraisee \nshall be given the o pportunity to present his argument if they think they have been \ngiven a lower score by the Peer Review Team (PRT). This implies that the appraisee \nshall also be part of the PRT."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. Describe the key elements of the performance appraisal process outlined in the HR manual. Specifically, address the following:\n   - Frequency of performance reviews\n   - Timing of the appraisal cycles\n   - Mode of conducting the appraisal exercise\n\n2. Explain the purpose and objectives of the performance appraisal system described in the HR manual. How does it aim to benefit both the firm and the individual staff members?\n\nThese questions would test the students' understanding of the performance evaluation process and its intended goals, as detailed in the provided HR manual excerpt.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "According to the HR manual, what is the primary objective of the staff performance appraisal guidelines?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n4 \n \n4.1 STAFF CAREER DEVELOPMENT. \nIn cases where staff is sponsored staff for training, such staff will be required to sign a \nBond committing them to serve the firm for such a period as may be determined by \nthe partners. \n5.0 PERFORMANCE EVALUATION. \nThe performance appraisal guidelines have been prepared to guide the firm in \nappraising her staff to ensure that performance if appropriately measured against the \nset parameters. Its primary objective is to ensure that staff performance is improved \nat all times for the benefit of both the firm and the individual staff. The staff \nperformance guide shall also form a key basis for establishing the appropriate level of \ncompensation that is commensurate to performance. \n5.1 Performance Reviews. \nThere shall be periodic performance reviews for the purpose of monitoring staff \nperformance which will form the basi s for staff reward, development and other \nmanagement decisions. \n5.2 Annual Performance Review Cycle. \nThe performance of all staff shall be appraised twice a year at an interval of six  (06) \nmonths. \nThe Appraisal exercise shall be carried out in the first week following that in which \nthe appraisal cycle ends. This shall therefore be the first week of January and the \nfirst week of July to appraise staff performance for the cycles ending 31st Dec and \n30th June of every year respectively. \n5.3  Mode of Appraisal Exercise \nThe exercise shall be performed in form of a peer review by way of a round -table \ndiscussion of each of the individual\u2019s performance for the cycle ended. Each appraisee \nshall be given the o pportunity to present his argument if they think they have been \ngiven a lower score by the Peer Review Team (PRT). This implies that the appraisee \nshall also be part of the PRT."
+            ],
+            "reference_answer": "According to the HR manual, the primary objective of the staff performance appraisal guidelines is to ensure that staff performance is improved at all times for the benefit of both the firm and the individual staff. The manual states that \"Its primary objective is to ensure that staff performance is improved at all times for the benefit of both the firm and the individual staff.\"",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n5 \n \n5.4 Management of Performance Appraisal Recommendations. \n \nThe firm shall imp lement the appraisal recommendations with a view to recorgnise \nand reward staff performance, and address their development needs. \n5.0 COMPENSATION PACKAGE. \n5.1 Salary Payments and Deductions. \nStaff remunerations shall be determined by the Partners from time to time any may be \nrevised upwards or down words depending on circumstances. Remuneration for a \nmember of the Senior Management Team \u2013 SMT (e.g. a partner) shall not be raised \nbasing on high er earnings for any period. If any SMT member draws more than their \nsalary from the business, it shall be treated as an accountable advance from him and if \nnot paid back will be offset from his salary. This is an effort to separate personal \nfinancial business from that of ABC & Associates and to provide for proper planning of \nexpansion. \n5.2 Overtime Allowance \nWhere staff are required to do any work overtime in any month, they shall be entitled \nto an overtime allowance equivalent to one and half times the ho urly salary for every \nhour spent on the job. \n6.0 FACILITATION. \nThe firm shall provide transport to employees on official duties outside their normal \nduty station. Where transport is not provided, any employee using his private vehicle \nto go for official duties shall be paid mileage at approved rates. \n7.0 DISCIPLINE. \nAll staff shall be expected to exhibit the highest degree of discipline and courtesy \nwhile conducting the firm\u2019s business. No staff shall be expected to involve themselves \nin any acts that cast doubt on their integrity.  \n7.1 Offences. \nMisdemeanors, misconduct and gross misconduct such as:  Drunkenness and drunken \ndriving; Smoking; Use of narcotic drugs like marijuana; Stealing; Fighting in and/or"
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. Describe the firm's policy on managing performance appraisal recommendations. What are the key elements of this policy?\n\nThis question tests the student's understanding of the firm's approach to implementing performance appraisal recommendations, as outlined in section 5.4 of the HR manual.\n\n2. Explain the firm's policies and procedures regarding staff compensation, including salary payments, deductions, and overtime allowance. \n\nThis question covers the key aspects of the firm's compensation package as detailed in sections 5.1 and 5.2 of the HR manual, including salary determination, deductions, and overtime pay.\n\nThese questions focus on extracting and demonstrating comprehension of the specific HR policies and procedures described in the provided context information from the sample HR manual.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "Explain the firm's policy on managing performance appraisal recommendations. What is the purpose of implementing these recommendations?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n5 \n \n5.4 Management of Performance Appraisal Recommendations. \n \nThe firm shall imp lement the appraisal recommendations with a view to recorgnise \nand reward staff performance, and address their development needs. \n5.0 COMPENSATION PACKAGE. \n5.1 Salary Payments and Deductions. \nStaff remunerations shall be determined by the Partners from time to time any may be \nrevised upwards or down words depending on circumstances. Remuneration for a \nmember of the Senior Management Team \u2013 SMT (e.g. a partner) shall not be raised \nbasing on high er earnings for any period. If any SMT member draws more than their \nsalary from the business, it shall be treated as an accountable advance from him and if \nnot paid back will be offset from his salary. This is an effort to separate personal \nfinancial business from that of ABC & Associates and to provide for proper planning of \nexpansion. \n5.2 Overtime Allowance \nWhere staff are required to do any work overtime in any month, they shall be entitled \nto an overtime allowance equivalent to one and half times the ho urly salary for every \nhour spent on the job. \n6.0 FACILITATION. \nThe firm shall provide transport to employees on official duties outside their normal \nduty station. Where transport is not provided, any employee using his private vehicle \nto go for official duties shall be paid mileage at approved rates. \n7.0 DISCIPLINE. \nAll staff shall be expected to exhibit the highest degree of discipline and courtesy \nwhile conducting the firm\u2019s business. No staff shall be expected to involve themselves \nin any acts that cast doubt on their integrity.  \n7.1 Offences. \nMisdemeanors, misconduct and gross misconduct such as:  Drunkenness and drunken \ndriving; Smoking; Use of narcotic drugs like marijuana; Stealing; Fighting in and/or"
+            ],
+            "reference_answer": "Based on the context provided, the firm's policy on managing performance appraisal recommendations is as follows:\n\nThe firm shall implement the appraisal recommendations with the purpose of:\n\n1. Recognizing and rewarding staff performance: The firm aims to use the performance appraisal recommendations to identify and acknowledge good performance by employees.\n\n2. Addressing staff development needs: The firm intends to utilize the appraisal recommendations to identify areas where employees need further development and provide the necessary support.\n\nThe key points are that the firm is committed to acting on the performance appraisal recommendations in order to both reward high-performing staff and address their training and development needs. The overall purpose is to manage employee performance and growth in a structured manner.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n6 \n \noutside office; Persistent late coming; Diverting the firm\u2019s  funds to personal use \nwithout authorisation; Using the firm\u2019s stationery including headed paper, stamps, \nseals and emblems and such items without authorisation especially with an intent to \ngain personal gain; Forgery of documents including acade mic documents, \naccountability records; and any other acts that are contrary to the ICPAU\u2019s \nProfessional Code of Conduct shall constitute offences and shall make the staff liable \nto disciplinary action as specified in section 7.3 of this manual. \n7.2 Disciplinary Procedures. \nWhere performance of a staff is unsatisfactory, they will be given an opportunity to \nrespond to the allegations. \nStaff alleged to have committed offenses categorized as gross misconduct shall be \nsuspended on half pay, pending outcome of the investigations. \n7.3 Disciplinary Action. \nStaff found to have committed offences shall be subject to one of the following \ndisciplinary actions: Caution; written warning; suspension; loss of salary; demotion; or \ndismissal. \n8.0 LEAVE \n8.1 Annual Leave. \nAll employees shall be entitled to thirty working days.  Leave entitlement for staff \nleaving the firm shall be computed on prorate basis. \n8.2 Maternity Leave. \nFemale staff shall be entitled to maternity leave on full pay for a maximum period of \nsixty working days of which at least four weeks shall follow child birth. Male staff shall \nbe entitled to paternity leave of 5 working days once in every year. \n8.3 Sick Leave. \nStaff shall be entitled to sick leave  not exceeding one month, with full pay  on \npresentation of an appropriate medical report from a qualified medical practitioner. \n8.4 Compassionate leave. \nIn cases of personal difficulty, staff shall apply and be granted leave not exceeding 5 \nworking days."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. Identify and explain three examples of gross misconduct that could lead to disciplinary action according to the HR manual.\n\n2. Describe the different types of leave entitlements outlined in the HR manual, including the duration and key details for each type of leave.\n\nThese questions would test the students' understanding of the key disciplinary policies and leave policies covered in the HR manual excerpt. The first question asks students to demonstrate their comprehension of the types of misconduct that are considered serious enough to warrant disciplinary action. The second question requires students to recall and summarize the various leave entitlements provided to employees as per the manual. These types of questions would assess the students' ability to extract and apply the relevant information from the given context.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "According to the HR manual, what are some examples of offenses that can lead to disciplinary action against staff?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n6 \n \noutside office; Persistent late coming; Diverting the firm\u2019s  funds to personal use \nwithout authorisation; Using the firm\u2019s stationery including headed paper, stamps, \nseals and emblems and such items without authorisation especially with an intent to \ngain personal gain; Forgery of documents including acade mic documents, \naccountability records; and any other acts that are contrary to the ICPAU\u2019s \nProfessional Code of Conduct shall constitute offences and shall make the staff liable \nto disciplinary action as specified in section 7.3 of this manual. \n7.2 Disciplinary Procedures. \nWhere performance of a staff is unsatisfactory, they will be given an opportunity to \nrespond to the allegations. \nStaff alleged to have committed offenses categorized as gross misconduct shall be \nsuspended on half pay, pending outcome of the investigations. \n7.3 Disciplinary Action. \nStaff found to have committed offences shall be subject to one of the following \ndisciplinary actions: Caution; written warning; suspension; loss of salary; demotion; or \ndismissal. \n8.0 LEAVE \n8.1 Annual Leave. \nAll employees shall be entitled to thirty working days.  Leave entitlement for staff \nleaving the firm shall be computed on prorate basis. \n8.2 Maternity Leave. \nFemale staff shall be entitled to maternity leave on full pay for a maximum period of \nsixty working days of which at least four weeks shall follow child birth. Male staff shall \nbe entitled to paternity leave of 5 working days once in every year. \n8.3 Sick Leave. \nStaff shall be entitled to sick leave  not exceeding one month, with full pay  on \npresentation of an appropriate medical report from a qualified medical practitioner. \n8.4 Compassionate leave. \nIn cases of personal difficulty, staff shall apply and be granted leave not exceeding 5 \nworking days."
+            ],
+            "reference_answer": "According to the HR manual, some examples of offenses that can lead to disciplinary action against staff include:\n\n1. Persistent late coming\n2. Diverting the firm's funds to personal use without authorization\n3. Using the firm's stationery, including headed paper, stamps, seals, and emblems, without authorization, especially with the intent to gain personal benefit\n4. Forgery of documents, including academic documents and accountability records\n5. Any other acts that are contrary to the ICPAU's Professional Code of Conduct\n\nThe manual states that these offenses shall constitute offenses and make the staff liable to disciplinary action as specified in section 7.3 of the manual.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "As a teacher/professor, I would set the following two questions for an upcoming quiz/examination based on the provided context information:",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n7 \n \n9.0 TERMINATION OF SERVICE. \n9.1 Notice Periods. \nA one month written notice or payment in lieu of notice shall be given by staff or the \nfirm on termination of service. \n9.2 Handing over on termination. \nBefore staff leave the employment of the firm, they shall be required to hand over all \nthe firm property and assignments in their possession to their immediate supervisor. \n10.0  SAFETY AND SECURITY. \nAll staff are encouraged to be security cautious at all times whether at office or \noutside office. \nStaff are advised to alert concerned authorities e.g. police promptly when in situations \nthat jeopardize their security. Such situations may include, identifying suspicious \nitems especially those that are abandoned. \nAll staff should always be cautious not to leave any electric gadgets on when leaving \noffice. Office lights, computers, printers, the Office TV and all electric appliances \nshall all be switched when leaving office. \nThe office assistant shall do cleaning works while putting on office gloves. \n10.1 Compensation. \nStaff who suffer injury in the ordinary  course of the firm\u2019s business shall qualify for \ncompensation in line with the Workers\u2019 compensation Act, 2000."
+            ],
+            "reference_answer": "Based on the context information provided, here are two potential quiz/examination questions a teacher/professor could set:\n\n1. What is the notice period required for termination of service, as per the HR manual?\n\n2. What safety and security measures are employees expected to follow, according to the HR manual?\n\nThe first question tests the student's understanding of the termination of service policies outlined in the manual, specifically the notice period requirement. \n\nThe second question assesses the student's knowledge of the safety and security guidelines that employees are expected to adhere to, such as being security-conscious, alerting authorities in case of security threats, and ensuring electrical appliances are switched off before leaving the office.\n\nThese questions cover key information from the provided context, which includes details about termination of service and safety/security policies in the sample HR manual.",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        },
+        {
+            "query": "According to the document, what is the notice period required for termination of service for staff or the firm?",
+            "query_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            },
+            "reference_contexts": [
+                "Sample Human Resource Manual   [Year] \n \n7 \n \n9.0 TERMINATION OF SERVICE. \n9.1 Notice Periods. \nA one month written notice or payment in lieu of notice shall be given by staff or the \nfirm on termination of service. \n9.2 Handing over on termination. \nBefore staff leave the employment of the firm, they shall be required to hand over all \nthe firm property and assignments in their possession to their immediate supervisor. \n10.0  SAFETY AND SECURITY. \nAll staff are encouraged to be security cautious at all times whether at office or \noutside office. \nStaff are advised to alert concerned authorities e.g. police promptly when in situations \nthat jeopardize their security. Such situations may include, identifying suspicious \nitems especially those that are abandoned. \nAll staff should always be cautious not to leave any electric gadgets on when leaving \noffice. Office lights, computers, printers, the Office TV and all electric appliances \nshall all be switched when leaving office. \nThe office assistant shall do cleaning works while putting on office gloves. \n10.1 Compensation. \nStaff who suffer injury in the ordinary  course of the firm\u2019s business shall qualify for \ncompensation in line with the Workers\u2019 compensation Act, 2000."
+            ],
+            "reference_answer": "According to the document, the notice period required for termination of service for staff or the firm is one month. Specifically, Section 9.1 states \"A one month written notice or payment in lieu of notice shall be given by staff or the firm on termination of service.\"",
+            "reference_answer_by": {
+                "model_name": "anthropic.claude-3-haiku-20240307-v1:0",
+                "type": "ai"
+            }
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+llm:
+  provider: "ollama"
+  model: "llama3.2:latest"
+  temperature: 0.1
+  max_tokens: 1000
+
+storage:
+  minio_endpoint: "localhost:9000"
+  minio_access_key: "minioadmin"
+  minio_secret_key: "minioadmin"
+  bucket_name: "football-data"
+
+embeddings:
+  model_name: "sentence-transformers/all-mpnet-base-v2"
+  device: "cpu"
+
+vector_store:
+  collection_name: "football_matches"
+  persist_directory: "./data/chroma"
+
+scrapers:
+  whoscored:
+    base_url: "https://www.whoscored.com"
+    rate_limit: 1.0
+  fotmob:
+    base_url: "https://www.fotmob.com"
+    rate_limit: 1.0
+
+leagues:
+  - name: "eredivisie"
+    whoscored_id: "13"
+  - name: "championship" 
+    whoscored_id: "18"

@@ -1,0 +1,13 @@
+job:
+  KIND: MonitoringEvalJob
+  vector_store_path: ""http://localhost:6333"
+  registry_model_name: "rag-chatbot"
+  qa_dataset_path: "${tests_path:}/data/datasets/rag_dataset.csv"
+  alias: "champion"
+
+  metric_tresholds:
+    flesch_kincaid_grade_level_mean: 5.1 # bigger than
+    ari_grade_level_mean: 4.1 # bigger than
+
+  trace_experiment_name: "rag_chatbot_experiment"
+  monitoring_experiment_name: "monitoring"
