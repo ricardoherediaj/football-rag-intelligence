@@ -19,6 +19,7 @@ dependencies = [
     "plotly>=5.17.0",
     "matplotlib>=3.7.0",
     "invoke>=2.2.0",
+    "ruff>=0.12.12",
 ]
 
 [project.scripts]
