@@ -10,9 +10,6 @@
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
-.terraform.*
-.terraform
-terraform.tfstate
 
 # Editor
 /.idea/
@@ -31,6 +28,7 @@ terraform.tfstate
 /qdrant_data/*
 qa_dataset.csv
 qa_dataset.json
+*pyproject.toml.backup
 
 # Python
 *.py[cod]
