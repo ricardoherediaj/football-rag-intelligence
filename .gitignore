@@ -25,10 +25,13 @@
 /mlruns/*
 /outputs/*
 !**/.gitkeep
-/qdrant_data/*
-qa_dataset.csv
-qa_dataset.json
+/notebooks/*
 *pyproject.toml.backup
+CLAUDE.md
+
+# Docker data volumes
+/minio_data/*
+/chroma_data/*
 
 # Python
 *.py[cod]
