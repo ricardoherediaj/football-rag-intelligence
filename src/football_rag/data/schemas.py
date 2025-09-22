@@ -5,8 +5,36 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 
+class WhoScoredMatchEvent(BaseModel):
+    """Schema for WhoScored match events (raw format)."""
+    
+    id: int = Field(..., description="Event ID")
+    event_id: int = Field(..., description="Event sequence ID")
+    minute: int = Field(..., description="Match minute")
+    second: Optional[float] = Field(None, description="Second within minute")
+    team_id: int = Field(..., description="Team identifier")
+    player_id: int = Field(..., description="Player identifier")
+    x: float = Field(..., description="X coordinate (0-100)")
+    y: float = Field(..., description="Y coordinate (0-100)")
+    end_x: Optional[float] = Field(None, description="End X coordinate")
+    end_y: Optional[float] = Field(None, description="End Y coordinate")
+    qualifiers: List[dict] = Field(..., description="Event qualifiers")
+    is_touch: bool = Field(..., description="Is ball touch event")
+    blocked_x: Optional[float] = Field(None, description="Blocked X coordinate")
+    blocked_y: Optional[float] = Field(None, description="Blocked Y coordinate")
+    goal_mouth_z: Optional[float] = Field(None, description="Goal mouth Z coordinate")
+    goal_mouth_y: Optional[float] = Field(None, description="Goal mouth Y coordinate")
+    is_shot: bool = Field(..., description="Is shot event")
+    card_type: bool = Field(..., description="Card type")
+    is_goal: bool = Field(..., description="Is goal event")
+    type_display_name: str = Field(..., description="Event type display name")
+    outcome_type_display_name: str = Field(..., description="Outcome type display name")
+    period_display_name: str = Field(..., description="Period display name")
+    match_url: str = Field(..., description="Source match URL")
+
+
 class MatchEvent(BaseModel):
-    """Schema for football match events."""
+    """Schema for football match events (normalized format)."""
     
     match_id: str = Field(..., description="Unique match identifier")
     event_id: str = Field(..., description="Unique event identifier")
