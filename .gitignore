@@ -33,6 +33,10 @@ CLAUDE.md
 /minio_data/*
 /chroma_data/*
 
+# Data artifacts (scraped data, models, etc.)
+/data/raw/*
+/data/processed/*
+
 # Python
 *.py[cod]
 __pycache__/
