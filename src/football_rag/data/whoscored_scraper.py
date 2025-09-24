@@ -5,16 +5,49 @@ Simple WhoScored scraper based on working notebook code.
 import json
 import time
 import pandas as pd
+import re
+import argparse
 from pathlib import Path
 from typing import Optional, List
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from .schemas import WhoScoredMatchEvent
+from pydantic import BaseModel
+
+import sys
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+from src.football_rag.storage.minio_client import MinIOClient
 
 
-def scrape_single_match(url: str, driver) -> Optional[pd.DataFrame]:
+class MatchEvent(BaseModel):
+    id: int
+    event_id: int
+    minute: int
+    second: Optional[float] = None
+    team_id: int
+    player_id: int
+    x: float
+    y: float
+    end_x: Optional[float] = None
+    end_y: Optional[float] = None
+    qualifiers: List[dict]
+    is_touch: bool
+    blocked_x: Optional[float] = None
+    blocked_y: Optional[float] = None
+    goal_mouth_z: Optional[float] = None
+    goal_mouth_y: Optional[float] = None
+    is_shot: bool
+    card_type: bool
+    is_goal: bool
+    type_display_name: str
+    outcome_type_display_name: str
+    period_display_name: str
+    match_url: str
+
+
+def scrape_single_match(url, driver):
     """Scrape match events from a single WhoScored URL"""
     print(f"Scraping: {url}")
     
@@ -94,29 +127,25 @@ def scrape_single_match(url: str, driver) -> Optional[pd.DataFrame]:
     df['is_goal'] = df['is_goal'].fillna(False)
     df['is_shot'] = df['is_shot'].fillna(False)
     
-    # Add match URL
+    # Add match URL to each row
     df['match_url'] = url
     
     # Validate with Pydantic
     validated_events = []
     for _, row in df.iterrows():
         try:
-            event = WhoScoredMatchEvent(**row.to_dict())
+            event = MatchEvent(**row.to_dict())
             validated_events.append(event.model_dump())
         except Exception as e:
             print(f"Validation error: {e}")
     
-    if validated_events:
-        validated_df = pd.DataFrame(validated_events)
-        print(f'✅ Successfully scraped {len(validated_df)} events')
-        return validated_df
-    else:
-        print("❌ No valid events after validation")
-        return None
+    validated_df = pd.DataFrame(validated_events)
+    print(f'✅ Successfully scraped {len(validated_df)} events')
+    return validated_df
 
 
-def collect_all_season_matches(driver) -> List[str]:
-    """Navigate through calendar to collect all season match URLs"""
+def collect_all_season_matches(driver):
+    """Navigate through calendar to collect all season matches"""
     fixtures_url = "https://www.whoscored.com/Regions/155/Tournaments/13/Seasons/10752/Stages/24542/Fixtures/Netherlands-Eredivisie-2025-2026"
     driver.get(fixtures_url)
     time.sleep(5)
@@ -129,7 +158,7 @@ def collect_all_season_matches(driver) -> List[str]:
             prev_button = driver.find_element(By.ID, "dayChangeBtn-prev")
             prev_button.click()
             time.sleep(2)
-        except:
+        except Exception:
             break
     
     # Go forward collecting all finished matches
@@ -148,10 +177,52 @@ def collect_all_season_matches(driver) -> List[str]:
             next_button = driver.find_element(By.ID, "dayChangeBtn-next")
             next_button.click()
             time.sleep(2)
-        except:
+        except Exception:
             break
     
     return list(all_match_urls)
+
+
+def collect_and_scrape_complete_season(driver):
+    """Complete season collection with detailed progress output"""
+    
+    print("Step 1: Collecting all match URLs...")
+    all_match_urls = collect_all_season_matches(driver)
+    print(f"Found {len(all_match_urls)} finished matches\n")
+    
+    if not all_match_urls:
+        print("No matches found. Exiting.")
+        return None
+    
+    print("Step 2: Scraping match data...")
+    all_match_data = []
+    
+    for i, url in enumerate(all_match_urls, 1):
+        print(f"Scraping match {i}/{len(all_match_urls)}")
+        print(f"Scraping: {url}")
+        
+        try:
+            match_df = scrape_single_match(url, driver)
+            
+            if match_df is not None:
+                all_match_data.append(match_df)
+                print(f"✅ Successfully scraped {len(match_df)} events\n")
+            else:
+                print("❌ No data returned\n")
+                
+        except Exception as e:
+            print(f"❌ Error scraping {url}: {str(e)}\n")
+            continue
+        
+        time.sleep(2)
+    
+    if all_match_data:
+        combined_df = pd.concat(all_match_data, ignore_index=True)
+        print(f"✅ Successfully scraped {len(all_match_data)} matches with {len(combined_df)} total events")
+        return combined_df
+    else:
+        print("❌ No match data was scraped")
+        return None
 
 
 def scrape_complete_season():
@@ -159,37 +230,9 @@ def scrape_complete_season():
     driver = webdriver.Chrome()
     
     try:
-        print("Collecting all match URLs...")
-        all_match_urls = collect_all_season_matches(driver)
-        print(f"Found {len(all_match_urls)} finished matches")
-        
-        if not all_match_urls:
-            print("No matches found")
-            return None
-        
-        print("Scraping match data...")
-        all_match_data = []
-        
-        for i, url in enumerate(all_match_urls, 1):
-            print(f"Scraping match {i}/{len(all_match_urls)}")
-            
-            try:
-                match_df = scrape_single_match(url, driver)
-                if match_df is not None:
-                    all_match_data.append(match_df)
-            except Exception as e:
-                print(f"Error scraping {url}: {str(e)}")
-                continue
-            
-            time.sleep(2)
-        
-        if all_match_data:
-            combined_df = pd.concat(all_match_data, ignore_index=True)
-            print(f"✅ Successfully scraped {len(all_match_data)} matches with {len(combined_df)} total events")
-            return combined_df
-        else:
-            print("No match data was scraped")
-            return None
+        print("Starting complete season collection...\n")
+        season_data = collect_and_scrape_complete_season(driver)
+        return season_data
     
     finally:
         driver.quit()
@@ -215,7 +258,7 @@ def save_to_minio(df: pd.DataFrame, filename: str):
         bucket_name = 'football-data'
         try:
             minio_client.head_bucket(Bucket=bucket_name)
-        except:
+        except Exception:
             minio_client.create_bucket(Bucket=bucket_name)
             print(f"Created bucket: {bucket_name}")
         
@@ -250,3 +293,7 @@ if __name__ == "__main__":
         
         # Save to MinIO
         save_to_minio(season_data, 'eredivisie_2025_2026_whoscored.csv')
+        
+        print("\nFinal Results:")
+        print(f"- Total events: {len(season_data)}")
+        print(f"- Unique matches: {season_data['match_url'].nunique()}")
