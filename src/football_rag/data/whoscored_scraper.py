@@ -144,50 +144,82 @@ def scrape_single_match(url, driver):
     return validated_df
 
 
-def collect_all_season_matches(driver):
-    """Navigate through calendar to collect all season matches"""
+def extract_match_id(match_url: str) -> str:
+    """Extract match ID from WhoScored URL.
+
+    Args:
+        match_url: Full WhoScored match URL
+
+    Returns:
+        Match ID as string
+    """
+    match = re.search(r'/matches/(\d+)/', match_url)
+    if match:
+        return match.group(1)
+    raise ValueError(f"Could not extract match ID from URL: {match_url}")
+
+
+def collect_all_season_matches(driver, exclude_match_ids: Optional[set] = None):
+    """Navigate through calendar to collect all season matches.
+
+    Args:
+        driver: Selenium WebDriver instance
+        exclude_match_ids: Set of match IDs to exclude (already scraped)
+
+    Returns:
+        List of match URLs to scrape
+    """
     fixtures_url = "https://www.whoscored.com/Regions/155/Tournaments/13/Seasons/10752/Stages/24542/Fixtures/Netherlands-Eredivisie-2025-2026"
     driver.get(fixtures_url)
     time.sleep(5)
-    
+
     all_match_urls = set()
-    
+    exclude_match_ids = exclude_match_ids or set()
+
     # Go back to August
-    for i in range(15):
+    for _ in range(15):
         try:
             prev_button = driver.find_element(By.ID, "dayChangeBtn-prev")
             prev_button.click()
             time.sleep(2)
         except Exception:
             break
-    
+
     # Go forward collecting all finished matches
-    for period in range(30):
+    for _ in range(30):
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
+
         containers = soup.find_all('div', class_='Match-module_match__XlKTY')
         for container in containers:
             if container.find('span', class_='Match-module_FT__2rmH7'):
                 score_link = container.find('a', class_='Match-module_score__5Ghhj')
                 if score_link and score_link.get('href'):
                     match_url = f"https://www.whoscored.com{score_link['href']}"
-                    all_match_urls.add(match_url)
-        
+                    match_id = extract_match_id(match_url)
+
+                    if match_id not in exclude_match_ids:
+                        all_match_urls.add(match_url)
+
         try:
             next_button = driver.find_element(By.ID, "dayChangeBtn-next")
             next_button.click()
             time.sleep(2)
         except Exception:
             break
-    
+
     return list(all_match_urls)
 
 
-def collect_and_scrape_complete_season(driver):
-    """Complete season collection with detailed progress output"""
-    
+def collect_and_scrape_complete_season(driver, exclude_match_ids: Optional[set] = None):
+    """Complete season collection with detailed progress output.
+
+    Args:
+        driver: Selenium WebDriver instance
+        exclude_match_ids: Set of match IDs to exclude (already scraped)
+    """
+
     print("Step 1: Collecting all match URLs...")
-    all_match_urls = collect_all_season_matches(driver)
+    all_match_urls = collect_all_season_matches(driver, exclude_match_ids)
     print(f"Found {len(all_match_urls)} finished matches\n")
     
     if not all_match_urls:
@@ -225,75 +257,112 @@ def collect_and_scrape_complete_season(driver):
         return None
 
 
-def scrape_complete_season():
-    """Main function to scrape complete season"""
+def scrape_complete_season(mode: str = "full", league: str = "eredivisie", season: str = "2025-2026"):
+    """Main function to scrape complete season.
+
+    Args:
+        mode: 'full' for complete scrape, 'incremental' for only new matches
+        league: League name (default: eredivisie)
+        season: Season identifier (default: 2025-2026)
+
+    Returns:
+        DataFrame with scraped match data
+    """
     driver = webdriver.Chrome()
-    
+
     try:
-        print("Starting complete season collection...\n")
-        season_data = collect_and_scrape_complete_season(driver)
+        exclude_match_ids = set()
+
+        if mode == "incremental":
+            print("🔄 Incremental mode: Checking for already scraped matches...")
+            minio_client = MinIOClient()
+            prefix = f"whoscored/{league}/{season}/"
+            exclude_match_ids = minio_client.get_scraped_match_ids(prefix)
+            print(f"Found {len(exclude_match_ids)} already scraped matches\n")
+
+        print(f"Starting {mode} season collection...\n")
+        season_data = collect_and_scrape_complete_season(driver, exclude_match_ids)
         return season_data
-    
+
     finally:
         driver.quit()
 
 
-def save_to_minio(df: pd.DataFrame, filename: str):
-    """Save dataframe to MinIO bucket"""
-    try:
-        import boto3
-        from botocore.client import Config
-        
-        # MinIO client configuration
-        minio_client = boto3.client(
-            's3',
-            endpoint_url='http://localhost:9000',
-            aws_access_key_id='minioadmin',
-            aws_secret_access_key='minioadmin',
-            config=Config(signature_version='s3v4'),
-            region_name='us-east-1'
-        )
-        
-        # Create bucket if it doesn't exist
-        bucket_name = 'football-data'
+def save_matches_to_minio(matches_df: pd.DataFrame, league: str = "eredivisie", season: str = "2025-2026") -> int:
+    """Save individual matches to MinIO as JSON files.
+
+    Args:
+        matches_df: DataFrame containing all match events
+        league: League name (default: eredivisie)
+        season: Season identifier (default: 2025-2026)
+
+    Returns:
+        Number of matches uploaded successfully
+    """
+    minio_client = MinIOClient()
+    prefix = f"whoscored/{league}/{season}/"
+
+    uploaded_count = 0
+
+    for match_url in matches_df['match_url'].unique():
+        match_id = extract_match_id(match_url)
+
+        if minio_client.match_exists(prefix, match_id):
+            print(f"⏭️  Match {match_id} already exists in MinIO, skipping...")
+            continue
+
+        match_events = matches_df[matches_df['match_url'] == match_url].to_dict(orient='records')
+
+        match_data = {
+            'match_id': match_id,
+            'match_url': match_url,
+            'league': league,
+            'season': season,
+            'events': match_events
+        }
+
+        object_name = f"{prefix}match_{match_id}.json"
+
         try:
-            minio_client.head_bucket(Bucket=bucket_name)
-        except Exception:
-            minio_client.create_bucket(Bucket=bucket_name)
-            print(f"Created bucket: {bucket_name}")
-        
-        # Save CSV to MinIO
-        csv_buffer = df.to_csv(index=False)
-        minio_client.put_object(
-            Bucket=bucket_name,
-            Key=f"raw/{filename}",
-            Body=csv_buffer.encode('utf-8'),
-            ContentType='text/csv'
-        )
-        
-        print(f"✅ Saved to MinIO: s3://{bucket_name}/raw/{filename}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to save to MinIO: {e}")
-        return False
+            minio_client.upload_json(object_name, match_data)
+            print(f"✅ Uploaded match {match_id} to MinIO ({len(match_events)} events)")
+            uploaded_count += 1
+        except Exception as e:
+            print(f"❌ Failed to upload match {match_id}: {e}")
+
+    return uploaded_count
 
 
 if __name__ == "__main__":
-    season_data = scrape_complete_season()
-    
-    if season_data is not None:
+    parser = argparse.ArgumentParser(description="WhoScored scraper for Eredivisie matches")
+    parser.add_argument(
+        "--mode",
+        choices=["full", "incremental"],
+        default="incremental",
+        help="Scraping mode: 'full' for complete scrape, 'incremental' for only new matches"
+    )
+    parser.add_argument("--league", default="eredivisie", help="League name")
+    parser.add_argument("--season", default="2025-2026", help="Season identifier")
+
+    args = parser.parse_args()
+
+    season_data = scrape_complete_season(mode=args.mode, league=args.league, season=args.season)
+
+    if season_data is not None and len(season_data) > 0:
         # Ensure data directory exists
         Path("data/raw").mkdir(parents=True, exist_ok=True)
-        
-        # Save to local CSV
-        local_file = 'data/raw/eredivisie_2025_2026_whoscored.csv'
+
+        # Save to local CSV (backup)
+        local_file = f'data/raw/{args.league}_{args.season.replace("-", "_")}_whoscored.csv'
         season_data.to_csv(local_file, index=False)
         print(f"✅ Saved locally: {local_file}")
-        
+
         # Save to MinIO
-        save_to_minio(season_data, 'eredivisie_2025_2026_whoscored.csv')
-        
-        print("\nFinal Results:")
-        print(f"- Total events: {len(season_data)}")
-        print(f"- Unique matches: {season_data['match_url'].nunique()}")
+        uploaded = save_matches_to_minio(season_data, league=args.league, season=args.season)
+
+        print("\n📊 Final Results:")
+        print(f"- Total events scraped: {len(season_data)}")
+        print(f"- Unique matches scraped: {season_data['match_url'].nunique()}")
+        print(f"- Matches uploaded to MinIO: {uploaded}")
+    else:
+        print("\n⚠️  No new matches to scrape")
