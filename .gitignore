@@ -40,3 +40,4 @@ CLAUDE.md
 # Python
 *.py[cod]
 __pycache__/
+.claude/
