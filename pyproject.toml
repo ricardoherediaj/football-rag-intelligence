@@ -25,6 +25,8 @@ dependencies = [
     "chromadb>=0.4.0",
     "minio>=7.1.0",
     "pyarrow>=14.0.0",
+    "sentence-transformers>=2.2.0",
+    "torch>=2.0.0,<2.3.0",
 ]
 
 [project.scripts]
@@ -36,3 +38,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/football_rag"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
