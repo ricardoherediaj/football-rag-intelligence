@@ -1,6 +1,6 @@
 # Football RAG Intelligence - Development Commands
 
-.PHONY: help test-scrapers run-scrapers run-whoscored run-fotmob setup lint format
+.PHONY: help test-scrapers run-scrapers run-whoscored run-fotmob scrape-whoscored scrape-whoscored-full scrape-whoscored-incremental scrape-fotmob scrape-fotmob-full scrape-fotmob-incremental setup lint format
 
 help:  ## Show this help message
 	@echo "Available commands:"
@@ -33,8 +33,24 @@ run-fotmob:  ## Test Fotmob scraper with test match
 	print(f'Scraped {len(df)} shots' if df is not None else 'Scraping failed')"
 
 # WhoScored scraper commands
-scrape-whoscored:  ## Run WhoScored scraper for complete season
+scrape-whoscored:  ## Run WhoScored scraper (incremental mode by default)
 	uv run python -m football_rag.data.whoscored_scraper
+
+scrape-whoscored-full:  ## Run WhoScored scraper for complete season
+	uv run python -m football_rag.data.whoscored_scraper --mode full
+
+scrape-whoscored-incremental:  ## Run WhoScored scraper for new matches only
+	uv run python -m football_rag.data.whoscored_scraper --mode incremental
+
+# Fotmob scraper commands
+scrape-fotmob:  ## Run Fotmob scraper (incremental mode by default)
+	uv run python -m football_rag.data.fotmob_scraper
+
+scrape-fotmob-full:  ## Run Fotmob scraper for complete season
+	uv run python -m football_rag.data.fotmob_scraper --mode full
+
+scrape-fotmob-incremental:  ## Run Fotmob scraper for new matches only
+	uv run python -m football_rag.data.fotmob_scraper --mode incremental
 
 # Development setup
 setup:  ## Install dependencies and setup development environment
