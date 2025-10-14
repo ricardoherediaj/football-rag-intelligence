@@ -29,13 +29,18 @@
 *pyproject.toml.backup
 CLAUDE.md
 
-# Docker data volumes
-/minio_data/*
-/chroma_data/*
+# Docker data volumes (now in data/ directory)
+/data/minio/*
+/data/chroma/*
+/data/ollama/*
 
 # Data artifacts (scraped data, models, etc.)
 /data/raw/*
 /data/processed/*
+/data/datasets/*
+
+# Keep .gitkeep files
+!data/**/.gitkeep
 
 # Python
 *.py[cod]

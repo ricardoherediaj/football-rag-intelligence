@@ -15,7 +15,7 @@ dependencies = [
     "requests>=2.31.0",
     "aiohttp>=3.9.0",
     "pandas>=2.0.0",
-    "numpy>=1.24.0",
+    "numpy<2",
     "plotly>=5.17.0",
     "matplotlib>=3.7.0",
     "invoke>=2.2.0",
@@ -27,6 +27,10 @@ dependencies = [
     "pyarrow>=14.0.0",
     "sentence-transformers>=2.2.0",
     "torch>=2.0.0,<2.3.0",
+    "llama-index>=0.14.4",
+    "llama-index-vector-stores-chroma>=0.5.3",
+    "llama-index-llms-ollama>=0.8.0",
+    "llama-index-embeddings-huggingface>=0.6.1",
 ]
 
 [project.scripts]
