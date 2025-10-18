@@ -35,10 +35,7 @@ class Settings(BaseSettings):
     """Main application settings."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
 
     # Database Settings
@@ -62,6 +59,13 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
 
+    # Prompt and runtime defaults
+    prompt_profile: str = "profile_football_v1"
+    llm_timeout_ms: int = 120000
+    llm_retries: int = 2
+    cache_ttl_s: int = 120
+    default_top_k: int = 4
+
     @property
     def database(self) -> DatabaseSettings:
         return DatabaseSettings(
@@ -69,7 +73,7 @@ class Settings(BaseSettings):
             minio_access_key=self.minio_access_key,
             minio_secret_key=self.minio_secret_key,
             chroma_host=self.chroma_host,
-            chroma_port=self.chroma_port
+            chroma_port=self.chroma_port,
         )
 
     @property
@@ -78,14 +82,13 @@ class Settings(BaseSettings):
             embedding_model=self.embedding_model,
             llm_model=self.llm_model,
             max_context_length=self.max_context_length,
-            temperature=self.temperature
+            temperature=self.temperature,
         )
 
     @property
     def mlops(self) -> MLOpsSettings:
         return MLOpsSettings(
-            mlflow_tracking_uri=self.mlflow_tracking_uri,
-            opik_api_key=self.opik_api_key
+            mlflow_tracking_uri=self.mlflow_tracking_uri, opik_api_key=self.opik_api_key
         )
 
 
