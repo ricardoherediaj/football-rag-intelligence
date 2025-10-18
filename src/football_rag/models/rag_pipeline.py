@@ -1,155 +1,159 @@
-"""RAG pipeline with LlamaIndex orchestration."""
+"""Simplified RAG pipeline with multi-provider LLM support (no LlamaIndex)."""
 
 import logging
 import re
-from typing import List, Dict, Any
-
-from llama_index.core import VectorStoreIndex, Settings as LlamaSettings
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.llms.ollama import Ollama
-import chromadb
+import hashlib
+import pickle
+from typing import List, Dict, Any, Optional
+from pathlib import Path
 
 from football_rag.config.settings import settings
-from football_rag.models.custom_embeddings import VectorStoreEmbedding
+from football_rag.storage.vector_store import VectorStore
+from football_rag.llm.generate import generate_with_llm
+from football_rag.core.prompts_loader import load_prompt
 
 logger = logging.getLogger(__name__)
 
-# Football-specific system prompt for anti-hallucination
-FOOTBALL_RAG_SYSTEM_PROMPT = """You are a football analytics assistant specialized in football analytics.
 
-CRITICAL RULES:
-1. ONLY use information from the provided context documents
-2. NEVER invent statistics, percentages, or numbers not in context
-3. If asked about xG, cite EXACT xG values from context (format: "Team A: X.XX xG")
-4. If information is not in context, say "Not available in provided matches"
-5. Keep answers concise (2-3 sentences maximum)
-6. Always cite which match the data comes from (e.g., "Team A vs Team B")
+def check_faithfulness(answer: str, sources: List[Dict]) -> Dict:
+    """Verify answer numbers exist in source documents."""
+    answer_numbers = set(float(n) for n in re.findall(r"\d+\.?\d*", answer))
 
-FORBIDDEN:
-- Do NOT mention metrics like "verticality", "shot quality", or percentages unless explicitly in context
-- Do NOT compare statistics from different matches
-- Do NOT use prior football knowledge
-- Do NOT invent team names or scores
+    source_numbers = set()
+    for source in sources:
+        source_numbers.update(
+            float(n) for n in re.findall(r"\d+\.?\d*", source["text"])
+        )
+        for key, val in source.get("metadata", {}).items():
+            if isinstance(val, (int, float)):
+                source_numbers.add(float(val))
 
-Example:
-Q: "Which teams had high xG?"
-A: "Feyenoord had 2.44 xG (vs NAC Breda) and Fortuna Sittard had 2.34 xG (vs Go Ahead Eagles). These were the highest xG values in the provided matches."
-"""
+    hallucinated = answer_numbers - source_numbers
+    valid = answer_numbers & source_numbers
 
-
-class FaithfulnessChecker:
-    """Validate generated answers against source documents."""
-
-    def extract_numbers(self, text: str) -> List[float]:
-        """Extract all numeric values from text."""
-        return [float(n) for n in re.findall(r'\d+\.?\d*', text)]
-
-    def check_faithfulness(self, answer: str, sources: List[Dict]) -> Dict:
-        """
-        Verify answer numbers exist in source documents.
-
-        Returns:
-            {
-                'faithful': bool,
-                'hallucinated_numbers': List[float],
-                'valid_numbers': List[float],
-                'faithfulness_score': float (0.0-1.0)
-            }
-        """
-        answer_numbers = set(self.extract_numbers(answer))
-
-        # Extract numbers from sources
-        source_numbers = set()
-        for source in sources:
-            source_numbers.update(self.extract_numbers(source['text']))
-            # Add metadata numbers
-            for key, val in source.get('metadata', {}).items():
-                if isinstance(val, (int, float)):
-                    source_numbers.add(float(val))
-
-        hallucinated = answer_numbers - source_numbers
-        valid = answer_numbers & source_numbers
-
-        return {
-            'faithful': len(hallucinated) == 0,
-            'hallucinated_numbers': sorted(list(hallucinated)),
-            'valid_numbers': sorted(list(valid)),
-            'faithfulness_score': len(valid) / len(answer_numbers) if answer_numbers else 1.0
-        }
+    return {
+        "faithful": len(hallucinated) == 0,
+        "hallucinated_numbers": sorted(list(hallucinated)),
+        "valid_numbers": sorted(list(valid)),
+        "faithfulness_score": len(valid) / len(answer_numbers)
+        if answer_numbers
+        else 1.0,
+    }
 
 
 class RAGPipeline:
-    """RAG pipeline orchestrated by LlamaIndex."""
+    """Simplified RAG pipeline with multi-provider LLM support."""
 
-    def __init__(self):
-        """Initialize LlamaIndex components."""
-        logger.info("Initializing RAG pipeline with LlamaIndex...")
+    def __init__(self, provider: str = "ollama", api_key: Optional[str] = None):
+        """Initialize RAG pipeline.
 
-        # Embeddings (custom wrapper with NumPy 2.x compatibility)
-        LlamaSettings.embed_model = VectorStoreEmbedding(
-            model_name=settings.models.embedding_model
-        )
+        Args:
+            provider: LLM provider ('ollama', 'anthropic', 'openai', 'gemini')
+            api_key: API key for cloud providers
+        """
+        logger.info(f"Initializing RAG pipeline with provider: {provider}")
 
-        # LLM
-        LlamaSettings.llm = Ollama(
-            model=settings.models.llm_model,
-            base_url="http://localhost:11434",
-            request_timeout=120.0,
-            temperature=settings.models.temperature,
-            additional_kwargs={
-                "num_ctx": 3072,  # Context window optimized for 8GB RAM systems
-                "num_predict": 256,  # Max tokens to generate
-                "top_k": 40,
-                "top_p": 0.9,
-            }
-        )
-
-        # ChromaDB
-        chroma_client = chromadb.HttpClient(
+        # Direct ChromaDB connection (no LlamaIndex overhead)
+        self.vector_store = VectorStore(
+            collection_name="football_matches_eredivisie_2025",
             host=settings.database.chroma_host,
-            port=settings.database.chroma_port
+            port=settings.database.chroma_port,
         )
-        collection = chroma_client.get_collection("football_matches_eredivisie_2025")
-        vector_store = ChromaVectorStore(chroma_collection=collection)
 
-        # Index
-        self.index = VectorStoreIndex.from_vector_store(vector_store)
+        self.provider = provider
+        self.api_key = api_key
+
+        # Load prompt profile
+        self.prompts = load_prompt(settings.prompt_profile)
+
+        # Setup cache
+        self.cache_dir = Path("data/query_cache")
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         logger.info("✓ RAG pipeline ready")
 
-    def query(self, question: str, top_k: int = 3) -> Dict[str, Any]:
-        """Query the RAG pipeline."""
-        logger.info(f"Query: {question}")
+    def _get_cache_key(self, question: str, top_k: int) -> str:
+        """Generate cache key from question and provider."""
+        key = f"{question.lower().strip()}_{top_k}_{self.provider}"
+        return hashlib.md5(key.encode()).hexdigest()
 
-        query_engine = self.index.as_query_engine(similarity_top_k=top_k)
-        response = query_engine.query(question)
+    def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
+        """Query RAG pipeline with multi-provider LLM support."""
+        # Check cache
+        cache_key = self._get_cache_key(question, top_k)
+        cache_path = self.cache_dir / f"{cache_key}.pkl"
 
-        return {
-            "answer": str(response),
-            "source_nodes": [
-                {
-                    "text": node.node.text,
-                    "score": node.score,
-                    "metadata": node.node.metadata
-                }
-                for node in response.source_nodes
-            ]
+        if cache_path.exists():
+            try:
+                with open(cache_path, "rb") as f:
+                    result = pickle.load(f)
+                    logger.info(f"⚡ Cache hit: {question[:60]}...")
+                    return result
+            except Exception as e:
+                logger.warning(f"Cache load failed: {e}")
+
+        # Retrieve context from ChromaDB
+        logger.info(f"🔍 Retrieving context for: {question[:60]}...")
+        results = self.vector_store.search(query=question, k=top_k)
+
+        # Convert to source nodes format (for compatibility with existing code)
+        source_nodes = [
+            {
+                "text": r["document"],
+                "score": 1 - r["distance"] if r["distance"] else 1.0,
+                "metadata": r["metadata"],
+            }
+            for r in results
+        ]
+
+        # Format context for LLM
+        context = "\n\n".join(
+            f"Source {i + 1}:\n{node['text']}" for i, node in enumerate(source_nodes)
+        )
+        llm_prompt = self.prompts["user_template"].format(
+            context=context, question=question
+        )
+
+        # Generate with selected provider
+        logger.info(f"🤖 Generating with {self.provider}...")
+        answer = generate_with_llm(
+            llm_prompt,
+            provider=self.provider,
+            api_key=self.api_key,
+            system_prompt=self.prompts["system"],
+            temperature=settings.models.temperature,
+            max_tokens=512,
+        )
+
+        # Validate faithfulness
+        faithfulness = check_faithfulness(answer, source_nodes)
+        if not faithfulness["faithful"]:
+            logger.warning(f"⚠️ Hallucinations: {faithfulness['hallucinated_numbers']}")
+
+        result = {
+            "answer": answer,
+            "source_nodes": source_nodes,
+            "faithfulness": faithfulness,
         }
 
-    @property
-    def retriever(self):
-        """Expose LlamaIndex retriever for evaluation."""
-        return self.index.as_retriever(similarity_top_k=5)
+        # Save to cache
+        try:
+            with open(cache_path, "wb") as f:
+                pickle.dump(result, f)
+            logger.info("💾 Cached result")
+        except Exception as e:
+            logger.warning(f"Cache save failed: {e}")
+
+        return result
 
     def retrieve(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         """Retrieve relevant documents without generation."""
-        retriever = self.index.as_retriever(similarity_top_k=k)
-        nodes = retriever.retrieve(query)
+        results = self.vector_store.search(query=query, k=k)
 
         return [
             {
-                "text": node.node.text,
-                "score": node.score,
-                "metadata": node.node.metadata
+                "text": r["document"],
+                "score": 1 - r["distance"] if r["distance"] else 1.0,
+                "metadata": r["metadata"],
             }
-            for node in nodes
+            for r in results
         ]
