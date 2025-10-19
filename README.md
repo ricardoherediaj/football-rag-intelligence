@@ -1,27 +1,212 @@
-# Football RAG Intelligence
+# ⚽ Football RAG Intelligence
 
-A RAG (Retrieval-Augmented Generation) system for football data analysis and insights.
+A production-ready **Retrieval-Augmented Generation (RAG)** system for football post match data analysis. Ask questions about Eredivisie matches, get faithful answers grounded in real match data, with hallucination detection.
 
-## Overview
+**🚀 [Try the Live Demo](https://huggingface.co/spaces/your-username/football-rag-intelligence)**
 
-This project implements a football intelligence system using RAG architecture to provide insights and answer questions about football data, players, teams, and match statistics.
+## 🎯 Project Overview
 
-## Features
+This RAG system solves a real problem: **LLMs can hallucinate**. Traditional language models can generate false information about recent football match statistics. This system prevents that by:
 
-- Football data ingestion and processing
-- Vector-based document storage and retrieval
-- LLM-powered question answering
-- Performance monitoring and evaluation
+1. **Retrieving** relevant match documents from a vector database (ChromaDB)
+2. **Grounding** LLM responses in retrieved documents
+3. **Validating** faithfulness by checking if generated numbers exist in source data
+4. **Transparently** showing sources and confidence scores
 
-## Inspired by
+## Key Features
 
-This codebase has been inspired by:
-- [LLMOps Python Package](https://github.com/callmesora/llmops-python-package)
-- [AI Tutor Skeleton](https://github.com/towardsai/ai-tutor-skeleton/tree/main)
+### Multi-Provider LLM Support
+Choose your preferred LLM provider - no vendor lock-in:
+- **Local Ollama** (free, ~270MB model)
+- **Anthropic**
+- **OpenAI**
+- **Google Gemini**
 
+### RAG Architecture
+- **Vector Storage:** ChromaDB for semantic search
+- **Embeddings:** sentence-transformers (all-mpnet-base-v2)
+- **Orchestration:** LlamaIndex for flexible RAG pipeline Orchestration
+- **Caching:** Query-level caching to reduce API costs
 
+### Anti-Hallucination Measures
+- **Faithfulness Validation:** Checks if generated numbers exist in sources
+- **Source Attribution:** Shows which match document each fact comes from
+- **Transparency:** Clear confidence scores (🟢 Excellent / 🟡 Moderate / 🔴 Low)
 
+### Production-Ready Infrastructure
+- **Observability:** Request logging, latency metrics (p50, p95)
+- **Error Handling:** Graceful degradation, informative error messages
+- **Security:** API keys never stored, only used in-memory for current session
+- **Performance:** Sub-second latency with caching
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.10+
+- `uv` package manager
+- Docker (for ChromaDB service) - optional, can use remote instance
+
+### Local Setup
+
+```bash
+# Clone and navigate to project
+git clone https://github.com/yourusername/football-rag-intelligence
+cd football-rag-intelligence
+
+# Install dependencies
+uv pip install -e .
+
+# Set your API key in .env (optional for Ollama)
+echo "ANTHROPIC_API_KEY=your-key-here" > .env
+
+# Start the app
+uv run python app.py
+```
+
+Visit `http://localhost:7860` in your browser.
+
+### Docker Setup (for ChromaDB)
+
+```bash
+# Start services
+docker compose up -d
+
+# Services will be available at:
+# - ChromaDB: http://localhost:8000
+# - MLflow: http://localhost:5001
+# - MinIO: http://localhost:9001
+```
+
+## 💰 Cost Estimation
+
+**Testing all features costs < $0.50:**
+
+| Provider | Cost per Query | 5,000 Queries |
+|----------|----------------|---------------|
+| **Claude 3.5 Haiku** | ~$0.0001 | ~$0.50 |
+| **GPT-4o mini** | ~$0.00015 | ~$0.75 |
+| **Gemini 1.5 Flash** | ~$0.00005 | ~$0.25 |
+| **Ollama (Local)** | Free | Free |
+
+**The goal:**
+- Use cost-effective models
+- Caching prevents re-processing identical queries
+- Average response ~200 tokens
+- Each query uses ~50 output tokens
+
+## 🔑 API Keys Required
+
+To use cloud LLM providers, paste your API key in the UI (optional for Ollama):
+
+- **Anthropic Claude:** Get key from [console.anthropic.com](https://console.anthropic.com/account/keys)
+- **OpenAI GPT:** Get key from [platform.openai.com](https://platform.openai.com/account/api-keys)
+- **Google Gemini:** Get key from [makersuite.google.com](https://makersuite.google.com/app/apikey)
+
+**Security:** API keys are:
+- ✅ Never stored in files or database
+- ✅ Only used in-memory for your current session
+- ✅ Not logged or tracked
+- ✅ Encrypted in transit
+
+## 📊 Architecture
+
+```
+User Query (Gradio UI)
+    ↓
+[Provider + API Key Selection]
+    ↓
+RAG Pipeline
+  ├─ ChromaDB Vector Search (retrieve relevant documents)
+  ├─ Context Formatting
+  ├─ LLM Generation (with chosen provider)
+  └─ Faithfulness Validation
+    ↓
+Response + Sources + Confidence Score
+```
+
+## 🛠️ Advanced Usage
+
+### Using Local Ollama
+
+```bash
+# Start Ollama service
+ollama serve
+
+# In another terminal, pull model
+ollama pull llama3.2:1b
+
+# App will auto-detect and use local Ollama
+```
+
+### Custom Prompt Configuration
+
+Edit `prompts/profile_football_v1.yml`:
+
+```yaml
+system: |
+  You are a football analytics assistant...
+
+user_template: |
+  Context: {context}
+
+  Question: {question}
+
+  Answer based ONLY on context:
+```
+
+## Features Implemented
+
+This project implements the followingfunctionalities:
+
+1. **✅ Anti-Hallucination Measures**
+   - Faithfulness validation against source documents
+   - Hallucination detection with number extraction
+   - Confidence scoring (0-100%)
+
+2. **✅ Multi-Provider LLM Support**
+   - Seamless switching between Anthropic, OpenAI, Gemini, Ollama
+   - Provider-agnostic RAG pipeline
+   - User-friendly provider selection
+
+3. **✅ Prompt Caching**
+   - Query-level caching with LRU eviction
+   - Cache key includes provider for accuracy
+   - Significant cost reduction for repeated questions
+
+4. **✅ Response Evaluation**
+   - Automated faithfulness scoring
+   - Source attribution
+   - Confidence indicators with visual cues
+
+5. **✅ Data Ingestion Pipeline**
+   - Web scraping (WhoScored, Fotmob)
+   - Data transformation and validation
+   - Batch processing for efficiency
+
+6. **✅ Vector Search Optimization**
+   - ChromaDB with semantic similarity
+   - Top-K retrieval with configurable parameters
+   - Metadata filtering by league/date
+
+7. **✅ Observability Infrastructure**
+   - Request logging with unique IDs
+   - Latency tracking (p50, p95 percentiles)
+   - Health check endpoints
+   - Structured logging
+
+8. **✅ Context Window Management**
+   - Configurable document context length
+   - Smart chunking to fit model limits
+   - Token counting (estimated)
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/core/test_faithfulness.py
 
 # With coverage
 uv run pytest --cov=src/football_rag
