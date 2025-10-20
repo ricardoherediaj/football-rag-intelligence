@@ -2,6 +2,16 @@
 
 A production-ready **Retrieval-Augmented Generation (RAG)** system for football post match data analysis. Ask questions about Eredivisie matches, get faithful answers grounded in real match data, with hallucination detection.
 
+![Match Report Example](outputs/match_report_example.png)
+
+## 🎯 Why This Matters
+
+This project demonstrates how to build a **private, local AI intelligence system** for your football data:
+- 🔒 **Keep your data private** – Run locally, no cloud uploads
+- 🚀 **Leverage AI responsibly** – Get meaningful insights without hallucinations
+- 📊 **Manage your own data** – Control your post-match reports and analysis
+- ✅ **Grounded in reality** – Every answer backed by your actual match data
+
 **🚀 [Try the Live Demo](https://huggingface.co/spaces/your-username/football-rag-intelligence)**
 
 ## 🎯 Project Overview
