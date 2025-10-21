@@ -1,5 +1,7 @@
 # ⚽ Football RAG Intelligence
 
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
+
 A production-ready **Retrieval-Augmented Generation (RAG)** system for football post match data analysis. Ask questions about Eredivisie matches, get faithful answers grounded in real match data, with hallucination detection.
 
 ![Match Report Example](outputs/match_report_example.png)
@@ -12,7 +14,7 @@ This project demonstrates how to build a **private, local AI intelligence system
 - 📊 **Manage your own data** – Control your post-match reports and analysis
 - ✅ **Grounded in reality** – Every answer backed by your actual match data
 
-**🚀 [Try the Live Demo](https://huggingface.co/spaces/your-username/football-rag-intelligence)**
+**🚀 [Try the Live Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)**
 
 ## 🎯 Project Overview
 
