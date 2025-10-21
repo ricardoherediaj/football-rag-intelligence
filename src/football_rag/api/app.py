@@ -1,5 +1,8 @@
 """FastAPI backend with Gradio interface for Football RAG Intelligence."""
 
+import os
+import tarfile
+from pathlib import Path
 from typing import Tuple
 
 import gradio as gr
@@ -14,10 +17,47 @@ from football_rag.core.prompts_loader import load_prompt
 setup_logging()
 logger = get_logger(__name__)
 
+# HF Spaces ChromaDB configuration
+CHROMA_DATA_DIR = Path("./data/chroma")
+HF_DATASET_REPO = os.getenv("HF_DATASET_REPO", "rheredia8/football-rag-chromadb")
+CHROMA_ARCHIVE = "football_matches_chromadb.tar.gz"
+
 # Global pipeline instance
 pipeline = None
-current_provider = "ollama"
+current_provider = "anthropic"
 current_api_key = ""
+
+
+def download_chromadb_if_needed():
+    """Download ChromaDB from HF Dataset if not exists locally."""
+    if CHROMA_DATA_DIR.exists() and any(CHROMA_DATA_DIR.iterdir()):
+        logger.info("✓ ChromaDB already exists locally")
+        return True
+
+    logger.info("📦 Downloading ChromaDB from Hugging Face Dataset...")
+    CHROMA_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    try:
+        from huggingface_hub import hf_hub_download
+
+        logger.info(f"Fetching from {HF_DATASET_REPO}...")
+        archive_path = hf_hub_download(
+            repo_id=HF_DATASET_REPO,
+            filename=CHROMA_ARCHIVE,
+            repo_type="dataset",
+        )
+
+        logger.info("📂 Extracting ChromaDB archive...")
+        with tarfile.open(archive_path, "r:gz") as tar:
+            tar.extractall(path=CHROMA_DATA_DIR)
+
+        logger.info("✓ ChromaDB ready!")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to download ChromaDB: {e}")
+        logger.info("💡 If running locally, ensure ChromaDB exists in ./data/chroma/")
+        return False
 
 
 def initialize_pipeline(provider: str, api_key: str = ""):
@@ -142,19 +182,19 @@ with gr.Blocks(title="Football RAG Intelligence", theme=gr.themes.Soft()) as dem
         with gr.Column(scale=2):
             provider_dropdown = gr.Dropdown(
                 choices=[
-                    "Ollama (Local)",
                     "Claude (Anthropic)",
                     "GPT-4o (OpenAI)",
                     "Gemini",
+                    "Ollama (Local)",
                 ],
-                value="Ollama (Local)",
+                value="Claude (Anthropic)",
                 label="🤖 LLM Provider",
-                info="Choose your LLM. Ollama is free but requires local setup.",
+                info="Choose your LLM provider. API key required for cloud providers.",
             )
         with gr.Column(scale=3):
             api_key_input = gr.Textbox(
                 label="🔑 API Key",
-                placeholder="Leave empty for Ollama, paste key for cloud providers",
+                placeholder="Enter your API key (e.g., sk-ant-... for Anthropic)",
                 type="password",
                 info="Your API key is never stored, only used in memory for this session.",
             )
@@ -246,5 +286,12 @@ app = gr.mount_gradio_app(app, demo, path="/")
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("Starting Football RAG Intelligence...")
+    logger.info("🚀 Starting Football RAG Intelligence...")
+
+    # Download ChromaDB if needed (for HF Spaces deployment)
+    if not download_chromadb_if_needed():
+        logger.warning("⚠️ ChromaDB download failed, but continuing startup...")
+        logger.info("💡 App will work if ChromaDB exists locally at ./data/chroma/")
+
+    logger.info("🌐 Launching FastAPI + Gradio server...")
     uvicorn.run(app, host="0.0.0.0", port=7860)
