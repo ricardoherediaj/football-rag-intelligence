@@ -44,21 +44,35 @@ def check_faithfulness(answer: str, sources: List[Dict]) -> Dict:
 class RAGPipeline:
     """Simplified RAG pipeline with multi-provider LLM support."""
 
-    def __init__(self, provider: str = "ollama", api_key: Optional[str] = None):
+    def __init__(
+        self,
+        provider: str = "ollama",
+        api_key: Optional[str] = None,
+        chroma_persist_directory: Optional[str] = None,
+    ):
         """Initialize RAG pipeline.
 
         Args:
             provider: LLM provider ('ollama', 'anthropic', 'openai', 'gemini')
             api_key: API key for cloud providers
+            chroma_persist_directory: Path to local ChromaDB directory (overrides server mode)
         """
         logger.info(f"Initializing RAG pipeline with provider: {provider}")
 
         # Direct ChromaDB connection (no LlamaIndex overhead)
-        self.vector_store = VectorStore(
-            collection_name="football_matches_eredivisie_2025",
-            host=settings.database.chroma_host,
-            port=settings.database.chroma_port,
-        )
+        if chroma_persist_directory:
+            # Use local persistent ChromaDB
+            self.vector_store = VectorStore(
+                collection_name="football_matches_eredivisie_2025",
+                persist_directory=chroma_persist_directory,
+            )
+        else:
+            # Use ChromaDB server
+            self.vector_store = VectorStore(
+                collection_name="football_matches_eredivisie_2025",
+                host=settings.database.chroma_host,
+                port=settings.database.chroma_port,
+            )
 
         self.provider = provider
         self.api_key = api_key
