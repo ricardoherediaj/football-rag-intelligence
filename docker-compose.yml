@@ -28,7 +28,7 @@ services:
       retries: 3
 
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.1.1
     container_name: chromadb
     ports:
       - "8000:8000"
