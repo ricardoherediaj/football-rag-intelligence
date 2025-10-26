@@ -40,29 +40,27 @@ def download_chromadb_if_needed():
             repo_type="dataset",
         )
 
-        # Extract to temporary directory first
+        # Extract archive directly
         logger.info("📂 Extracting ChromaDB archive...")
-        temp_dir = Path("./temp_chroma_extract")
-        temp_dir.mkdir(parents=True, exist_ok=True)
+        import shutil
 
         with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(path=temp_dir)
+            tar.extractall(path=".")
 
-        # Find the actual ChromaDB directory (handle nested structure)
-        logger.info("📁 Reorganizing ChromaDB directory structure...")
-        extracted_dirs = list(temp_dir.iterdir())
+        # Move extracted chroma_export contents to CHROMA_DATA_DIR
+        logger.info("📁 Moving ChromaDB files to correct location...")
+        extracted_path = Path("./chroma_export")
 
-        if len(extracted_dirs) == 1 and extracted_dirs[0].is_dir():
-            # Archive contains a single directory - move its contents
-            import shutil
-
-            shutil.move(str(extracted_dirs[0]), str(CHROMA_DATA_DIR))
-            temp_dir.rmdir()
+        if extracted_path.exists():
+            # Create parent directory
+            CHROMA_DATA_DIR.parent.mkdir(parents=True, exist_ok=True)
+            # Move the extracted directory
+            shutil.move(str(extracted_path), str(CHROMA_DATA_DIR))
+            logger.info(f"✓ ChromaDB moved to {CHROMA_DATA_DIR}")
         else:
-            # Archive contents are directly in temp_dir - just rename
-            import shutil
-
-            shutil.move(str(temp_dir), str(CHROMA_DATA_DIR))
+            raise FileNotFoundError(
+                "chroma_export directory not found after extraction"
+            )
 
         logger.info("✓ ChromaDB ready!")
         return True
