@@ -10,7 +10,7 @@ pandas>=2.0.0
 numpy<2
 
 # Vector database
-chromadb==0.5.25
+chromadb>=0.4.0,<0.6.0
 sentence-transformers>=2.2.0
 
 # LLM providers
