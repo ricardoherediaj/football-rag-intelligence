@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from football_rag.core.logging import get_logger
+from football_rag.logging import get_logger
 
 logger = get_logger(__name__)
 

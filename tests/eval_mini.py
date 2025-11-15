@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from football_rag.llm.generate import generate_with_llm
-from football_rag.core.prompts_loader import load_prompt
+from football_rag.models.generate import generate_with_llm
+from football_rag.prompts_loader import load_prompt
 
 # Load env
 load_dotenv()

@@ -80,7 +80,7 @@ def evaluate_relevancy_llm(
     question: str, answer: str, context: str, api_key: str
 ) -> float:
     """LLM-as-judge: Does the answer address the question? (0-1 score)."""
-    from football_rag.llm.generate import generate_with_llm
+    from football_rag.models.generate import generate_with_llm
 
     judge_prompt = f"""You are an evaluation judge. Rate how well the answer addresses the question.
 

@@ -9,8 +9,8 @@ from pathlib import Path
 
 from football_rag.config.settings import settings
 from football_rag.storage.vector_store import VectorStore
-from football_rag.llm.generate import generate_with_llm
-from football_rag.core.prompts_loader import load_prompt
+from football_rag.models.generate import generate_with_llm
+from football_rag.prompts_loader import load_prompt
 
 logger = logging.getLogger(__name__)
 

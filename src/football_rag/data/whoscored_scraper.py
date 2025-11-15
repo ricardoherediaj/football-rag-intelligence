@@ -18,8 +18,6 @@ from pydantic import BaseModel
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.football_rag.storage.minio_client import MinIOClient
-
 
 class MatchEvent(BaseModel):
     id: int
@@ -177,7 +175,7 @@ def collect_all_season_matches(driver, exclude_match_ids: Optional[set] = None):
     exclude_match_ids = exclude_match_ids or set()
 
     # Go back to August
-    for _ in range(15):
+    for _ in range(20):
         try:
             prev_button = driver.find_element(By.ID, "dayChangeBtn-prev")
             prev_button.click()
@@ -186,7 +184,7 @@ def collect_all_season_matches(driver, exclude_match_ids: Optional[set] = None):
             break
 
     # Go forward collecting all finished matches
-    for _ in range(30):
+    for _ in range(110):
         soup = BeautifulSoup(driver.page_source, 'html.parser')
 
         containers = soup.find_all('div', class_='Match-module_match__XlKTY')
@@ -275,9 +273,11 @@ def scrape_complete_season(mode: str = "full", league: str = "eredivisie", seaso
 
         if mode == "incremental":
             print("🔄 Incremental mode: Checking for already scraped matches...")
-            minio_client = MinIOClient()
-            prefix = f"whoscored/{league}/{season}/"
-            exclude_match_ids = minio_client.get_scraped_match_ids(prefix)
+            output_dir = Path(f"data/raw/whoscored_matches/{league}/{season}")
+            exclude_match_ids = set()
+            if output_dir.exists():
+                for file in output_dir.glob("match_*.json"):
+                    exclude_match_ids.add(file.stem.replace("match_", ""))
             print(f"Found {len(exclude_match_ids)} already scraped matches\n")
 
         print(f"Starting {mode} season collection...\n")
@@ -289,7 +289,7 @@ def scrape_complete_season(mode: str = "full", league: str = "eredivisie", seaso
 
 
 def save_matches_to_minio(matches_df: pd.DataFrame, league: str = "eredivisie", season: str = "2025-2026") -> int:
-    """Save individual matches to MinIO as JSON files.
+    """Save individual matches as JSON files (local storage for MVP).
 
     Args:
         matches_df: DataFrame containing all match events
@@ -297,18 +297,18 @@ def save_matches_to_minio(matches_df: pd.DataFrame, league: str = "eredivisie", 
         season: Season identifier (default: 2025-2026)
 
     Returns:
-        Number of matches uploaded successfully
+        Number of matches saved successfully
     """
-    minio_client = MinIOClient()
-    prefix = f"whoscored/{league}/{season}/"
-
-    uploaded_count = 0
+    output_dir = Path(f"data/raw/whoscored_matches/{league}/{season}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    saved_count = 0
 
     for match_url in matches_df['match_url'].unique():
         match_id = extract_match_id(match_url)
+        file_path = output_dir / f"match_{match_id}.json"
 
-        if minio_client.match_exists(prefix, match_id):
-            print(f"⏭️  Match {match_id} already exists in MinIO, skipping...")
+        if file_path.exists():
+            print(f"⏭️  Match {match_id} already exists, skipping...")
             continue
 
         match_events = matches_df[matches_df['match_url'] == match_url].to_dict(orient='records')
@@ -321,16 +321,12 @@ def save_matches_to_minio(matches_df: pd.DataFrame, league: str = "eredivisie", 
             'events': match_events
         }
 
-        object_name = f"{prefix}match_{match_id}.json"
+        with open(file_path, 'w') as f:
+            json.dump(match_data, f, indent=2)
+        print(f"✅ Saved match {match_id} ({len(match_events)} events)")
+        saved_count += 1
 
-        try:
-            minio_client.upload_json(object_name, match_data)
-            print(f"✅ Uploaded match {match_id} to MinIO ({len(match_events)} events)")
-            uploaded_count += 1
-        except Exception as e:
-            print(f"❌ Failed to upload match {match_id}: {e}")
-
-    return uploaded_count
+    return saved_count
 
 
 if __name__ == "__main__":

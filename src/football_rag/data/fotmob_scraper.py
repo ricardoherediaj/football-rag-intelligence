@@ -15,7 +15,6 @@ import requests
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.football_rag.storage.minio_client import MinIOClient
 from src.football_rag.data.fotmob import FotmobScraper
 
 
@@ -163,7 +162,7 @@ def collect_and_scrape_eredivisie(exclude_match_ids: Optional[set] = None) -> Li
 
 
 def save_fotmob_matches_to_minio(matches_data: List[Dict[str, Any]], league: str = "eredivisie", season: str = "2025-2026") -> int:
-    """Save individual Fotmob matches to MinIO as JSON files.
+    """Save individual Fotmob matches as JSON files (local storage for MVP).
 
     Args:
         matches_data: List of match data dictionaries
@@ -171,30 +170,26 @@ def save_fotmob_matches_to_minio(matches_data: List[Dict[str, Any]], league: str
         season: Season identifier (default: 2025-2026)
 
     Returns:
-        Number of matches uploaded successfully
+        Number of matches saved successfully
     """
-    minio_client = MinIOClient()
-    prefix = f"fotmob/{league}/{season}/"
-
-    uploaded_count = 0
+    output_dir = Path(f"data/raw/fotmob_matches/{league}/{season}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    saved_count = 0
 
     for match_data in matches_data:
         match_id = match_data['match_id']
+        file_path = output_dir / f"match_{match_id}.json"
 
-        if minio_client.match_exists(prefix, match_id):
-            print(f"⏭️  Match {match_id} already exists in MinIO, skipping...")
+        if file_path.exists():
+            print(f"⏭️  Match {match_id} already exists, skipping...")
             continue
 
-        object_name = f"{prefix}match_{match_id}.json"
+        with open(file_path, 'w') as f:
+            json.dump(match_data, f, indent=2)
+        print(f"✅ Saved match {match_id} ({len(match_data['shots'])} shots)")
+        saved_count += 1
 
-        try:
-            minio_client.upload_json(object_name, match_data)
-            print(f"✅ Uploaded match {match_id} to MinIO ({len(match_data['shots'])} shots)")
-            uploaded_count += 1
-        except Exception as e:
-            print(f"❌ Failed to upload match {match_id}: {e}")
-
-    return uploaded_count
+    return saved_count
 
 
 def scrape_fotmob_eredivisie(mode: str = "full", league: str = "eredivisie", season: str = "2025-2026") -> List[Dict[str, Any]]:
@@ -212,9 +207,11 @@ def scrape_fotmob_eredivisie(mode: str = "full", league: str = "eredivisie", sea
 
     if mode == "incremental":
         print("🔄 Incremental mode: Checking for already scraped matches...")
-        minio_client = MinIOClient()
-        prefix = f"fotmob/{league}/{season}/"
-        exclude_match_ids = minio_client.get_scraped_match_ids(prefix)
+        output_dir = Path(f"data/raw/fotmob_matches/{league}/{season}")
+        exclude_match_ids = set()
+        if output_dir.exists():
+            for file in output_dir.glob("match_*.json"):
+                exclude_match_ids.add(file.stem.replace("match_", ""))
         print(f"Found {len(exclude_match_ids)} already scraped matches\n")
 
     print(f"🚀 Starting {mode} Fotmob scraping...\n")
