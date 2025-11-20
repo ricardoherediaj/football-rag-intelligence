@@ -174,20 +174,12 @@ def collect_all_season_matches(driver, exclude_match_ids: Optional[set] = None):
     all_match_urls = set()
     exclude_match_ids = exclude_match_ids or set()
 
-    # Go back to August
-    for _ in range(20):
-        try:
-            prev_button = driver.find_element(By.ID, "dayChangeBtn-prev")
-            prev_button.click()
-            time.sleep(2)
-        except Exception:
-            break
-
-    # Go forward collecting all finished matches
-    for _ in range(110):
+    def collect_matches_from_page():
+        """Collect all finished matches from current page view"""
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-
+        matches_found = 0
         containers = soup.find_all('div', class_='Match-module_match__XlKTY')
+
         for container in containers:
             if container.find('span', class_='Match-module_FT__2rmH7'):
                 score_link = container.find('a', class_='Match-module_score__5Ghhj')
@@ -197,14 +189,62 @@ def collect_all_season_matches(driver, exclude_match_ids: Optional[set] = None):
 
                     if match_id not in exclude_match_ids:
                         all_match_urls.add(match_url)
+                        matches_found += 1
 
+        return matches_found
+
+    # Go back to season start, collecting matches along the way
+    print("Going back to season start...")
+    weeks_back = 0
+    max_weeks_back = 20  # Aug to Nov = ~14 weeks, add buffer
+
+    while weeks_back < max_weeks_back:
+        # Collect matches from current week view
+        matches = collect_matches_from_page()
+        if matches > 0:
+            print(f"  Week {weeks_back}: Found {matches} finished matches")
+
+        # Try to go back one more week
         try:
-            next_button = driver.find_element(By.ID, "dayChangeBtn-next")
-            next_button.click()
+            prev_button = driver.find_element(By.ID, "dayChangeBtn-prev")
+            if not prev_button.is_enabled():
+                print(f"Reached beginning of calendar at {weeks_back} weeks back")
+                break
+            prev_button.click()
             time.sleep(2)
-        except Exception:
+            weeks_back += 1
+        except Exception as e:
+            print(f"Stopped going back after {weeks_back} weeks: {e}")
             break
 
+    print(f"Went back {weeks_back} weeks to season start")
+
+    # Now go forward from season start, collecting matches
+    print("Going forward through season...")
+    weeks_forward = 0
+    max_weeks_forward = 25  # Extra buffer to reach current date
+
+    while weeks_forward < max_weeks_forward:
+        # Collect matches from current week view
+        matches = collect_matches_from_page()
+        if matches > 0:
+            print(f"  Week +{weeks_forward}: Found {matches} finished matches")
+
+        # Try to go forward one more week
+        try:
+            next_button = driver.find_element(By.ID, "dayChangeBtn-next")
+            if not next_button.is_enabled():
+                print(f"Reached current week at +{weeks_forward} weeks forward")
+                break
+            next_button.click()
+            time.sleep(2)
+            weeks_forward += 1
+        except Exception as e:
+            print(f"Stopped going forward after {weeks_forward} weeks: {e}")
+            break
+
+    print(f"Scanned {weeks_back + weeks_forward} total weeks")
+    print(f"Found {len(all_match_urls)} unique matches to scrape")
     return list(all_match_urls)
 
 

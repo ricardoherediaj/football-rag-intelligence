@@ -15,7 +15,7 @@ import requests
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.football_rag.data.fotmob import FotmobScraper
+from football_rag.data.fotmob import FotmobScraper
 
 
 def extract_fotmob_match_id(match_data: Dict[str, Any]) -> str:
@@ -62,7 +62,7 @@ def collect_all_eredivisie_matches(exclude_match_ids: Optional[set] = None) -> L
             return []
 
         data = response.json()
-        all_matches = data['matches']['allMatches']
+        all_matches = data['fixtures']['allMatches']
 
         # Filter finished matches only
         finished_matches = [m for m in all_matches if m.get('status', {}).get('finished')]

@@ -38,6 +38,10 @@ CLAUDE.md
 /data/raw/*
 /data/processed/*
 /data/datasets/*
+/data/*.json
+/data/*.txt
+/data/eval_datasets/*
+/data/viz_metrics/*
 
 # Keep .gitkeep files
 !data/**/.gitkeep
