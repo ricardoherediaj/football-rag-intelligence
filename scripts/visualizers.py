@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as patheffects
-from matplotlib import path_effects
 from matplotlib.colors import LinearSegmentedColormap, to_rgba
 from mplsoccer import Pitch
 from scipy.ndimage import gaussian_filter1d
@@ -234,7 +233,8 @@ def plot_enhanced_network(ax, passes_df: pd.DataFrame, avg_locs: pd.DataFrame,
         # Jersey numbers
         ax.text(row['x_avg'], row['y_avg'], str(row['shirtNo']),
                 ha='center', va='center', fontsize=14, color=color, weight='bold',
-                path_effects=[patheffects.withStroke(linewidth=3, foreground='white')], zorder=4)
+                path_effects=[patheffects.withStroke(linewidth=3, foreground='white')],
+                zorder=4, clip_on=False)
     
     # Text positioning based on team
     if is_home:
@@ -583,10 +583,55 @@ def calculate_match_stats(df: pd.DataFrame, hteam_id: int, ateam_id: int) -> dic
         'home': len(home_passes[home_passes['outcome_type_display_name'] == 'Successful']),
         'away': len(away_passes[away_passes['outcome_type_display_name'] == 'Successful'])
     }
-    
-    # Additional statistics...
-    # (Other stats calculations would continue here)
-    
+
+    # Shots
+    home_shots = df[(df['team_id'] == hteam_id) & (df['type_display_name'].isin(['SavedShot', 'MissedShots', 'ShotOnPost', 'Goal']))]
+    away_shots = df[(df['team_id'] == ateam_id) & (df['type_display_name'].isin(['SavedShot', 'MissedShots', 'ShotOnPost', 'Goal']))]
+    stats['Shots'] = {
+        'home': len(home_shots),
+        'away': len(away_shots)
+    }
+
+    # Tackles
+    home_tackles = df[(df['team_id'] == hteam_id) & (df['type_display_name'] == 'Tackle')]
+    away_tackles = df[(df['team_id'] == ateam_id) & (df['type_display_name'] == 'Tackle')]
+    stats['Tackles'] = {
+        'home': len(home_tackles[home_tackles['outcome_type_display_name'] == 'Successful']),
+        'away': len(away_tackles[away_tackles['outcome_type_display_name'] == 'Successful'])
+    }
+
+    # Interceptions
+    home_intercepts = df[(df['team_id'] == hteam_id) & (df['type_display_name'] == 'Interception')]
+    away_intercepts = df[(df['team_id'] == ateam_id) & (df['type_display_name'] == 'Interception')]
+    stats['Interceptions'] = {
+        'home': len(home_intercepts),
+        'away': len(away_intercepts)
+    }
+
+    # Aerials
+    home_aerials = df[(df['team_id'] == hteam_id) & (df['type_display_name'] == 'Aerial')]
+    away_aerials = df[(df['team_id'] == ateam_id) & (df['type_display_name'] == 'Aerial')]
+    stats['Aerials Won'] = {
+        'home': len(home_aerials[home_aerials['outcome_type_display_name'] == 'Successful']),
+        'away': len(away_aerials[away_aerials['outcome_type_display_name'] == 'Successful'])
+    }
+
+    # Clearances
+    home_clears = df[(df['team_id'] == hteam_id) & (df['type_display_name'] == 'Clearance')]
+    away_clears = df[(df['team_id'] == ateam_id) & (df['type_display_name'] == 'Clearance')]
+    stats['Clearances'] = {
+        'home': len(home_clears),
+        'away': len(away_clears)
+    }
+
+    # Fouls
+    home_fouls = df[(df['team_id'] == hteam_id) & (df['type_display_name'] == 'Foul')]
+    away_fouls = df[(df['team_id'] == ateam_id) & (df['type_display_name'] == 'Foul')]
+    stats['Fouls'] = {
+        'home': len(home_fouls),
+        'away': len(away_fouls)
+    }
+
     return stats
 
 
@@ -687,3 +732,220 @@ def plot_match_stats_styled(stats: dict, home_team_name: str = "Home", away_team
     
     plt.tight_layout()
     plt.show()
+
+# ==================== DEFENSIVE ANALYSIS FUNCTIONS ====================
+
+def filter_defensive_actions(df_events: pd.DataFrame) -> pd.DataFrame:
+    """Filter events to get only defensive actions."""
+    defensive_types = [
+        'Tackle', 'Interception', 'BallRecovery', 'BlockedPass', 
+        'Challenge', 'Clearance', 'Foul', 'Aerial'
+    ]
+    
+    defensive_actions = df_events[
+        df_events['type_display_name'].isin(defensive_types)
+    ].copy()
+    
+    # Convert coordinates from WhoScored (0-100) to StatsBomb (0-120x0-80)
+    defensive_actions['x_sb'] = defensive_actions['x'] * 1.2
+    defensive_actions['y_sb'] = defensive_actions['y'] * 0.8
+    
+    return defensive_actions
+
+
+def defensive_block(ax, team_positions: dict, team_actions: pd.DataFrame, 
+                   team_name: str, team_color: str, is_away_team: bool = False):
+    """Create defensive block visualization for one team."""
+    from mplsoccer import Pitch
+    from matplotlib.colors import LinearSegmentedColormap, to_rgba
+    
+    pitch = Pitch(
+        pitch_type='statsbomb',
+        pitch_color='#0C0D0E',
+        line_color='white',
+        linewidth=2,
+        line_zorder=2,
+        corner_arcs=True
+    )
+    pitch.draw(ax=ax)
+    ax.set_facecolor('#0C0D0E')
+    ax.set_xlim(-0.5, 120.5)
+    ax.set_ylim(-0.5, 80.5)
+    
+    if len(team_positions) == 0 or len(team_actions) == 0:
+        ax.set_title(f"{team_name}\nDefensive Action Heatmap", 
+                    color='white', fontsize=20, fontweight='bold')
+        return {}
+    
+    # Convert positions to DataFrame
+    positions_df = pd.DataFrame.from_dict(team_positions, orient='index')
+    
+    # Variable marker size based on defensive actions
+    MAX_MARKER_SIZE = 3500
+    positions_df['marker_size'] = (
+        positions_df['action_count'] / positions_df['action_count'].max() * MAX_MARKER_SIZE
+    )
+    
+    # Create KDE heatmap
+    color = np.array(to_rgba(team_color))
+    flamingo_cmap = LinearSegmentedColormap.from_list(
+        "Team colors", ['#0C0D0E', team_color], N=500
+    )
+    
+    kde = pitch.kdeplot(
+        team_actions['x_sb'], team_actions['y_sb'], 
+        ax=ax, fill=True, levels=5000, thresh=0.02, cut=4, cmap=flamingo_cmap
+    )
+    
+    # Plot player nodes
+    for idx, row in positions_df.iterrows():
+        marker = 'o' if row['is_starter'] else 's'
+            
+        pitch.scatter(
+            row['x'], row['y'], 
+            s=row['marker_size'] + 100,
+            marker=marker, 
+            color='#0C0D0E',
+            edgecolor='white',
+            linewidth=1,
+            alpha=1, 
+            zorder=3, 
+            ax=ax
+        )
+    
+    # Plot tiny scatter for defensive actions
+    pitch.scatter(
+        team_actions['x_sb'], team_actions['y_sb'],
+        s=10, marker='x', color='yellow', alpha=0.2, ax=ax
+    )
+    
+    # Add shirt numbers
+    for idx, row in positions_df.iterrows():
+        pitch.annotate(
+            str(row['shirt_no']), 
+            xy=(row['x'], row['y']),
+            c='white', ha='center', va='center', size=14, ax=ax
+        )
+    
+    # Calculate metrics
+    dah = round(positions_df['x'].mean(), 2)
+    dah_show = round((dah * 1.05), 2)
+    
+    # Defense line height (center backs)
+    center_backs = positions_df[positions_df['position'] == 'DC']
+    def_line_h = round(center_backs['x'].median(), 2) if len(center_backs) > 0 else dah
+    
+    # Forward line height (top 2 advanced players)
+    starters = positions_df[positions_df['is_starter'] == True]
+    if len(starters) >= 2:
+        forwards = starters.nlargest(2, 'x')
+        fwd_line_h = round(forwards['x'].mean(), 2)
+    else:
+        fwd_line_h = dah
+    
+    # Calculate compactness
+    compactness = round((1 - ((fwd_line_h - def_line_h) / 120)) * 100, 2)
+    
+    # Add vertical lines
+    ax.axvline(x=dah, color='gray', linestyle='--', alpha=0.75, linewidth=2)
+    ax.axvline(x=def_line_h, color='gray', linestyle='dotted', alpha=0.5, linewidth=2)
+    ax.axvline(x=fwd_line_h, color='gray', linestyle='dotted', alpha=0.5, linewidth=2)
+    
+    # Invert axes for away team
+    if is_away_team:
+        ax.invert_xaxis()
+        ax.invert_yaxis()
+        ax.text(dah-1, 78, f"{dah_show}m", fontsize=15, color='white', ha='left', va='center')
+        ax.text(120, 78, f'Compact:{compactness}%', fontsize=15, color='white', ha='left', va='center')
+        ax.text(2, 2, "circle = starter\nbox = sub", color='gray', size=12, ha='right', va='top')
+    else:
+        ax.text(dah-1, -3, f"{dah_show}m", fontsize=15, color='white', ha='right', va='center')
+        ax.text(120, -3, f'Compact:{compactness}%', fontsize=15, color='white', ha='right', va='center')
+        ax.text(2, 78, "circle = starter\nbox = sub", color='gray', size=12, ha='left', va='top')
+    
+    ax.set_title(f"{team_name}\nDefensive Action Heatmap", 
+                color='white', fontsize=20, fontweight='bold')
+    
+    return {
+        'Team_Name': team_name,
+        'Average_Defensive_Action_Height': dah,
+        'Forward_Line_Pressing_Height': fwd_line_h,
+        'Compactness': compactness
+    }
+
+
+def draw_progressive_pass_map(ax, df_events, team_id, team_name, team_color, is_away_team=False):
+    """Draw progressive pass map with defensive block aesthetic."""
+    from mplsoccer import Pitch
+    
+    # Filter progressive passes
+    dfpro = df_events[
+        (df_events['team_id'] == team_id) & 
+        (df_events['type_display_name'] == 'Pass') &
+        (df_events['outcome_type_display_name'] == 'Successful') &
+        (~df_events['qualifiers'].astype(str).str.contains('CornerTaken|Freekick', na=False)) & 
+        (df_events['x'] >= 35) &
+        (df_events['prog_pass'] >= 9.11)
+    ].copy()
+    
+    # Create pitch
+    pitch = Pitch(
+        pitch_type='statsbomb',
+        pitch_color='#0C0D0E',
+        line_color='white',
+        linewidth=2,
+        line_zorder=2,
+        corner_arcs=True
+    )
+    pitch.draw(ax=ax)
+    ax.set_facecolor('#0C0D0E')
+    ax.set_xlim(-0.5, 120.5)
+    ax.set_ylim(-0.5, 80.5)
+    
+    # Invert axes for away team
+    if is_away_team:
+        ax.invert_xaxis()
+        ax.invert_yaxis()
+    
+    pro_count = len(dfpro)
+    
+    if pro_count > 0:
+        # Calculate zone statistics (StatsBomb coordinates: 0-80 width)
+        left_pro = len(dfpro[dfpro['y'] >= 53.33])
+        mid_pro = len(dfpro[(dfpro['y'] >= 26.67) & (dfpro['y'] < 53.33)])
+        right_pro = len(dfpro[dfpro['y'] < 26.67])
+        
+        left_percentage = round((left_pro/pro_count)*100) if pro_count > 0 else 0
+        mid_percentage = round((mid_pro/pro_count)*100) if pro_count > 0 else 0
+        right_percentage = round((right_pro/pro_count)*100) if pro_count > 0 else 0
+        
+        # Add zone dividing lines
+        ax.hlines(26.67, xmin=0, xmax=120, colors='white', linestyle='dashed', alpha=0.35)
+        ax.hlines(53.33, xmin=0, xmax=120, colors='white', linestyle='dashed', alpha=0.35)
+        
+        # Text styling
+        bbox_props = dict(boxstyle="round,pad=0.3", edgecolor="None", facecolor='#0C0D0E', alpha=0.75)
+        
+        # Position text annotations
+        ax.text(8, 13.335, f'{right_pro}\n({right_percentage}%)', color=team_color, fontsize=24, 
+               va='center', ha='center', bbox=bbox_props, weight='bold')
+        ax.text(8, 40, f'{mid_pro}\n({mid_percentage}%)', color=team_color, fontsize=24, 
+               va='center', ha='center', bbox=bbox_props, weight='bold')
+        ax.text(8, 66.67, f'{left_pro}\n({left_percentage}%)', color=team_color, fontsize=24, 
+               va='center', ha='center', bbox=bbox_props, weight='bold')
+        
+        # Plot progressive passes with comet effect
+        pitch.lines(dfpro['x'], dfpro['y'], dfpro['end_x'], dfpro['end_y'], 
+                   lw=3.5, comet=True, color=team_color, ax=ax, alpha=0.5)
+        
+        # Add end points
+        pitch.scatter(dfpro['end_x'], dfpro['end_y'], s=35, edgecolor=team_color, 
+                     linewidth=1, facecolor='#0C0D0E', zorder=2, ax=ax)
+    
+    counttext = f"{pro_count} Progressive Passes"
+    ax.set_title(f"{team_name}\n{counttext}", color='white', fontsize=25, fontweight='bold')
+    
+    return {
+        'Team_Name': team_name,
+        'Total_Progressive_Passes': pro_count
+    }

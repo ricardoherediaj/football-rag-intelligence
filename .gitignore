@@ -42,6 +42,13 @@ CLAUDE.md
 /data/*.txt
 /data/eval_datasets/*
 /data/viz_metrics/*
+/data/test_visualizations/*
+
+# Prompt engineering experiments
+/prompts/prompt_versions.yml
+/prompts/results*.md
+/prompts/*_test.md
+/prompts/*console*.md
 
 # Keep .gitkeep files
 !data/**/.gitkeep

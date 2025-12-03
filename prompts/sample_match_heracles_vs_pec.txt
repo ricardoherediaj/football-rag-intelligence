@@ -1,0 +1,110 @@
+===========================================
+SAMPLE MATCH DATA FOR CONSOLE TESTING
+===========================================
+
+This file contains pre-formatted match data ready to paste into Anthropic Console.
+Use this with the baseline prompt to test tactical analysis generation.
+
+MATCH: Heracles vs PEC Zwolle
+===========================================
+
+**Match Details:**
+- Home Team: Heracles
+- Away Team: PEC Zwolle
+- Date: 2025-11-02
+- Final Score: 2-8
+
+**Tactical Metrics:**
+
+*Passing & Progression:*
+- Progressive Passes: Home 55 | Away 101
+- Total Passes: Home 273 | Away 374
+- Verticality: Home -0.8% | Away 12.7%
+
+*Defensive Pressure:*
+- PPDA (Passes Per Defensive Action): Home 4.45 | Away 2.95
+- High Press Events: Home 2 | Away 16
+- Total Defensive Actions: Home 108 | Away 125
+
+*Attacking:*
+- Shots: Home 24 | Away 7
+- Expected Goals (xG): Home 4.51 | Away 1.14
+- xG per Shot: Home 0.188 | Away 0.163
+- Shots on Target: Home 15 | Away 6
+- Shot Accuracy: Home 62.5% | Away 85.7%
+
+*Team Positioning:*
+- Team Median Position: Home 35.2m | Away 55.9m
+- Defense Line Avg: Home 23.5m | Away 35.9m
+- Forward Line Avg: Home 53.1m | Away 71.1m
+
+**Required Analysis:**
+1. **Tactical Overview**: What was each team's tactical approach based on the metrics?
+2. **Key Insights**: What do the numbers reveal about how the match was won/lost?
+3. **xG Analysis**: How did shot quality and conversion compare? Any over/underperformance?
+4. **Pressing Strategy**: How did defensive pressure affect the match?
+5. **Ball Progression**: Which team was more effective at progressing the ball forward?
+6. **Actionable Recommendations**: What should coaches focus on based on this data?
+
+===========================================
+INTERESTING INSIGHTS TO LOOK FOR:
+===========================================
+
+1. **Massive xG Overperformance by PEC Zwolle**
+   - Only 1.14 xG but scored 8 goals = 7x overperformance!
+   - Only 7 shots total, 6 on target, 6 goals = 85.7% conversion
+   - This is statistically extraordinary
+
+2. **Heracles Underperformance**
+   - 4.51 xG but only scored 2 goals = 2.51 xG wasted
+   - 24 shots, 15 on target, only 2 goals = 8.3% conversion
+
+3. **Tactical Dominance by PEC**
+   - 101 progressive passes vs 55 (nearly double)
+   - Aggressive pressing: 16 high press events vs 2
+   - Low PPDA of 2.95 = intense pressure
+   - Advanced positioning: 55.9m vs 35.2m median
+
+4. **Heracles Sat Deep**
+   - Median position only 35.2m (very defensive)
+   - Defense line at 23.5m (parking the bus)
+   - Only 2 high press events (no pressure)
+
+5. **The Paradox**
+   - Heracles had MORE shots (24 vs 7)
+   - Heracles had HIGHER xG (4.51 vs 1.14)
+   - But PEC won 8-2!
+   - This suggests: clinical finishing beats shot volume
+
+===========================================
+EXPECTED QUALITY ANALYSIS SHOULD INCLUDE:
+===========================================
+
+✓ References to the xG overperformance (most important insight)
+✓ Comparison of pressing intensity (16 vs 2 events, PPDA difference)
+✓ Progressive passing dominance (101 vs 55)
+✓ Positional dominance (55.9m vs 35.2m)
+✓ Explanation of how PEC won despite lower xG
+✓ Tactical approach: PEC dominated possession and territory
+✓ Clinical finishing: 7 shots, 6 goals is extraordinary efficiency
+
+✗ Generic statements like "PEC played better"
+✗ Ignoring the xG data
+✗ Not mentioning the statistical anomaly (8 goals from 1.14 xG)
+✗ Failing to explain the paradox (more shots/xG but still lost)
+
+===========================================
+TESTING WORKFLOW:
+===========================================
+
+1. Open console.anthropic.com
+2. Paste SYSTEM PROMPT from tactical_analysis_v1_baseline.txt
+3. Paste the match data above as USER PROMPT
+4. Generate analysis
+5. Score using rubric in PHASE2_PROMPT_TESTING.md:
+   - Tactical Insight Quality: _/5
+   - Data Grounding: _/5
+   - Actionable Recommendations: _/5
+   - Coherence & Structure: _/5
+6. Document results in PHASE2_PROMPT_TESTING.md
+7. Iterate on prompt if needed

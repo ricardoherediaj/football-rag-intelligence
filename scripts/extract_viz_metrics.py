@@ -312,18 +312,25 @@ def extract_metrics_for_evaluation_matches(
         try:
             metrics = extract_match_metrics(match_id, ws_file)
 
-            # Add Fotmob shot metrics if available
-            if match_id in fotmob_index:
-                fotmob_match = fotmob_index[match_id]
-                shot_metrics = extract_shot_metrics_from_fotmob(
-                    fotmob_match,
-                    metrics['home_team_id'],
-                    metrics['away_team_id']
-                )
-                metrics['shot_metrics'] = shot_metrics
-                print(f"   ✅ Added xG data: Home {shot_metrics['home_xg']} | Away {shot_metrics['away_xg']}")
+            # Add Fotmob shot metrics using mapping
+            if match_id in match_mapping:
+                fotmob_id = match_mapping[match_id]['fotmob_id']
+
+                if fotmob_id in fotmob_index:
+                    fotmob_match = fotmob_index[fotmob_id]
+
+                    # Use Fotmob team IDs from mapping (convert to int)
+                    shot_metrics = extract_shot_metrics_from_fotmob(
+                        fotmob_match,
+                        int(match_mapping[match_id]['fotmob_home_team_id']),
+                        int(match_mapping[match_id]['fotmob_away_team_id'])
+                    )
+                    metrics['shot_metrics'] = shot_metrics
+                    print(f"   ✅ Added xG data: Home {shot_metrics['home_xg']} | Away {shot_metrics['away_xg']}")
+                else:
+                    print(f"   ⚠️  Fotmob match {fotmob_id} not in index")
             else:
-                print(f"   ⚠️  Fotmob data not found for match {match_id}")
+                print(f"   ⚠️  No mapping for WhoScored match {match_id}")
 
             results[match_id] = metrics
 
@@ -353,7 +360,8 @@ if __name__ == "__main__":
     eval_matches = base_dir / "data" / "evaluation_matches.json"
     whoscored_dir = base_dir / "data" / "raw" / "whoscored_matches" / "eredivisie" / "2025-2026"
     fotmob_file = base_dir / "data" / "raw" / "eredivisie_2025_2026_fotmob.json"
+    mapping_file = base_dir / "data" / "match_mapping.json"
     output_dir = base_dir / "data" / "viz_metrics"
 
     # Run extraction
-    extract_metrics_for_evaluation_matches(eval_matches, whoscored_dir, fotmob_file, output_dir)
+    extract_metrics_for_evaluation_matches(eval_matches, whoscored_dir, fotmob_file, mapping_file, output_dir)

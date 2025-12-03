@@ -31,6 +31,7 @@ dependencies = [
     # "sentence-transformers>=2.2.0",  # Removed - ChromaDB handles embeddings
     "huggingface-hub>=0.20.0",
     "python-dotenv>=1.0.0",
+    "mplsoccer>=1.6.1",
 ]
 
 [project.scripts]
