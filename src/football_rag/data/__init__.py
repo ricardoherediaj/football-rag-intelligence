@@ -1,5 +1,5 @@
-"""Data management module with schemas and processing."""
+"""Data models and schemas."""
 
-from .schemas import MatchEvent, Match, PlayerStats, RAGQuery, RAGResponse
+from .schemas import MatchContext, TacticalMetrics
 
-__all__ = ["MatchEvent", "Match", "PlayerStats", "RAGQuery", "RAGResponse"]
+__all__ = ["MatchContext", "TacticalMetrics"]

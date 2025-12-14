@@ -1,173 +1,162 @@
-"""Simplified RAG pipeline with multi-provider LLM support (no LlamaIndex)."""
+"""Smart RAG pipeline for Football Analysis.
+Implements 2-step retrieval: Search Match -> Validate -> Fill Prompt.
+"""
 
 import logging
-import re
-import hashlib
-import pickle
-from typing import List, Dict, Any, Optional
+import os
+from typing import Dict, Any, Optional, List
+import chromadb
 from pathlib import Path
 
-from football_rag.config.settings import settings
-from football_rag.storage.vector_store import VectorStore
+# Imports
 from football_rag.models.generate import generate_with_llm
 from football_rag.prompts_loader import load_prompt
+from football_rag.data.schemas import MatchContext, TacticalMetrics 
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
-def check_faithfulness(answer: str, sources: List[Dict]) -> Dict:
-    """Verify answer numbers exist in source documents."""
-    answer_numbers = set(float(n) for n in re.findall(r"\d+\.?\d*", answer))
-
-    source_numbers = set()
-    for source in sources:
-        source_numbers.update(
-            float(n) for n in re.findall(r"\d+\.?\d*", source["text"])
-        )
-        for key, val in source.get("metadata", {}).items():
-            if isinstance(val, (int, float)):
-                source_numbers.add(float(val))
-
-    hallucinated = answer_numbers - source_numbers
-    valid = answer_numbers & source_numbers
-
-    return {
-        "faithful": len(hallucinated) == 0,
-        "hallucinated_numbers": sorted(list(hallucinated)),
-        "valid_numbers": sorted(list(valid)),
-        "faithfulness_score": len(valid) / len(answer_numbers)
-        if answer_numbers
-        else 1.0,
-    }
-
-
-class RAGPipeline:
-    """Simplified RAG pipeline with multi-provider LLM support."""
-
+class FootballRAGPipeline:
     def __init__(
         self,
         provider: str = "ollama",
         api_key: Optional[str] = None,
-        chroma_persist_directory: Optional[str] = None,
+        chroma_path: str = "data/chroma", 
+        prompt_version: str = "v3.5_balanced"
     ):
-        """Initialize RAG pipeline.
-
-        Args:
-            provider: LLM provider ('ollama', 'anthropic', 'openai', 'gemini')
-            api_key: API key for cloud providers
-            chroma_persist_directory: Path to local ChromaDB directory (overrides server mode)
-        """
-        logger.info(f"Initializing RAG pipeline with provider: {provider}")
-
-        # Direct ChromaDB connection (no LlamaIndex overhead)
-        if chroma_persist_directory:
-            # Use local persistent ChromaDB
-            self.vector_store = VectorStore(
-                collection_name="football_matches_eredivisie_2025",
-                persist_directory=chroma_persist_directory,
-            )
-        else:
-            # Use ChromaDB server
-            self.vector_store = VectorStore(
-                collection_name="football_matches_eredivisie_2025",
-                host=settings.database.chroma_host,
-                port=settings.database.chroma_port,
-            )
-
+        """Initialize pipeline with direct ChromaDB access."""
         self.provider = provider
-        self.api_key = api_key
-
-        # Load prompt profile
-        self.prompts = load_prompt(settings.prompt_profile)
-
-        # Setup cache
-        self.cache_dir = Path("data/query_cache")
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("✓ RAG pipeline ready")
-
-    def _get_cache_key(self, question: str, top_k: int) -> str:
-        """Generate cache key from question and provider."""
-        key = f"{question.lower().strip()}_{top_k}_{self.provider}"
-        return hashlib.md5(key.encode()).hexdigest()
-
-    def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
-        """Query RAG pipeline with multi-provider LLM support."""
-        # Check cache
-        cache_key = self._get_cache_key(question, top_k)
-        cache_path = self.cache_dir / f"{cache_key}.pkl"
-
-        if cache_path.exists():
-            try:
-                with open(cache_path, "rb") as f:
-                    result = pickle.load(f)
-                    logger.info(f"⚡ Cache hit: {question[:60]}...")
-                    return result
-            except Exception as e:
-                logger.warning(f"Cache load failed: {e}")
-
-        # Retrieve context from ChromaDB
-        logger.info(f"🔍 Retrieving context for: {question[:60]}...")
-        results = self.vector_store.search(query=question, k=top_k)
-
-        # Convert to source nodes format (for compatibility with existing code)
-        source_nodes = [
-            {
-                "text": r["document"],
-                "score": 1 - r["distance"] if r["distance"] else 1.0,
-                "metadata": r["metadata"],
-            }
-            for r in results
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY") 
+        
+        db_path = Path(chroma_path).resolve()
+        self.client = chromadb.PersistentClient(path=str(db_path))
+        self.collection = self.client.get_collection("eredivisie_matches_2025")
+        
+        self.prompts = load_prompt(prompt_version)
+        
+        # known_teams from your provided list
+        self.known_teams = [
+            "Feyenoord", "PSV Eindhoven", "Ajax", "AZ Alkmaar", "FC Groningen", 
+            "NEC Nijmegen", "FC Twente", "Fortuna Sittard", "FC Utrecht", 
+            "Go Ahead Eagles", "Sparta Rotterdam", "SC Heerenveen", "FC Volendam", 
+            "Telstar", "NAC Breda", "PEC Zwolle", "Excelsior", "Heracles"
         ]
+        
+        logger.info(f"🚀 Football RAG Ready | Provider: {provider}")
 
-        # Format context for LLM
-        context = "\n\n".join(
-            f"Source {i + 1}:\n{node['text']}" for i, node in enumerate(source_nodes)
-        )
-        llm_prompt = self.prompts["user_template"].format(
-            context=context, question=question
-        )
+    def run(self, user_query: str) -> Dict[str, Any]:
+        """End-to-end execution with Pydantic Validation."""
+        logger.info(f"🔎 Processing: '{user_query}'")
 
-        # Generate with selected provider
-        logger.info(f"🤖 Generating with {self.provider}...")
-        answer = generate_with_llm(
-            llm_prompt,
+        # Step 1: Identify Match (Now with Metadata Filtering)
+        match_context = self._identify_match(user_query)
+        if not match_context:
+            return {"error": "Could not identify match. Please mention team names."}
+        
+        match_name = f"{match_context.home_team} vs {match_context.away_team}"
+
+        # Step 2: Fetch Metrics
+        metrics_model = self._fetch_tactical_metrics(match_context.match_id)
+        if not metrics_model:
+            return {"error": f"Found match {match_name} but missing tactical metrics."}
+
+        # Step 3: Map to Prompt
+        prompt_variables = metrics_model.to_prompt_variables(match_context)
+
+        logger.info(f"📊 DATA INTEGRITY CHECK for {match_name}:")
+        logger.info(f"   • Score: {prompt_variables['home_score']}-{prompt_variables['away_score']}")
+        logger.info(f"   • xG: {prompt_variables['home_xg']} vs {prompt_variables['away_xg']}")
+
+        # Step 4: Generate
+        formatted_prompt = self.prompts["user_template"].format(**prompt_variables)
+        
+        logger.info(f"🤖 Generating commentary...")
+        
+        response = generate_with_llm(
+            prompt=formatted_prompt,
             provider=self.provider,
             api_key=self.api_key,
             system_prompt=self.prompts["system"],
-            temperature=settings.models.temperature,
-            max_tokens=512,
+            temperature=0.3
         )
 
-        # Validate faithfulness
-        faithfulness = check_faithfulness(answer, source_nodes)
-        if not faithfulness["faithful"]:
-            logger.warning(f"⚠️ Hallucinations: {faithfulness['hallucinated_numbers']}")
-
-        result = {
-            "answer": answer,
-            "source_nodes": source_nodes,
-            "faithfulness": faithfulness,
+        return {
+            "match_id": match_context.match_id,
+            "match_name": match_name,
+            "commentary": response,
+            "metrics_used": prompt_variables
         }
 
-        # Save to cache
-        try:
-            with open(cache_path, "wb") as f:
-                pickle.dump(result, f)
-            logger.info("💾 Cached result")
-        except Exception as e:
-            logger.warning(f"Cache save failed: {e}")
+    def _identify_match(self, query: str) -> Optional[MatchContext]:
+        """Find match using Hybrid Search (Metadata Filter + Semantic)."""
+        
+        # 1. Extract Teams from Query
+        query_lower = query.lower()
+        found_teams = []
+        
+        for team in self.known_teams:
+            # Check full name (e.g. "PEC Zwolle")
+            if team.lower() in query_lower:
+                found_teams.append(team)
+                continue
+                
+            # Check common short names (e.g. "PSV", "PEC")
+            short_name = team.split()[0] 
+            if len(short_name) > 3 and short_name.lower() in query_lower:
+                 found_teams.append(team)
 
-        return result
-
-    def retrieve(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        """Retrieve relevant documents without generation."""
-        results = self.vector_store.search(query=query, k=k)
-
-        return [
-            {
-                "text": r["document"],
-                "score": 1 - r["distance"] if r["distance"] else 1.0,
-                "metadata": r["metadata"],
+        # 2. Build Metadata Filter
+        where_clause = {"chunk_type": "summary"} # Default: search all summaries
+        
+        if len(found_teams) > 0:
+            # If we found teams, force Chroma to only look at matches involving them
+            # Logic: (chunk_type == summary) AND (home_team IN found OR away_team IN found)
+            
+            team_filters = []
+            for team in found_teams:
+                team_filters.append({"home_team": team})
+                team_filters.append({"away_team": team})
+            
+            where_clause = {
+                "$and": [
+                    {"chunk_type": "summary"},
+                    {"$or": team_filters}
+                ]
             }
-            for r in results
-        ]
+            logger.info(f"🎯 Applied Filter: Finding matches involving {found_teams}")
+
+        # 3. Query
+        results = self.collection.query(
+            query_texts=[query],
+            n_results=1,
+            where=where_clause 
+        )
+
+        if not results['ids'] or not results['ids'][0]:
+            return None
+
+        meta = results['metadatas'][0][0]
+        return MatchContext(**meta)
+
+    def _fetch_tactical_metrics(self, match_id: str) -> Optional[TacticalMetrics]:
+        """Fetch metrics and return validated TacticalMetrics model."""
+        target_id = f"{match_id}_tactical_metrics"
+        
+        result = self.collection.get(
+            ids=[target_id],
+            include=["metadatas"]
+        )
+
+        if not result['metadatas']:
+            logger.warning(f"⚠️ Metrics chunk not found for {target_id}")
+            return None
+
+        raw_data = result['metadatas'][0]
+        return TacticalMetrics(**raw_data)
+
+if __name__ == "__main__":
+    pipeline = FootballRAGPipeline(provider="anthropic")
+    print("\n--- TEST RUN (WITH FILTER) ---")
+    result = pipeline.run("Analyze the Heracles vs PEC Zwolle match")
+    print(result.get("match_name", "Error"))

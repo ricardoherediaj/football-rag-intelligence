@@ -1,169 +1,76 @@
-"""Pydantic schemas for data validation and contracts."""
-
-from datetime import datetime
-from typing import Optional, List, Dict, Any
+"""Pydantic models for data validation and transformation."""
 from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
+class MatchContext(BaseModel):
+    """Data from Chunk 1 (Summary)."""
+    match_id: str
+    home_team: str
+    away_team: str
+    home_score: int = 0
+    away_score: int = 0
+    match_date: str = "N/A"
 
-class WhoScoredMatchEvent(BaseModel):
-    """Schema for WhoScored match events (raw format)."""
+class TacticalMetrics(BaseModel):
+    """Data from Chunk 2 (Metrics). Keys match ChromaDB exactly."""
     
-    id: int = Field(..., description="Event ID")
-    event_id: int = Field(..., description="Event sequence ID")
-    minute: int = Field(..., description="Match minute")
-    second: Optional[float] = Field(None, description="Second within minute")
-    team_id: int = Field(..., description="Team identifier")
-    player_id: int = Field(..., description="Player identifier")
-    x: float = Field(..., description="X coordinate (0-100)")
-    y: float = Field(..., description="Y coordinate (0-100)")
-    end_x: Optional[float] = Field(None, description="End X coordinate")
-    end_y: Optional[float] = Field(None, description="End Y coordinate")
-    qualifiers: List[dict] = Field(..., description="Event qualifiers")
-    is_touch: bool = Field(..., description="Is ball touch event")
-    blocked_x: Optional[float] = Field(None, description="Blocked X coordinate")
-    blocked_y: Optional[float] = Field(None, description="Blocked Y coordinate")
-    goal_mouth_z: Optional[float] = Field(None, description="Goal mouth Z coordinate")
-    goal_mouth_y: Optional[float] = Field(None, description="Goal mouth Y coordinate")
-    is_shot: bool = Field(..., description="Is shot event")
-    card_type: bool = Field(..., description="Card type")
-    is_goal: bool = Field(..., description="Is goal event")
-    type_display_name: str = Field(..., description="Event type display name")
-    outcome_type_display_name: str = Field(..., description="Outcome type display name")
-    period_display_name: str = Field(..., description="Period display name")
-    match_url: str = Field(..., description="Source match URL")
-
-
-class MatchEvent(BaseModel):
-    """Schema for football match events (normalized format)."""
+    # Passing
+    home_progressive_passes: int = 0
+    away_progressive_passes: int = 0
+    home_total_passes: int = 0
+    away_total_passes: int = 0
     
-    match_id: str = Field(..., description="Unique match identifier")
-    event_id: str = Field(..., description="Unique event identifier")
-    event_type: str = Field(..., description="Type of event (shot, pass, etc.)")
-    timestamp: datetime = Field(..., description="When event occurred")
-    minute: int = Field(..., description="Match minute")
+    # Pressure
+    home_ppda: float = 0.0
+    away_ppda: float = 0.0
+    home_high_press: int = 0
+    away_high_press: int = 0
     
-    player_id: Optional[str] = Field(None, description="Player involved")
-    player_name: Optional[str] = Field(None, description="Player name")
-    team_id: str = Field(..., description="Team identifier")
-    team_name: str = Field(..., description="Team name")
+    # Attacking
+    home_shots: int = 0
+    away_shots: int = 0
+    home_xg: float = 0.0
+    away_xg: float = 0.0
     
-    x_coordinate: Optional[float] = Field(None, description="X coordinate (0-100)")
-    y_coordinate: Optional[float] = Field(None, description="Y coordinate (0-100)")
+    # Positioning (Matches keys found in your diagnostic script)
+    home_position: float = 0.0
+    away_position: float = 0.0
+    home_defense_line: float = 0.0
+    away_defense_line: float = 0.0
     
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional event data")
-    
+    # Allow extra fields (like 'chunk_type') so validation doesn't fail
     class Config:
-        json_schema_extra = {
-            "example": {
-                "match_id": "match_123456",
-                "event_id": "event_789",
-                "event_type": "shot",
-                "timestamp": "2024-01-01T15:30:00Z",
-                "minute": 23,
-                "player_id": "player_123",
-                "player_name": "Steven Bergwijn",
-                "team_id": "ajax",
-                "team_name": "Ajax",
-                "x_coordinate": 85.5,
-                "y_coordinate": 45.2,
-                "metadata": {"shot_outcome": "goal", "xG": 0.45}
-            }
-        }
+        extra = "ignore" 
 
-
-class Match(BaseModel):
-    """Schema for match data."""
-    
-    match_id: str = Field(..., description="Unique match identifier")
-    home_team: str = Field(..., description="Home team name")
-    away_team: str = Field(..., description="Away team name")
-    home_score: int = Field(..., description="Home team score")
-    away_score: int = Field(..., description="Away team score")
-    
-    competition: str = Field(..., description="Competition name")
-    season: str = Field(..., description="Season identifier")
-    match_date: datetime = Field(..., description="Match date")
-    
-    events: List[MatchEvent] = Field(default_factory=list, description="Match events")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "match_id": "match_123456",
-                "home_team": "Ajax",
-                "away_team": "PSV",
-                "home_score": 2,
-                "away_score": 1,
-                "competition": "Eredivisie",
-                "season": "2024-25",
-                "match_date": "2024-01-01T15:00:00Z"
-            }
-        }
-
-
-class PlayerStats(BaseModel):
-    """Schema for aggregated player statistics."""
-    
-    player_id: str = Field(..., description="Unique player identifier")
-    player_name: str = Field(..., description="Player name")
-    team: str = Field(..., description="Current team")
-    position: str = Field(..., description="Playing position")
-    
-    # Performance metrics
-    matches_played: int = Field(default=0, description="Matches played")
-    goals: int = Field(default=0, description="Goals scored")
-    assists: int = Field(default=0, description="Assists made")
-    shots: int = Field(default=0, description="Total shots")
-    shots_on_target: int = Field(default=0, description="Shots on target")
-    pass_accuracy: float = Field(default=0.0, description="Pass accuracy percentage")
-    
-    # Advanced metrics
-    xg: float = Field(default=0.0, description="Expected goals")
-    xa: float = Field(default=0.0, description="Expected assists")
-    
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional stats")
-
-
-class RAGQuery(BaseModel):
-    """Schema for RAG query requests."""
-    
-    question: str = Field(..., description="User's question")
-    context_filter: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Filters for context retrieval"
-    )
-    max_context_items: int = Field(default=5, description="Max context items to retrieve")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "question": "How did Steven Bergwijn perform against top 6 teams?",
-                "context_filter": {"player_name": "Steven Bergwijn", "team_tier": "top6"},
-                "max_context_items": 10
-            }
-        }
-
-
-class RAGResponse(BaseModel):
-    """Schema for RAG query responses."""
-    
-    answer: str = Field(..., description="Generated answer")
-    context_used: List[str] = Field(..., description="Context snippets used")
-    confidence_score: float = Field(..., description="Response confidence (0-1)")
-    
-    # Metadata
-    query_time_ms: float = Field(..., description="Query processing time")
-    model_used: str = Field(..., description="LLM model used")
-    context_sources: List[str] = Field(default_factory=list, description="Data sources")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "answer": "Steven Bergwijn scored 3 goals in 8 matches against top 6 teams...",
-                "context_used": ["Match data from Ajax vs PSV...", "Player stats..."],
-                "confidence_score": 0.85,
-                "query_time_ms": 1250.5,
-                "model_used": "llama3.2:1b",
-                "context_sources": ["whoscored", "fotmob"]
-            }
+    def to_prompt_variables(self, context: MatchContext) -> Dict[str, Any]:
+        """Transform DB data into the exact keys required by V3.5 Prompt."""
+        return {
+            # --- CONTEXT ---
+            "home_team": context.home_team,
+            "away_team": context.away_team,
+            "match_date": context.match_date,
+            "home_score": context.home_score,
+            "away_score": context.away_score,
+            
+            # --- METRICS (Renaming & Rounding) ---
+            "home_pp": self.home_progressive_passes,
+            "away_pp": self.away_progressive_passes,
+            "home_total": self.home_total_passes,
+            "away_total": self.away_total_passes,
+            
+            "home_ppda": round(self.home_ppda, 2),
+            "away_ppda": round(self.away_ppda, 2),
+            "home_press": self.home_high_press,
+            "away_press": self.away_high_press,
+            
+            "home_shots": self.home_shots,
+            "away_shots": self.away_shots,
+            "home_xg": round(self.home_xg, 2),
+            "away_xg": round(self.away_xg, 2),
+            
+            # Mapping DB keys to Prompt keys
+            "home_pos": round(self.home_position, 1),
+            "away_pos": round(self.away_position, 1),
+            "home_def": round(self.home_defense_line, 1),
+            "away_def": round(self.away_defense_line, 1),
         }
