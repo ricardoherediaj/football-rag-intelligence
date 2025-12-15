@@ -22,29 +22,35 @@ from scipy.ndimage import gaussian_filter1d
 
 def prepare_enhanced_passes(df_events: pd.DataFrame) -> pd.DataFrame:
     """Prepare pass data with enhanced metrics.
-    
+
     Args:
         df_events: DataFrame containing match events
-        
+
     Returns:
         DataFrame with enhanced pass data including angles and receivers
     """
     # Filter successful passes
     passes = df_events[
-        (df_events['type_display_name'] == 'Pass') & 
+        (df_events['type_display_name'] == 'Pass') &
         (df_events['outcome_type_display_name'] == 'Successful')
     ].copy()
-    
+
+    # Convert coordinates (WhoScored 0-100 → StatsBomb 0-120x0-80)
+    passes['x'] = passes['x'] * 1.2
+    passes['y'] = passes['y'] * 0.8
+    passes['end_x'] = passes['end_x'] * 1.2
+    passes['end_y'] = passes['end_y'] * 0.8
+
     # Calculate pass angles
     passes['pass_angle'] = np.degrees(np.arctan2(
-        passes['end_y'] - passes['y'], 
+        passes['end_y'] - passes['y'],
         passes['end_x'] - passes['x']
     ))
     passes['pass_angle_abs'] = np.abs(passes['pass_angle'])
-    
+
     # Add receiver
     passes['receiver'] = passes['player_id'].shift(-1)
-    
+
     return passes
 
 
@@ -877,17 +883,17 @@ def defensive_block(ax, team_positions: dict, team_actions: pd.DataFrame,
 def draw_progressive_pass_map(ax, df_events, team_id, team_name, team_color, is_away_team=False):
     """Draw progressive pass map with defensive block aesthetic."""
     from mplsoccer import Pitch
-    
+
     # Filter progressive passes
     dfpro = df_events[
-        (df_events['team_id'] == team_id) & 
+        (df_events['team_id'] == team_id) &
         (df_events['type_display_name'] == 'Pass') &
         (df_events['outcome_type_display_name'] == 'Successful') &
-        (~df_events['qualifiers'].astype(str).str.contains('CornerTaken|Freekick', na=False)) & 
+        (~df_events['qualifiers'].astype(str).str.contains('CornerTaken|Freekick', na=False)) &
         (df_events['x'] >= 35) &
         (df_events['prog_pass'] >= 9.11)
     ].copy()
-    
+
     # Create pitch
     pitch = Pitch(
         pitch_type='statsbomb',
@@ -901,51 +907,338 @@ def draw_progressive_pass_map(ax, df_events, team_id, team_name, team_color, is_
     ax.set_facecolor('#0C0D0E')
     ax.set_xlim(-0.5, 120.5)
     ax.set_ylim(-0.5, 80.5)
-    
+
     # Invert axes for away team
     if is_away_team:
         ax.invert_xaxis()
         ax.invert_yaxis()
-    
+
     pro_count = len(dfpro)
-    
+
     if pro_count > 0:
         # Calculate zone statistics (StatsBomb coordinates: 0-80 width)
         left_pro = len(dfpro[dfpro['y'] >= 53.33])
         mid_pro = len(dfpro[(dfpro['y'] >= 26.67) & (dfpro['y'] < 53.33)])
         right_pro = len(dfpro[dfpro['y'] < 26.67])
-        
+
         left_percentage = round((left_pro/pro_count)*100) if pro_count > 0 else 0
         mid_percentage = round((mid_pro/pro_count)*100) if pro_count > 0 else 0
         right_percentage = round((right_pro/pro_count)*100) if pro_count > 0 else 0
-        
+
         # Add zone dividing lines
         ax.hlines(26.67, xmin=0, xmax=120, colors='white', linestyle='dashed', alpha=0.35)
         ax.hlines(53.33, xmin=0, xmax=120, colors='white', linestyle='dashed', alpha=0.35)
-        
+
         # Text styling
         bbox_props = dict(boxstyle="round,pad=0.3", edgecolor="None", facecolor='#0C0D0E', alpha=0.75)
-        
+
         # Position text annotations
-        ax.text(8, 13.335, f'{right_pro}\n({right_percentage}%)', color=team_color, fontsize=24, 
+        ax.text(8, 13.335, f'{right_pro}\n({right_percentage}%)', color=team_color, fontsize=24,
                va='center', ha='center', bbox=bbox_props, weight='bold')
-        ax.text(8, 40, f'{mid_pro}\n({mid_percentage}%)', color=team_color, fontsize=24, 
+        ax.text(8, 40, f'{mid_pro}\n({mid_percentage}%)', color=team_color, fontsize=24,
                va='center', ha='center', bbox=bbox_props, weight='bold')
-        ax.text(8, 66.67, f'{left_pro}\n({left_percentage}%)', color=team_color, fontsize=24, 
+        ax.text(8, 66.67, f'{left_pro}\n({left_percentage}%)', color=team_color, fontsize=24,
                va='center', ha='center', bbox=bbox_props, weight='bold')
-        
+
         # Plot progressive passes with comet effect
-        pitch.lines(dfpro['x'], dfpro['y'], dfpro['end_x'], dfpro['end_y'], 
+        pitch.lines(dfpro['x'], dfpro['y'], dfpro['end_x'], dfpro['end_y'],
                    lw=3.5, comet=True, color=team_color, ax=ax, alpha=0.5)
-        
+
         # Add end points
-        pitch.scatter(dfpro['end_x'], dfpro['end_y'], s=35, edgecolor=team_color, 
+        pitch.scatter(dfpro['end_x'], dfpro['end_y'], s=35, edgecolor=team_color,
                      linewidth=1, facecolor='#0C0D0E', zorder=2, ax=ax)
-    
+
     counttext = f"{pro_count} Progressive Passes"
     ax.set_title(f"{team_name}\n{counttext}", color='white', fontsize=25, fontweight='bold')
-    
+
     return {
         'Team_Name': team_name,
         'Total_Progressive_Passes': pro_count
     }
+
+
+# =============================================================================
+# DASHBOARD FUNCTIONS (for subplot layouts)
+# =============================================================================
+
+def plot_shot_map_on_axis(ax, shots_merged, home_fotmob_id, away_fotmob_id, home_team_name, away_team_name):
+    """Advanced shot map with comprehensive shot type visualization."""
+    from mplsoccer import Pitch
+
+    pitch = Pitch(pitch_type='uefa', pitch_color='#0C0D0E', line_color='white', linewidth=2, corner_arcs=True)
+    pitch.draw(ax=ax)
+    ax.set_ylim(-0.5, 68.5)
+    ax.set_xlim(-0.5, 105.5)
+
+    if isinstance(shots_merged, list):
+        shots_merged = pd.DataFrame(shots_merged)
+
+    home_shots = shots_merged[shots_merged['team_id'] == home_fotmob_id]
+    away_shots = shots_merged[shots_merged['team_id'] == away_fotmob_id]
+
+    def plot_shots(df, color, is_home_team=True, marker='o', s=200, edgecolor=None, fill=True, hatch=None, zorder=2):
+        if len(df) > 0:
+            face_color = color if fill else 'none'
+            edge_color = edgecolor if edgecolor else color
+
+            if is_home_team:
+                x_coords = 105 - df['x']
+                y_coords = 68 - df['y']
+            else:
+                x_coords = df['x']
+                y_coords = df['y']
+
+            ax.scatter(x_coords, y_coords, s=s, c=face_color, marker=marker,
+                      edgecolors=edge_color, zorder=zorder, hatch=hatch, linewidth=1.5)
+
+    home_color, away_color = "#085098", "#F13032"
+
+    home_goals = home_shots[(home_shots['eventType'] == 'Goal') & (~home_shots['is_own_goal'])]
+    plot_shots(home_goals, 'none', True, 'o', 350, 'green', zorder=3)
+
+    home_misses = home_shots[(home_shots['eventType'] == 'Miss') & (~home_shots['is_big_chance'])]
+    plot_shots(home_misses, 'none', True, edgecolor=home_color, fill=False)
+
+    home_saves = home_shots[(home_shots['eventType'] == 'AttemptSaved') & (~home_shots['is_big_chance'])]
+    plot_shots(home_saves, 'none', True, edgecolor=home_color, fill=False, hatch='///////')
+
+    home_big_chances = home_shots[(home_shots['is_big_chance']) & (home_shots['eventType'] != 'Goal')]
+    plot_shots(home_big_chances, 'none', True, edgecolor=home_color, fill=False, s=500)
+
+    away_goals = away_shots[(away_shots['eventType'] == 'Goal') & (~away_shots['is_own_goal'])]
+    plot_shots(away_goals, 'none', False, 'o', 350, 'green', zorder=3)
+
+    away_misses = away_shots[(away_shots['eventType'] == 'Miss') & (~away_shots['is_big_chance'])]
+    plot_shots(away_misses, 'none', False, edgecolor=away_color, fill=False)
+
+    away_saves = away_shots[(away_shots['eventType'] == 'AttemptSaved') & (~away_shots['is_big_chance'])]
+    plot_shots(away_saves, 'none', False, edgecolor=away_color, fill=False, hatch='///////')
+
+    away_big_chances = away_shots[(away_shots['is_big_chance']) & (away_shots['eventType'] != 'Goal')]
+    plot_shots(away_big_chances, 'none', False, edgecolor=away_color, fill=False, s=500)
+
+    ax.text(0, 70, f"{home_team_name}\n← Shots", color=home_color, size=16, ha='left', fontweight='bold')
+    ax.text(105, 70, f"{away_team_name}\nShots →", color=away_color, size=16, ha='right', fontweight='bold')
+
+    ax.axis('off')
+
+
+def plot_match_stats_on_axis(ax, stats, home_team_name, away_team_name):
+    """Plot match stats comparison on given axis."""
+    ax.set_facecolor('#0e1117')
+    ax.axis('off')
+
+    if len(stats) == 0:
+        ax.text(0.5, 0.5, 'No stats available', transform=ax.transAxes,
+               ha='center', va='center', color='white', fontsize=14)
+        return
+
+    stat_keys = list(stats.keys())[:8]
+    y_positions = np.linspace(0.85, 0.15, len(stat_keys))
+
+    for i, category in enumerate(stat_keys):
+        stat_data = stats[category]
+        home_val = stat_data.get('home', 0) if isinstance(stat_data, dict) else 0
+        away_val = stat_data.get('away', 0) if isinstance(stat_data, dict) else 0
+
+        total = home_val + away_val
+        if total > 0:
+            home_width = (home_val / total) * 0.35
+            away_width = (away_val / total) * 0.35
+        else:
+            home_width = away_width = 0.1
+
+        ax.barh(y_positions[i], home_width, left=0.5-home_width, height=0.06,
+                color='#43A1D5', alpha=0.8)
+        ax.barh(y_positions[i], away_width, left=0.5, height=0.06,
+                color='#FF4C4C', alpha=0.8)
+
+        ax.text(0.2, y_positions[i], f'{home_val}', ha='center', va='center',
+                color='white', fontsize=10, weight='bold')
+        ax.text(0.8, y_positions[i], f'{away_val}', ha='center', va='center',
+                color='white', fontsize=10, weight='bold')
+        ax.text(0.5, y_positions[i], category, ha='center', va='center',
+                color='white', fontsize=9, weight='bold')
+
+    ax.text(0.2, 0.95, home_team_name, ha='center', va='center',
+            color='#43A1D5', fontsize=14, weight='bold')
+    ax.text(0.8, 0.95, away_team_name, ha='center', va='center',
+            color='#FF4C4C', fontsize=14, weight='bold')
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+
+def plot_xt_momentum_on_axis(ax, df_events, xT_grid, team_id_to_name, home_team_id, away_team_id):
+    """Plot xT momentum directly on a given axis (for subplot layout)."""
+    from scipy.ndimage import gaussian_filter1d
+
+    ax.set_facecolor('#0e1117')
+
+    try:
+        df = df_events.copy()
+        df['x'] = df['x'] * 1.2
+        df['y'] = df['y'] * 0.8
+        df['end_x'] = df['end_x'] * 1.2
+        df['end_y'] = df['end_y'] * 0.8
+
+        df_xT = df[
+            (df['type_display_name'].isin(['Pass', 'Carry'])) &
+            (df['outcome_type_display_name'] == 'Successful')
+        ].copy()
+
+        if len(df_xT) == 0:
+            ax.text(0.5, 0.5, 'No xT data available', transform=ax.transAxes,
+                   ha='center', va='center', color='white', fontsize=14)
+            return
+
+        n_rows, n_cols = xT_grid.shape
+
+        def get_bin(val, max_val, n_bins):
+            val = max(0, min(val, max_val))
+            return min(int(val / max_val * n_bins), n_bins - 1)
+
+        df_xT['start_x_bin'] = df_xT['x'].apply(lambda x: get_bin(x, 120, n_cols))
+        df_xT['start_y_bin'] = df_xT['y'].apply(lambda y: get_bin(y, 80, n_rows))
+        df_xT['end_x_bin'] = df_xT['end_x'].apply(lambda x: get_bin(x, 120, n_cols))
+        df_xT['end_y_bin'] = df_xT['end_y'].apply(lambda y: get_bin(y, 80, n_rows))
+
+        df_xT['start_zone_value'] = df_xT.apply(lambda row: xT_grid[row['start_y_bin'], row['start_x_bin']], axis=1)
+        df_xT['end_zone_value'] = df_xT.apply(lambda row: xT_grid[row['end_y_bin'], row['end_x_bin']], axis=1)
+        df_xT['xT'] = df_xT['end_zone_value'] - df_xT['start_zone_value']
+        df_xT['xT_clipped'] = np.clip(df_xT['xT'], 0, 0.1)
+        df_xT['team'] = df_xT['team_id'].map(team_id_to_name)
+
+        max_xT_per_minute = df_xT.groupby(['team', 'minute'])['xT_clipped'].max().reset_index()
+        minutes = sorted(max_xT_per_minute['minute'].unique())
+        teams = [team_id_to_name[home_team_id], team_id_to_name[away_team_id]]
+
+        if len(minutes) == 0:
+            ax.text(0.5, 0.5, 'No momentum data', transform=ax.transAxes,
+                   ha='center', va='center', color='white', fontsize=14)
+            return
+
+        window_size, decay_rate = 4, 0.25
+        weighted_xT_sum = {team: [] for team in teams}
+        momentum = []
+
+        for current_minute in minutes:
+            for team in teams:
+                recent_xT = max_xT_per_minute[
+                    (max_xT_per_minute['team'] == team) &
+                    (max_xT_per_minute['minute'] <= current_minute) &
+                    (max_xT_per_minute['minute'] > current_minute - window_size)
+                ]
+                weights = np.exp(-decay_rate * (current_minute - recent_xT['minute'].values))
+                weighted_sum = np.sum(weights * recent_xT['xT_clipped'].values)
+                weighted_xT_sum[team].append(weighted_sum)
+            momentum.append(weighted_xT_sum[teams[0]][-1] - weighted_xT_sum[teams[1]][-1])
+
+        momentum_smoothed = gaussian_filter1d(momentum, sigma=1.0)
+        ax.plot(minutes, momentum_smoothed, color='white', linewidth=2)
+        ax.axhline(0, color='white', linestyle='--', linewidth=1, alpha=0.7)
+        ax.fill_between(minutes, momentum_smoothed, where=(np.array(momentum_smoothed) > 0),
+                       color='#00bfff', alpha=0.5, interpolate=True)
+        ax.fill_between(minutes, momentum_smoothed, where=(np.array(momentum_smoothed) < 0),
+                       color='#ff4444', alpha=0.5, interpolate=True)
+
+        ax.text(2, max(momentum_smoothed) * 0.8, team_id_to_name[home_team_id],
+                fontsize=12, ha='left', va='center', color='#00bfff', fontweight='bold')
+        ax.text(2, min(momentum_smoothed) * 0.8, team_id_to_name[away_team_id],
+                fontsize=12, ha='left', va='center', color='#ff4444', fontweight='bold')
+
+        ax.set_xlabel('Minute', color='white', fontsize=10, fontweight='bold')
+        ax.set_title('xT Momentum', color='white', fontsize=14, fontweight='bold')
+        ax.tick_params(colors='white')
+        for spine in ax.spines.values():
+            spine.set_color('white')
+
+    except Exception as e:
+        ax.text(0.5, 0.5, f'Error: {str(e)[:50]}', transform=ax.transAxes,
+               ha='center', va='center', color='white', fontsize=10)
+
+
+def create_dashboard_match_report(df_events, team_ids, team_players, player_names, xT_grid, output_path, team_names, fotmob_shots):
+    """Create professional 3x3 dashboard: full match report."""
+
+    fig, axs = plt.subplots(3, 3, figsize=(24, 18), facecolor='#0e1117')
+    fig.suptitle('Match Report', fontsize=24, color='white', weight='bold', y=0.97)
+
+    home_team_id = team_ids[0]
+    away_team_id = team_ids[1]
+    home_team_name = team_names[home_team_id]
+    away_team_name = team_names[away_team_id]
+
+    df_events['prog_pass'] = np.where(
+        (df_events['type_display_name'] == 'Pass'),
+        np.sqrt((105 - df_events['x'])**2 + (34 - df_events['y'])**2) -
+        np.sqrt((105 - df_events['end_x'])**2 + (34 - df_events['end_y'])**2),
+        0
+    )
+
+    passes_df = prepare_enhanced_passes(df_events)
+    defensive_actions = filter_defensive_actions(df_events)
+
+    home_combinations = get_pass_combinations(passes_df, home_team_id)
+    home_avg_locs = get_enhanced_positions(passes_df, home_team_id, team_players[home_team_id], player_names)
+    home_metrics = calculate_team_metrics(passes_df, home_avg_locs, home_team_id)
+    home_positions = calculate_player_defensive_positions(defensive_actions, home_team_id, team_players[home_team_id])
+    home_actions = defensive_actions[defensive_actions['team_id'] == home_team_id]
+
+    away_combinations = get_pass_combinations(passes_df, away_team_id)
+    away_avg_locs = get_enhanced_positions(passes_df, away_team_id, team_players[away_team_id], player_names)
+    away_metrics = calculate_team_metrics(passes_df, away_avg_locs, away_team_id)
+    away_positions = calculate_player_defensive_positions(defensive_actions, away_team_id, team_players[away_team_id])
+    away_actions = defensive_actions[defensive_actions['team_id'] == away_team_id]
+
+    stats = calculate_match_stats(df_events, home_team_id, away_team_id)
+    team_id_to_name = {home_team_id: home_team_name, away_team_id: away_team_name}
+
+    home_fotmob_id = 9791
+    away_fotmob_id = 6413
+
+    axs[0,0].set_facecolor('#0e1117')
+    plot_enhanced_network(
+        axs[0,0], passes_df, home_avg_locs, home_combinations, home_metrics,
+        home_team_name, color='#43A1D5', is_home=True, bg_color='#0e1117'
+    )
+
+    axs[0,1].set_facecolor('#0e1117')
+    if len(fotmob_shots) > 0:
+        plot_shot_map_on_axis(axs[0,1], fotmob_shots, home_fotmob_id, away_fotmob_id, home_team_name, away_team_name)
+    else:
+        axs[0,1].text(0.5, 0.5, 'No shot data available', transform=axs[0,1].transAxes,
+                     ha='center', va='center', color='white', fontsize=14)
+        axs[0,1].axis('off')
+
+    axs[0,2].set_facecolor('#0e1117')
+    plot_enhanced_network(
+        axs[0,2], passes_df, away_avg_locs, away_combinations, away_metrics,
+        away_team_name, color='#FF4C4C', is_home=False, bg_color='#0e1117'
+    )
+
+    axs[1,0].set_facecolor('#0e1117')
+    defensive_block(axs[1,0], home_positions, home_actions, home_team_name, '#43A1D5', is_away_team=False)
+
+    axs[1,1].set_facecolor('#0e1117')
+    plot_xt_momentum_on_axis(axs[1,1], df_events, xT_grid, team_id_to_name, home_team_id, away_team_id)
+
+    axs[1,2].set_facecolor('#0e1117')
+    defensive_block(axs[1,2], away_positions, away_actions, away_team_name, '#FF4C4C', is_away_team=True)
+
+    axs[2,0].set_facecolor('#0e1117')
+    draw_progressive_pass_map(axs[2,0], df_events, home_team_id, home_team_name, '#43A1D5', is_away_team=False)
+
+    axs[2,1].set_facecolor('#0e1117')
+    plot_match_stats_on_axis(axs[2,1], stats, home_team_name, away_team_name)
+
+    axs[2,2].set_facecolor('#0e1117')
+    draw_progressive_pass_map(axs[2,2], df_events, away_team_id, away_team_name, '#FF4C4C', is_away_team=True)
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.94, hspace=0.3, wspace=0.2)
+
+    plt.savefig(output_path, dpi=150, facecolor='#0e1117', edgecolor='none', bbox_inches='tight')
+    plt.close()
+
+    return True
