@@ -38,6 +38,7 @@ CLAUDE.md
 /data/raw/*
 /data/processed/*
 /data/datasets/*
+/data/outputs/*
 /data/*.json
 /data/*.txt
 /data/eval_datasets/*
