@@ -1,4 +1,4 @@
-"""Simple Router Test - Keyword-based routing (no 2nd LLM call needed).
+"""Simple Router Test - Keyword-based routing.
 
 Works with ANY API key (Claude, OpenAI, Gemini) with minimal cost.
 Routing is FREE (keyword matching), users only pay for RAG queries.
