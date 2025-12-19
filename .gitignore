@@ -32,10 +32,12 @@ CLAUDE.md
 
 # Docker data volumes (now in data/ directory)
 /data/minio/*
+/data/chroma/*
 /data/ollama/*
 
 # Data artifacts (scraped data, models, etc.)
 /data/raw/*
+/data/processed/*
 /data/datasets/*
 /data/outputs/*
 /data/*.json
@@ -43,11 +45,6 @@ CLAUDE.md
 /data/eval_datasets/*
 /data/viz_metrics/*
 /data/test_visualizations/*
-
-# IMPORTANT: ChromaDB and golden dataset are needed for HF Spaces
-# They are small (2.4MB total) and required for the app to work
-# /data/chroma/* - REMOVED from gitignore
-# /data/processed/* - REMOVED from gitignore
 
 # Prompt engineering experiments
 /prompts/prompt_versions.yml
