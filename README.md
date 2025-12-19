@@ -169,13 +169,12 @@ Commentary        Image Output
 - Trade-off: Must rebuild if metric logic changes (18 sec rebuild)
 - Benefit: Simpler RAG pipeline, faster queries, stable V3.5 prompt
 
-**3. 4-Chunk Architecture (Why?)**
-- Each match → 4 ChromaDB documents:
+**3. 2-Chunk Architecture (Why?)**
+- Each match → 2 ChromaDB documents:
   1. **Summary** (filtering by team/date)
   2. **Tactical Metrics** (LLM generation)
-  3. **Event Stats** (data quality)
-  4. **Viz Capabilities** (function calling)
 - Enables selective retrieval: "Get only tactical metrics"
+- Visualizations bypass ChromaDB entirely (load raw JSON files directly)
 
 **4. Keyword-Based Routing (Why?)**
 - $0 cost, instant, works with any provider
@@ -204,7 +203,7 @@ matches_gold.json (Golden Dataset)
     ↓
 scripts/rebuild_chromadb.py (Delivery)
     ↓
-ChromaDB (432 documents = 108 matches × 4 chunks)
+ChromaDB (216 documents = 108 matches × 2 chunks)
 ```
 
 **Why this matters:** Fixed "Home/Away swap bug" that caused hallucinations (e.g., Heracles showing 7 shots instead of 24).
