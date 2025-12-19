@@ -12,6 +12,8 @@ numpy<2
 # Visualizations
 matplotlib>=3.7.0
 seaborn>=0.12.0
+mplsoccer>=1.1.0
+scipy>=1.11.0
 
 # Vector database
 chromadb==1.1.1
