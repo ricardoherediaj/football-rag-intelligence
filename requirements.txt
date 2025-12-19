@@ -9,9 +9,18 @@ pydantic-settings>=2.1.0
 pandas>=2.0.0
 numpy<2
 
+# Visualizations
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
 # Vector database
 chromadb==1.1.1
 sentence-transformers>=2.2.0
+
+# LLM RAG Framework
+llama-index>=0.9.0
+llama-index-vector-stores-chroma>=0.1.0
+llama-index-embeddings-huggingface>=0.1.0
 
 # LLM providers
 anthropic>=0.25.0
@@ -24,3 +33,4 @@ huggingface-hub>=0.20.0
 # Utilities
 python-dotenv>=1.0.0
 requests>=2.31.0
+pyyaml>=6.0.0
