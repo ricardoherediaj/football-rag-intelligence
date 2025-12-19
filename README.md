@@ -11,10 +11,10 @@
 ## 📸 Demo
 
 ### Text Analysis
-![Text Analysis](data/outputs/app_sc.png)
+![Text Analysis](docs/assets/app_sc.png)
 
 ### Visualizations
-![Dashboard Visualization](data/outputs/app_sc2.png)
+![Dashboard Visualization](docs/assets/app_sc2.png)
 
 ---
 
@@ -217,6 +217,31 @@ Quantitative harness using "LLM-as-a-Judge" methodology across 3 dimensions:
 - False Failure #2: Expanded ground truth to full `matches_gold.json`
 - False Failure #3: Fixed API key loading + structured JSON output
 
+### Evaluation Dataset Details
+
+**Location:** [data/eval_datasets/tactical_analysis_eval.json](data/eval_datasets/tactical_analysis_eval.json)
+
+**Test Cases (10 matches):**
+1. **Blowout Game** - Heracles vs PEC Zwolle (2-8): Testing xG paradox detection
+2. **High-Scoring** - NEC Nijmegen vs PSV (5-3): Testing aggressive tactical analysis
+3. **Stalemate** - Twente vs Telstar (0-0): Testing dominance without goals
+4. **Narrow Win** - PEC Zwolle vs Twente (1-0): Testing tight margin analysis
+5. **Upset** - Feyenoord vs FC Volendam (1-3): Testing counter-attack recognition
+6. **Efficiency Study** - Heracles vs AZ Alkmaar (2-1): Testing conversion rate insights
+7. **Defensive Struggle** - NAC Breda vs Go Ahead Eagles (0-1): Testing low xG analysis
+8. **Counter-Attack** - NEC Nijmegen vs Twente (4-2): Testing transition patterns
+9. **Defensive Dominance** - Excelsior vs Sparta Rotterdam (0-1): Testing clean sheet analysis
+10. **Tight Margins** - Excelsior vs PSV (1-2): Testing competitive balance
+
+**Ground Truth Source:** [data/processed/matches_gold.json](data/processed/matches_gold.json) (108 matches, Pydantic-validated)
+
+**Run Evaluation:**
+```bash
+uv run python tests/evaluate_pipeline.py
+```
+
+**Results File:** [data/eval_datasets/eval_results.json](data/eval_datasets/eval_results.json)
+
 ---
 
 ## 🎨 Visualizations
@@ -327,9 +352,9 @@ docker compose up -d  # If using ChromaDB service
 ## 📚 Technical Learnings
 
 ### What Worked
-1. **Prompt-first design** → ChromaDB perfectly aligned
-2. **Simple code** → Functions over classes, easy debugging
-3. **Pre-calculated metrics** → 18-second rebuild, no complexity
+1. **Prompt-first design** → ChromaDB aligned with project goal
+2. **Simple code** → Functions over classes
+3. **Pre-calculated metrics** → quick rebuild
 4. **Golden Dataset ETL** → Caught data bugs before indexing
 
 ### What We Avoided
@@ -346,18 +371,66 @@ docker compose up -d  # If using ChromaDB service
 
 ---
 
+## 📋 Course Optional Features Implemented
+
+**Required: 5 features minimum | Implemented: 7 features ✅**
+
+1. ✅ **RAG Evaluation Code & Results** - Complete evaluation harness with 3-metric system:
+   - Retrieval Accuracy: 100%
+   - Faithfulness: 99.4%
+   - Tactical Insight: 95.0%
+   - Evaluation script: [tests/evaluate_pipeline.py](tests/evaluate_pipeline.py)
+   - Test dataset: [data/eval_datasets/tactical_analysis_eval.json](data/eval_datasets/tactical_analysis_eval.json)
+   - Results: [data/eval_datasets/eval_results.json](data/eval_datasets/eval_results.json)
+
+2. ✅ **Domain-Specific Application** - Football tactical analysis system (not an AI tutor)
+   - Specialized for coaches, scouts, and analysts
+   - 38 pre-calculated tactical metrics
+   - Eredivisie 2025-26 season focus
+
+3. ✅ **2+ Data Sources Collection** - Multi-source data ingestion with cross-linking:
+   - WhoScored: Event-level data (108 matches, ~1355 events/match)
+   - Fotmob: xG values and shot data
+   - ID mapping system: [match_mapping.json](data/match_mapping.json) for reliable cross-source linking
+   - Data collection scripts: [src/football_rag/data/scrapers.py](src/football_rag/data/scrapers.py)
+
+4. ✅ **Structured JSON Outputs** - Pydantic-validated data pipeline:
+   - Golden dataset: [data/processed/matches_gold.json](data/processed/matches_gold.json)
+   - Pydantic schemas: [src/football_rag/data/models.py](src/football_rag/data/models.py)
+   - Contract → Factory → Delivery ETL architecture
+   - Prevents corrupt data via "airlock" pattern
+
+5. ✅ **Metadata Filtering** - "Sniper" approach for 100% retrieval accuracy:
+   - Team-based filtering (home_team/away_team metadata)
+   - Entity extraction from queries
+   - 100% retrieval accuracy vs 70% with semantic-only search
+
+6. ✅ **Query Routing** - Intent classification system:
+   - Router module: [src/football_rag/router.py](src/football_rag/router.py)
+   - Routes queries to text analysis (LLM) or visualization (keyword-based)
+   - Priority logic prevents routing collisions
+   - Example: "What was PSV's pressing?" → Text | "Show pressing heatmap" → Viz
+
+7. ✅ **Function Calling** - Dynamic visualization generation:
+   - 6 visualization types (dashboard, passing network, heatmaps, shot maps, etc.)
+   - Keyword-based routing to viz functions
+   - $0 cost (no LLM calls for visualizations)
+   - Viz tools: [src/football_rag/viz_tools.py](src/football_rag/viz_tools.py)
+
+---
+
 ## 🏆 Acknowledgments
 
 Built for the [Full Stack AI Engineering](https://www.towardsai.net/) course capstone project.
 
 **Course Requirements Met:**
 - ✅ RAG system with retrieval + generation
-- ✅ Multi-provider LLM support
+- ✅ Multi-provider LLM support (Anthropic, OpenAI, Gemini)
 - ✅ Hugging Face Spaces deployment
 - ✅ Cost < $0.50 for full demo
 - ✅ API key security (no hardcoding)
 - ✅ Comprehensive README with cost estimation
-- ✅ 5+ optional features (evaluation, visualizations, routing, ETL, prompt engineering)
+- ✅ **7/5 optional features** (see section above)
 
 **Inspired by:**
 - [LLMOps Python Package](https://github.com/callmesora/llmops-python-package)
