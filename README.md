@@ -371,6 +371,26 @@ docker compose up -d  # If using ChromaDB service
 
 ---
 
+## 🏆 Acknowledgments
+
+Built for the [Full Stack AI Engineering](https://www.towardsai.net/) course capstone project.
+
+**Course Requirements Met:**
+- ✅ RAG system with retrieval + generation
+- ✅ Multi-provider LLM support (Anthropic, OpenAI, Gemini)
+- ✅ Hugging Face Spaces deployment
+- ✅ Cost < $0.50 for full demo
+- ✅ API key security (no hardcoding)
+- ✅ Comprehensive README with cost estimation
+- ✅ **7/5 optional features** (see section above)
+
+**Inspired by:**
+- [LLMOps Python Package](https://github.com/callmesora/llmops-python-package)
+- [Stop Launching AI Apps Without This - Decoding AI](https://www.decodingai.com/p/stop-launching-ai-apps-without-this)
+- [AI Tutor Skeleton - Towards AI](https://github.com/towardsai/ai-tutor-skeleton/tree/main)
+
+---
+
 ## 📋 Course Optional Features Implemented
 
 **Required: 5 features minimum | Implemented: 7 features ✅**
@@ -416,26 +436,6 @@ docker compose up -d  # If using ChromaDB service
    - Keyword-based routing to viz functions
    - $0 cost (no LLM calls for visualizations)
    - Viz tools: [src/football_rag/viz_tools.py](src/football_rag/viz_tools.py)
-
----
-
-## 🏆 Acknowledgments
-
-Built for the [Full Stack AI Engineering](https://www.towardsai.net/) course capstone project.
-
-**Course Requirements Met:**
-- ✅ RAG system with retrieval + generation
-- ✅ Multi-provider LLM support (Anthropic, OpenAI, Gemini)
-- ✅ Hugging Face Spaces deployment
-- ✅ Cost < $0.50 for full demo
-- ✅ API key security (no hardcoding)
-- ✅ Comprehensive README with cost estimation
-- ✅ **7/5 optional features** (see section above)
-
-**Inspired by:**
-- [LLMOps Python Package](https://github.com/callmesora/llmops-python-package)
-- [Stop Launching AI Apps Without This - Decoding AI](https://www.decodingai.com/p/stop-launching-ai-apps-without-this)
-- [AI Tutor Skeleton - Towards AI](https://github.com/towardsai/ai-tutor-skeleton/tree/main)
 
 ---
 
