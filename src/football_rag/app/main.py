@@ -19,10 +19,10 @@ def chat_handler(query: str, api_key: str, provider: str):
     """Handle user query - route to visualization or text analysis."""
 
     if not query.strip():
-        return "⚠️ Please enter a query", None, gr.update(visible=True), gr.update(visible=False)
+        return "⚠️ Please enter a query", None
 
     if not api_key.strip():
-        return "⚠️ Please enter your API key to continue", None, gr.update(visible=True), gr.update(visible=False)
+        return "⚠️ Please enter your API key to continue", None
 
     try:
         pipeline = FootballRAGPipeline(provider=provider, api_key=api_key)
@@ -34,9 +34,7 @@ def chat_handler(query: str, api_key: str, provider: str):
                 "- 'Heracles vs PEC Zwolle'\n"
                 "- 'Feyenoord vs Ajax'\n"
                 "- 'PSV vs AZ'",
-                None,
-                gr.update(visible=True),
-                gr.update(visible=False)
+                None
             )
 
         intent = classify_intent(query)
@@ -44,80 +42,35 @@ def chat_handler(query: str, api_key: str, provider: str):
         if intent['tool'] == 'generate_dashboard':
             try:
                 viz_path = viz_tools.generate_dashboard(ctx.match_id, ctx.home_team, ctx.away_team)
-                return (
-                    f"**Dashboard Generated**\n\n{ctx.home_team} vs {ctx.away_team}",
-                    viz_path,
-                    gr.update(visible=False),
-                    gr.update(visible=True)
-                )
+                return f"**Dashboard Generated**\n\n{ctx.home_team} vs {ctx.away_team}", viz_path
             except Exception as viz_error:
-                return (
-                    f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate dashboard: {str(viz_error)}",
-                    None,
-                    gr.update(visible=True),
-                    gr.update(visible=False)
-                )
+                return f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate dashboard: {str(viz_error)}", None
 
         elif intent['tool'] == 'generate_team_viz':
             try:
                 team_name = ctx.home_team if ctx.home_team.lower() in query.lower() else ctx.away_team
                 viz_path = viz_tools.generate_team_viz(ctx.match_id, team_name, intent['viz_type'])
-                return (
-                    f"**{intent['viz_type'].replace('_', ' ').title()}**\n\n{team_name} - {ctx.home_team} vs {ctx.away_team}",
-                    viz_path,
-                    gr.update(visible=False),
-                    gr.update(visible=True)
-                )
+                return f"**{intent['viz_type'].replace('_', ' ').title()}**\n\n{team_name} - {ctx.home_team} vs {ctx.away_team}", viz_path
             except Exception as viz_error:
-                return (
-                    f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate {intent['viz_type']}: {str(viz_error)}",
-                    None,
-                    gr.update(visible=True),
-                    gr.update(visible=False)
-                )
+                return f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate {intent['viz_type']}: {str(viz_error)}", None
 
         elif intent['tool'] == 'generate_match_viz':
             try:
                 viz_path = viz_tools.generate_match_viz(ctx.match_id, intent['viz_type'])
-                return (
-                    f"**{intent['viz_type'].replace('_', ' ').title()}**\n\n{ctx.home_team} vs {ctx.away_team}",
-                    viz_path,
-                    gr.update(visible=False),
-                    gr.update(visible=True)
-                )
+                return f"**{intent['viz_type'].replace('_', ' ').title()}**\n\n{ctx.home_team} vs {ctx.away_team}", viz_path
             except Exception as viz_error:
-                return (
-                    f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate {intent['viz_type']}: {str(viz_error)}",
-                    None,
-                    gr.update(visible=True),
-                    gr.update(visible=False)
-                )
+                return f"❌ **Visualization Error**\n\n{ctx.home_team} vs {ctx.away_team}\n\nCouldn't generate {intent['viz_type']}: {str(viz_error)}", None
 
         else:
             result = pipeline.run(query)
             if "error" in result:
-                return (
-                    f"❌ **Error**\n\n{result['error']}",
-                    None,
-                    gr.update(visible=True),
-                    gr.update(visible=False)
-                )
+                return f"❌ **Error**\n\n{result['error']}", None
 
             commentary = result.get("commentary", "No commentary generated")
-            return (
-                f"**Tactical Analysis**\n\n{ctx.home_team} vs {ctx.away_team}\n\n---\n\n{commentary}",
-                None,
-                gr.update(visible=True),
-                gr.update(visible=False)
-            )
+            return f"**Tactical Analysis**\n\n{ctx.home_team} vs {ctx.away_team}\n\n---\n\n{commentary}", None
 
     except Exception as e:
-        return (
-            f"❌ **Error**\n\n{str(e)}\n\nPlease check your API key and try again.",
-            None,
-            gr.update(visible=True),
-            gr.update(visible=False)
-        )
+        return f"❌ **Error**\n\n{str(e)}\n\nPlease check your API key and try again.", None
 
 
 custom_css = """
@@ -267,20 +220,18 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="slate"),
 
             text_output = gr.Markdown(
                 "Enter a query and click 'Analyze Match' to begin...",
-                elem_classes=["output-text"],
-                visible=True
+                elem_classes=["output-text"]
             )
 
             image_output = gr.Image(
                 label="Visualization",
-                visible=False,
                 height=800
             )
 
     submit_btn.click(
         fn=chat_handler,
         inputs=[query, api_key, provider],
-        outputs=[text_output, image_output, text_output, image_output]
+        outputs=[text_output, image_output]
     )
 
 
