@@ -1,7 +1,7 @@
 # Core dependencies for HF Spaces deployment
 fastapi>=0.104.0
 uvicorn>=0.24.0
-gradio>=5.14.0
+gradio==4.44.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 
