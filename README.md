@@ -454,16 +454,16 @@ Built for the [Full Stack AI Engineering](https://www.towardsai.net/) course cap
 
 **Vision:** Scale from 108 Eredivisie matches → 2000+ matches across Championship, Jupiler Pro League, and Brasileirão with automated daily updates.
 
-### Core Stack
+### Core Stack (TODO)
 
-**Orchestration:** Apache Airflow - Schedule scraping, ETL, ChromaDB rebuilds
-**Data Quality:** dbt + Great Expectations - Transform & validate data
-**Cloud Inference:** Modal - Serverless embedding generation
-**Storage:** AWS S3 Free Tier - Raw data storage
-**Monitoring:** Opik - LLM observability & prompt tracking
+- **Orchestration:** Apache Airflow - Schedule scraping, ETL, ChromaDB rebuilds
+- **Data Quality:** dbt + Great Expectations - Transform & validate data
+- **Cloud Inference:** Modal - Serverless embedding generation
+- **Storage:** AWS S3 Free Tier - Raw data storage
+- **Monitoring:** Opik - LLM observability & prompt tracking
 
 ### Learning Path
-- [Data Engineering Zoomcamp (Free)](https://github.com/DataTalksClub/data-engineering-zoomcamp)
+- [Data Engineering Academy](https://iansaura.com)
 - [dbt Fundamentals](https://courses.getdbt.com/collections)
 - [Modal Examples](https://modal.com/docs/examples)
 
