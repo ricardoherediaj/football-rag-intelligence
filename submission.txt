@@ -1,0 +1,45 @@
+Full Stack AI Engineering Course - Capstone Project Submission
+Ricardo Heredia (@rheredia8)
+
+=============================================================================
+
+PROJECT: Football RAG Intelligence
+
+Hugging Face Space: https://huggingface.co/spaces/rheredia8/football-rag-intelligence
+GitHub Repository: https://github.com/rheredia8/football-rag-intelligence
+
+=============================================================================
+
+REQUIRED FEATURES ✅
+
+✅ RAG system with retrieval + generation (LlamaIndex + ChromaDB)
+✅ Multi-provider LLM support (Anthropic Claude, OpenAI GPT, Google Gemini)
+✅ Deployed to Hugging Face Spaces (live and running)
+✅ Cost < $0.50 for full demo (~$0.01 per 100 queries with Claude Haiku)
+✅ API key security (in-memory only, never stored)
+✅ Comprehensive README with architecture, cost estimation, examples
+
+=============================================================================
+
+OPTIONAL FEATURES (7/5 required) ✅
+
+1. RAG evaluation code & results (100% retrieval, 99.4% faithfulness, 95% insight)
+2. Domain-specific application (football tactical analysis, not generic AI tutor)
+3. 2+ data sources (WhoScored + Fotmob with cross-source mapping)
+4. Structured JSON outputs (Pydantic-validated ETL pipeline)
+5. Metadata filtering (100% retrieval accuracy vs 70% semantic-only)
+6. Query routing (text analysis vs visualization routing)
+7. Function calling (6 visualization types, $0 cost)
+
+=============================================================================
+
+HOW TO TEST
+
+1. Visit: https://huggingface.co/spaces/rheredia8/football-rag-intelligence
+2. Enter your API key (Anthropic/OpenAI/Gemini)
+3. Try: "What was PSV's pressing strategy against Ajax?"
+4. Try: "Show dashboard for Heracles vs PEC Zwolle"
+
+=============================================================================
+
+Ricardo Heredia
