@@ -1,15 +1,3 @@
----
-title: Football RAG Intelligence
-emoji: ⚽
-colorFrom: green
-colorTo: blue
-sdk: gradio
-sdk_version: 5.49.1
-app_file: app.py
-pinned: false
-license: mit
----
-
 # ⚽ Football RAG Intelligence
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
