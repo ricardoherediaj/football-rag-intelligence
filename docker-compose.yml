@@ -31,8 +31,8 @@ services:
   # 3. ORCHESTRATION: Dagster Webserver (UI)
   dagster_webserver:
     build:
-      context: ./ops
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ops/Dockerfile
     container_name: football_orchestrator
     ports:
       - "3000:3000"
@@ -41,7 +41,8 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     volumes:
-      - ./orchestration:/opt/dagster/app/src
+      - ./orchestration:/opt/dagster/app/orchestration
+      - ./src:/opt/dagster/app/src
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres
@@ -52,15 +53,16 @@ services:
   # 4. ORCHESTRATION: Dagster Daemon (Scheduler/Sensors)
   dagster_daemon:
     build:
-      context: ./ops
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ops/Dockerfile
     container_name: football_scheduler
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     volumes:
-      - ./orchestration:/opt/dagster/app/src
+      - ./orchestration:/opt/dagster/app/orchestration
+      - ./src:/opt/dagster/app/src
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres

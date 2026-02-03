@@ -1,2 +1,2 @@
 load_from:
-  - python_file: src/defs.py
+  - python_file: orchestration/defs.py

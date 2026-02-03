@@ -21,9 +21,8 @@ dependencies = [
     "invoke>=2.2.0",
     "ruff>=0.12.12",
     "beautifulsoup4>=4.12.0",
-    "selenium>=4.15.0",
-    "chromadb>=0.4.0",
-    # "minio>=7.1.0",  # Removed for MVP - using local storage
+    "playwright>=1.40.0",
+    "duckdb>=0.9.0",
     "pyarrow>=14.0.0",
     "anthropic>=0.25.0",
     "openai>=1.3.0",
@@ -31,7 +30,11 @@ dependencies = [
     # "sentence-transformers>=2.2.0",  # Removed - ChromaDB handles embeddings
     "huggingface-hub>=0.20.0",
     "python-dotenv>=1.0.0",
-    "mplsoccer>=1.6.1",
+    "dagster>=1.6.0",
+    "dagster-webserver>=1.6.0",
+    "dagster-postgres>=0.22.0",
+    "dagster-aws>=0.22.0",
+    "dagster-docker>=0.22.0",
 ]
 
 [project.scripts]
@@ -47,4 +50,6 @@ packages = ["src/football_rag"]
 [dependency-groups]
 dev = [
     "pytest>=8.4.2",
+    "pytest-asyncio>=0.23.0",
+    "pytest-playwright>=0.4.0",
 ]

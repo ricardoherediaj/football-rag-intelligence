@@ -68,3 +68,9 @@ postgres_data/
 ops/dagster_home/logs/
 ops/dagster_home/storage/
 
+
+# OS
+.DS_Store
+
+# Databases
+*.duckdb
