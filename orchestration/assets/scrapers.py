@@ -1,5 +1,4 @@
 from dagster import asset, AssetExecutionContext, Config
-import asyncio
 from typing import Optional
 from football_rag.data.whoscored_scraper import scrape_complete_season_async, save_matches_locally
 from football_rag.data.fotmob_scraper import scrape_fotmob_season, save_fotmob_matches_locally

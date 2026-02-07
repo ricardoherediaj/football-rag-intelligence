@@ -43,6 +43,7 @@ services:
     volumes:
       - ./orchestration:/opt/dagster/app/orchestration
       - ./src:/opt/dagster/app/src
+      - ./data:/opt/dagster/app/data
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres
@@ -63,6 +64,7 @@ services:
     volumes:
       - ./orchestration:/opt/dagster/app/orchestration
       - ./src:/opt/dagster/app/src
+      - ./data:/opt/dagster/app/data
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres
