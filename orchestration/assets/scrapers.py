@@ -1,31 +1,44 @@
-from dagster import asset, AssetExecutionContext
+from dagster import asset, AssetExecutionContext, Config
 import asyncio
+from typing import Optional
 from football_rag.data.whoscored_scraper import scrape_complete_season_async, save_matches_locally
 from football_rag.data.fotmob_scraper import scrape_fotmob_season, save_fotmob_matches_locally
 
+class ScraperConfig(Config):
+    mode: str = "incremental"
+    limit: Optional[int] = None
+
 @asset(compute_kind="playwright")
-async def whoscored_match_data(context: AssetExecutionContext):
-    """Scrape Eredivisie matches using Playwright and save locally."""
-    context.log.info("Starting WhoScored incremental scrape...")
+async def whoscored_match_data(context: AssetExecutionContext, config: ScraperConfig):
+    """
+    Scrape Eredivisie matches using Playwright.
+    Config:
+      - mode: 'incremental', 'full', 'recent', 'n_matches'
+      - limit: Number of matches (for 'n_matches')
+    """
+    context.log.info(f"Starting WhoScored scrape (Mode: {config.mode}, Limit: {config.limit})...")
     
-    # We use incremental mode by default
-    df = await scrape_complete_season_async(mode="incremental")
+    df = await scrape_complete_season_async(mode=config.mode, limit=config.limit)
     
     if df is not None and not df.empty:
         count = save_matches_locally(df)
-        context.log.info(f"Successfully scraped and saved {count} new matches")
+        context.log.info(f"Successfully scraped and saved {count} matches")
         return count
     else:
-        context.log.info("No new matches found to scrape")
+        context.log.info("No matches found to scrape")
         return 0
 
 @asset(compute_kind="playwright")
-async def fotmob_match_data(context: AssetExecutionContext):
-    """Scrape Eredivisie matches from Fotmob using Playwright."""
-    context.log.info("Starting Fotmob scrape...")
+async def fotmob_match_data(context: AssetExecutionContext, config: ScraperConfig):
+    """
+    Scrape Eredivisie matches from Fotmob using Playwright.
+    Config:
+      - mode: 'incremental', 'full', 'recent', 'n_matches'
+      - limit: Number of matches (for 'n_matches')
+    """
+    context.log.info(f"Starting Fotmob scrape (Mode: {config.mode}, Limit: {config.limit})...")
     
-    # Scrape matches (limit to 5 for now to avoid massive initial load)
-    matches = await scrape_fotmob_season(limit=5)
+    matches = await scrape_fotmob_season(mode=config.mode, limit=config.limit)
     
     if matches:
         count = save_fotmob_matches_locally(matches)

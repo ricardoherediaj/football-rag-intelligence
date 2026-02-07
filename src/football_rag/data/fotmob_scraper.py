@@ -104,15 +104,22 @@ async def collect_fixture_ids(page: Page, league_id: int = 57) -> List[str]:
         return []
 
 
-async def scrape_fotmob_season(league_id: int = 57, limit: int = None) -> List[Dict]:
+async def scrape_fotmob_season(league_id: int = 57, mode: str = "incremental", limit: int = None) -> List[Dict]:
     """
     Main entry point for scraping a season.
+    Modes:
+    - 'full': Scrape everything.
+    - 'incremental': Scrape only what we don't have.
+    - 'recent': Scrape 1 most recent.
+    - 'n_matches': Scrape last N.
     """
     results = []
     
+    if mode == "recent":
+        limit = 1
+    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        # Use a real user agent to look legitimate
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
@@ -124,15 +131,25 @@ async def scrape_fotmob_season(league_id: int = 57, limit: int = None) -> List[D
         # 2. Get Fixtures
         match_ids = await collect_fixture_ids(page, league_id)
         
-        # Apply limit if needed (for testing)
-        if limit:
-            match_ids = match_ids[:limit]
+        # Logic for filtering match_ids based on mode
+        if mode == "incremental":
+             # Check existing files
+             output_dir = Path("data/raw/fotmob_matches/eredivisie/2025-2026")
+             existing_ids = set()
+             if output_dir.exists():
+                 for f in output_dir.glob("match_*.json"):
+                     existing_ids.add(f.stem.replace("match_", ""))
+             match_ids = [mid for mid in match_ids if mid not in existing_ids]
+             print(f"Incremental mode: Found {len(match_ids)} new matches to scrape.")
+
+        elif mode in ["recent", "n_matches"] and limit:
+            # Taking the LAST N matches (assuming API returns chronological)
+            match_ids = match_ids[-limit:]
+            print(f"Mode '{mode}': SCRAPING LAST {limit} MATCHES: {match_ids}")
             
         print(f"🚀 Starting scrape of {len(match_ids)} matches...")
         
         for mid in match_ids:
-            # Check if we already have it locally? (Logic moved to Dagster/Orchestrator usually, 
-            # but we can do a simple check here if needed. For now, we scrape all requested.)
             match_data = await scrape_fotmob_match_details(mid, page)
             if match_data:
                 results.append(match_data)
@@ -160,19 +177,17 @@ def save_fotmob_matches_locally(matches: List[Dict]) -> int:
     return count
 
 if __name__ == "__main__":
-    async def main():
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            
-            # Test with the user provided ID
-            test_id = "4815418"
-            data = await scrape_fotmob_match_details(test_id, page)
-            
-            if data:
-                print(f"Found {len(data.get('shots', []))} shots")
-                print(json.dumps(data.get('match_info'), indent=2))
-            
-            await browser.close()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["full", "incremental", "recent", "n_matches"], default="incremental")
+    parser.add_argument("--limit", type=int, help="Number of matches (for n_matches)")
+    parser.add_argument("--league_id", type=int, default=57)
+    args = parser.parse_args()
 
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    matches = loop.run_until_complete(scrape_fotmob_season(args.league_id, args.mode, args.limit))
+    
+    if matches:
+        save_fotmob_matches_locally(matches)
+    else:
+        print("No matches scraped.")
