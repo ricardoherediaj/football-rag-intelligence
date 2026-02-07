@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+.venv
+.env
+
+# Data
+data
+data_lake
+postgres_data
+football-rag-intelligence.duckdb
+lakehouse.duckdb
+
+# OS
+.DS_Store
+
+# Brain
+.gemini

@@ -60,3 +60,17 @@ CLAUDE.md
 __pycache__/
 .claude/
 data/query_cache/
+
+# V2 Infrastructure
+data_lake/
+postgres_data/
+*.tar.gz
+ops/dagster_home/logs/
+ops/dagster_home/storage/
+
+
+# OS
+.DS_Store
+
+# Databases
+*.duckdb
