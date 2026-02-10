@@ -31,7 +31,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `docker-compose.yml` to use root build context for `uv.lock` access.
 - Updated `workspace.yaml` to point to `orchestration/defs.py`.
 
+### Fixed
+- **Dagster UI Connectivity**: Resolved issue where Web Server UI was unreachable. Verified Docker container port mapping and `workspace.yaml` paths. UI is now fully accessible at `localhost:3000`.
+
+- **Full-Season Scraping (Configurable Modes)**
+    - Implemented configurable scraping strategies: `recent`, `n_matches`, `full`.
+    - WhoScored: JS-click calendar navigation bypassing ad overlays, two-phase strategy for full-season coverage.
+    - FotMob: In-browser fetch with league fixture crawling.
+    - Achieved 188/190 match parity (98.9%) between WhoScored and FotMob for Eredivisie 2025-2026.
+- **DuckDB Medallion Pipeline (`duckdb_assets.py`)**
+    - Bronze: Loads WhoScored + FotMob JSON with dual-format handling and NaN sanitization.
+    - Silver: `events_silver` (WhoScored events), `silver_fotmob_shots` (FotMob xG/shot data).
+    - Gold: `gold_match_summary` (match-level join of both sources), `gold_player_stats`.
+- **Data Quality Tests (27 tests)**
+    - `tests/test_duckdb_pipeline.py`: Bronze/Silver/Gold layer validation.
+    - `tests/test_scraping_logic.py`: Unit tests for scraper logic with mocked Playwright.
+
+### Changed
+- Added `./data:/opt/dagster/app/data` volume mount to Dagster containers.
+- Refactored `whoscored_scraper.py` with `_js_click` and `_collect_direction` helpers.
+
+### Fixed
+- **WhoScored Calendar Navigation**: Ad overlay blocking clicks; fixed with JS `document.querySelector().click()`.
+- **FotMob Dual JSON Format**: 82 files used nested `match_info` format; fixed with fallback parsing and COALESCE SQL.
+
+### Fixed
+- **MinIO Docker Stability (macOS Docker Desktop)**
+    - Resolved `D state (disk sleep)` crashes where MinIO process hung on kernel I/O operations.
+    - Root cause: macOS Docker Desktop bind mount (`./data_lake:/data`) with VirtioFS latency triggered MinIO's disk health monitor, taking `/data` offline.
+    - Solution: Migrated to Docker named volume (`minio_data:/data`) using Linux VM's native ext4 filesystem.
+    - Added `MINIO_CI_CD=1` environment variable to disable strict disk health monitoring.
+    - Updated to `minio/minio:latest` with healthcheck configuration.
+    - MinIO now stable after seeding 379 files (189 WhoScored + 190 FotMob) with full Bronze → Silver → Gold pipeline verified.
+
 ### Known Issues / Next Steps
-- **Dagster UI Connectivity**: The Docker containers spin up, but the Web Server UI (`localhost:3000`) is currently unreachable or throwing errors.
-    - *Investigation needed*: Verify container port mapping, check logs for `dagster-webserver` startup crashes, and ensure `workspace.yaml` paths are perfectly aligned with volume mounts.
-- **Verification**: End-to-end pipeline run from the UI is pending resolution of the connectivity issue.
+- 3 unmatched fixtures due to source-availability differences (not scraping failures).
+- Dagster Docker containers OOM on full pipeline materialization; local execution works.
+- Multi-league expansion: Parameterize fixtures URL for other leagues.

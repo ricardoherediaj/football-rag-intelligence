@@ -51,7 +51,7 @@ RUN mkdir -p $DAGSTER_HOME
 COPY ops/dagster.yaml $DAGSTER_HOME/
 
 # Copy workspace code
-COPY workspace.yaml /opt/dagster/app/
+COPY ops/workspace.yaml /opt/dagster/app/
 
 # We will mount the user code in docker-compose
 # COPY src /opt/dagster/app/src

@@ -8,7 +8,7 @@ import pandas as pd
 import re
 import argparse
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, Page
 
@@ -165,8 +165,7 @@ async def scrape_single_match(url: str, page: Page) -> Optional[pd.DataFrame]:
             try:
                 event = MatchEvent(**row.to_dict())
                 validated_events.append(event.model_dump())
-            except Exception as e:
-                # Silently skip validation errors for minor fields but log if widespread
+            except Exception:
                 pass
         
         if not validated_events:
@@ -219,43 +218,55 @@ async def collect_all_season_matches(page: Page, exclude_match_ids: Optional[set
                         continue
         return page_urls
 
-    # Logic for finding matches based on limit
-    # For "recent" or "n_matches", we typically want the LATEST matches, which are on the current or previous weeks.
-    
-    # Go back to season start (original logic) OR just check current/prev weeks for recent
-    
-    current_week_process = True
-    weeks_processed = 0
-    max_weeks = 30 # Safety break
-    
-    # Start from current week (where the page loads)
-    print("Collecting matches starting from current week...")
-    
-    # We will go BACKWARDS from current week to find recent matches
-    while weeks_processed < max_weeks:
-        page_urls = await collect_matches_from_page()
-        
-        # Add new unique URLs
-        for url in page_urls:
-            if url not in all_match_urls:
-                all_match_urls.append(url)
-                matches_collected += 1
-                
-        if limit and matches_collected >= limit:
-            print(f"Reached limit of {limit} matches.")
-            break
-            
-        # Go to previous week
-        try:
-            prev_button = page.locator("#dayChangeBtn-prev")
-            if await prev_button.is_visible() and await prev_button.is_enabled():
-                await prev_button.click()
-                await asyncio.sleep(2)
-                weeks_processed += 1
+    async def _js_click(selector: str) -> bool:
+        """Click a button via JS to bypass ad overlays."""
+        return await page.evaluate(
+            f'() => {{ const btn = document.querySelector("{selector}");'
+            f' if (btn && !btn.disabled) {{ btn.click(); return true; }} return false; }}'
+        )
+
+    async def _collect_direction(btn_selector: str, max_weeks: int) -> None:
+        """Traverse the calendar in one direction, collecting matches."""
+        nonlocal matches_collected
+        prev_total = -1
+        stale = 0
+        for _ in range(max_weeks):
+            for url in await collect_matches_from_page():
+                if url not in all_match_urls:
+                    all_match_urls.append(url)
+                    matches_collected += 1
+            if limit and matches_collected >= limit:
+                return
+            if len(all_match_urls) == prev_total:
+                stale += 1
+                if stale >= 3:
+                    return
             else:
+                stale = 0
+            prev_total = len(all_match_urls)
+            try:
+                if not await _js_click(btn_selector):
+                    return
+                await asyncio.sleep(3)
+            except Exception:
+                return
+
+    if limit:
+        # For limited scrapes, go backwards from current week
+        print("Collecting matches starting from current week...")
+        await _collect_direction("#dayChangeBtn-prev", max_weeks=30)
+    else:
+        # For full scrapes, go backwards to season start, then forwards
+        print("Navigating to season start...")
+        for _ in range(35):
+            try:
+                if not await _js_click("#dayChangeBtn-prev"):
+                    break
+                await asyncio.sleep(2)
+            except Exception:
                 break
-        except Exception:
-            break
+        print("Collecting all matches going forward...")
+        await _collect_direction("#dayChangeBtn-next", max_weeks=40)
 
     print(f"Found {len(all_match_urls)} unique matches to scrape")
     return all_match_urls[:limit] if limit else all_match_urls

@@ -23,54 +23,44 @@
 # Project
 /docs/*
 !docs/assets/
+!docs/architecture/
+!docs/api/
+!docs/engineering_diary/
+!docs/archive/
 /mlruns/*
 /outputs/*
 !**/.gitkeep
-/notebooks/*
-*pyproject.toml.backup
-CLAUDE.md
+/tests/temp/*
 
-# Docker data volumes (now in data/ directory)
-/data/minio/*
-/data/chroma/*
-/data/ollama/*
+# Archive (Legacy)
+/archive/*
+!archive/notebooks/
+!archive/scripts/
+!archive/submission.txt
 
-# Data artifacts (scraped data, models, etc.)
-/data/raw/*
-/data/processed/*
-/data/datasets/*
-/data/outputs/*
-/data/*.json
-/data/*.txt
-/data/eval_datasets/*
-/data/viz_metrics/*
-/data/test_visualizations/*
+# Data (Strictly Ignored)
+/data/*
+!data/minio/
+!data/chroma/
+!data/.gitkeep
 
-# Prompt engineering experiments
-/prompts/prompt_versions.yml
-/prompts/results*.md
-/prompts/*_test.md
-/prompts/*console*.md
+# Docker volumes
+/data_lake/
+/postgres_data/
 
-# Keep .gitkeep files
-!data/**/.gitkeep
+# Logs
+/ops/dagster_home/logs/
+/ops/dagster_home/storage/
 
 # Python
 *.py[cod]
 __pycache__/
-.claude/
-data/query_cache/
+*.duckdb
 
-# V2 Infrastructure
-data_lake/
-postgres_data/
-*.tar.gz
-ops/dagster_home/logs/
-ops/dagster_home/storage/
-
+# Claude Code (track lessons and skills, ignore sessions/plans)
+.claude/*
+!.claude/lessons.md
+!.claude/skills/
 
 # OS
 .DS_Store
-
-# Databases
-*.duckdb
