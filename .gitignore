@@ -55,8 +55,12 @@
 # Python
 *.py[cod]
 __pycache__/
-.claude/
 *.duckdb
+
+# Claude Code (track lessons and skills, ignore sessions/plans)
+.claude/*
+!.claude/lessons.md
+!.claude/skills/
 
 # OS
 .DS_Store

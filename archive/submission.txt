@@ -1,0 +1,15 @@
+Final project submission for Ricardo Heredia
+
+Hugging Face public space link: https://huggingface.co/spaces/rheredia8/football-rag-intelligence
+
+Public GitHub repository link: https://github.com/ricardoherediaj/football-rag-intelligence
+
+List of the minimum 5 optional functionalities:
+
+1. RAG evaluation code & results (100% retrieval accuracy, 99.4% faithfulness, 95% tactical insight)
+2. Domain-specific application (football tactical analysis system for coaches and analysts)
+3. 2+ data sources collection (WhoScored + Fotmob with cross-source ID mapping)
+4. Structured JSON outputs (Pydantic-validated ETL pipeline with golden dataset)
+5. Metadata filtering (team-based filtering for 100% retrieval accuracy)
+6. Query routing (intent classification routing queries to text analysis or visualizations)
+7. Function calling (6 visualization types with keyword-based routing)

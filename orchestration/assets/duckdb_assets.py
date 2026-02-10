@@ -1,9 +1,10 @@
 import json
 import logging
-from pathlib import Path
 
 import duckdb
 from dagster import AssetExecutionContext, Config, asset
+
+from football_rag.storage.minio_client import MinIOClient, DEFAULT_BUCKET
 
 logger = logging.getLogger(__name__)
 
@@ -21,20 +22,22 @@ def _sanitize_json(raw: str) -> str:
 def raw_matches_bronze(
     context: AssetExecutionContext, config: DuckDBConfig
 ) -> int:
-    """Load raw JSON files into DuckDB bronze_matches (idempotent)."""
+    """Load raw JSON from MinIO into DuckDB bronze_matches (idempotent)."""
     db = duckdb.connect(config.database_path)
     db.execute(
         "CREATE OR REPLACE TABLE bronze_matches "
         "(match_id VARCHAR, source VARCHAR, data JSON)"
     )
 
-    raw_dir_ws = Path("data/raw/whoscored_matches")
-    raw_dir_fm = Path("data/raw/fotmob_matches")
+    client = MinIOClient()
     count = 0
 
-    for json_file in raw_dir_ws.rglob("*.json"):
-        with open(json_file) as f:
-            data = json.load(f)
+    # WhoScored matches from MinIO
+    for key in client.list_objects(DEFAULT_BUCKET, prefix="whoscored/"):
+        if not key.endswith(".json"):
+            continue
+        raw = client.download_raw(DEFAULT_BUCKET, key)
+        data = json.loads(raw)
         match_id = str(data.get("match_id", "unknown"))
         db.execute(
             "INSERT INTO bronze_matches VALUES (?, 'whoscored', ?)",
@@ -42,11 +45,12 @@ def raw_matches_bronze(
         )
         count += 1
 
-    for json_file in raw_dir_fm.rglob("*.json"):
-        with open(json_file) as f:
-            raw = _sanitize_json(f.read())
+    # FotMob matches from MinIO
+    for key in client.list_objects(DEFAULT_BUCKET, prefix="fotmob/"):
+        if not key.endswith(".json"):
+            continue
+        raw = _sanitize_json(client.download_raw(DEFAULT_BUCKET, key))
         data = json.loads(raw)
-        # Handle both flat and nested (match_info) formats
         match_id = str(
             data.get("match_id")
             or data.get("match_info", {}).get("match_id", "unknown")
@@ -58,7 +62,7 @@ def raw_matches_bronze(
         count += 1
 
     db.close()
-    context.log.info(f"Bronze: loaded {count} matches")
+    context.log.info(f"Bronze: loaded {count} matches from MinIO")
     context.add_output_metadata({"matches_loaded": count})
     return count
 

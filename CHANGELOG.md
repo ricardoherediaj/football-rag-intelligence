@@ -55,6 +55,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WhoScored Calendar Navigation**: Ad overlay blocking clicks; fixed with JS `document.querySelector().click()`.
 - **FotMob Dual JSON Format**: 82 files used nested `match_info` format; fixed with fallback parsing and COALESCE SQL.
 
+### Fixed
+- **MinIO Docker Stability (macOS Docker Desktop)**
+    - Resolved `D state (disk sleep)` crashes where MinIO process hung on kernel I/O operations.
+    - Root cause: macOS Docker Desktop bind mount (`./data_lake:/data`) with VirtioFS latency triggered MinIO's disk health monitor, taking `/data` offline.
+    - Solution: Migrated to Docker named volume (`minio_data:/data`) using Linux VM's native ext4 filesystem.
+    - Added `MINIO_CI_CD=1` environment variable to disable strict disk health monitoring.
+    - Updated to `minio/minio:latest` with healthcheck configuration.
+    - MinIO now stable after seeding 379 files (189 WhoScored + 190 FotMob) with full Bronze → Silver → Gold pipeline verified.
+
 ### Known Issues / Next Steps
 - 3 unmatched fixtures due to source-availability differences (not scraping failures).
 - Dagster Docker containers OOM on full pipeline materialization; local execution works.

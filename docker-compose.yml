@@ -11,9 +11,15 @@ services:
     environment:
       MINIO_ROOT_USER: "admin"
       MINIO_ROOT_PASSWORD: "password123"
+      MINIO_CI_CD: "1"
     command: server /data --console-address ":9001"
     volumes:
-      - ./data_lake:/data
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   # 2. METADATA DB: Postgres (for Dagster)
@@ -73,4 +79,5 @@ services:
     restart: always
 
 volumes:
+  minio_data:
   postgres_data:
