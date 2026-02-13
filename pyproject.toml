@@ -35,6 +35,8 @@ dependencies = [
     "dagster-postgres>=0.22.0",
     "dagster-aws>=0.22.0",
     "dagster-docker>=0.22.0",
+    "dbt-duckdb>=1.10.0",
+    "dagster-dbt>=0.28.13",
 ]
 
 [project.scripts]

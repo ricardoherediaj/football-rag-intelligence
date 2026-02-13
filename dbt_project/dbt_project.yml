@@ -1,0 +1,39 @@
+# Football Analytics dbt Project
+# Medallion Architecture: Bronze (raw) → Silver (cleaned) → Gold (analysis-ready)
+
+name: 'football_analytics'
+version: '1.0.0'
+config-version: 2
+
+# DuckDB profile configuration
+profile: 'football_analytics'
+
+# Model and test paths
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+# Cleanup targets
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Model configurations
+models:
+  football_analytics:
+    # Silver layer: Cleaned, standardized data
+    silver:
+      +materialized: table
+      +schema: main
+      +tags: ['silver']
+      silver_events:
+        description: "Flattened WhoScored events with all dashboard metrics"
+
+    # Gold layer: Analysis-ready aggregations
+    gold:
+      +materialized: table
+      +schema: main
+      +tags: ['gold']

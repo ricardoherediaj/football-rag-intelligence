@@ -1,0 +1,134 @@
+version: 2
+
+models:
+  - name: silver_events
+    description: Cleaned, flattened WhoScored tactical events with all metrics for dashboard visualizations. Includes position data (both FIFA and StatsBomb scales), outcome types, qualifiers, and progressive pass distances.
+    columns:
+      # Event Identifiers
+      - name: event_row_id
+        description: Unique event identifier from WhoScored
+        tests:
+          - unique
+          - not_null
+
+      - name: event_id
+        description: WhoScored event type code (Pass=1, Shot=16, Tackle=7, etc.)
+
+      - name: match_id
+        description: Foreign key to bronze_matches
+        tests:
+          - not_null
+
+      # Event Classification (required for filtering in dashboards)
+      - name: type_display_name
+        description: Human-readable event type (Pass, Shot, Tackle, Interception, etc.)
+        tests:
+          - not_null
+
+      - name: outcome_type_display_name
+        description: Outcome of the event (Successful, Unsuccessful, Incomplete, etc.) - CRITICAL for filtering passes/tackles
+        tests:
+          - not_null
+
+      - name: period_display_name
+        description: Match period (1st Half, 2nd Half, etc.)
+
+      - name: qualifiers
+        description: JSON array of event modifiers (e.g., CornerTaken, Freekick, Defensive, etc.) - used for filtering corner/free kick passes
+        meta:
+          column_type: json
+
+      # Position Data (FIFA 105x68 pitch - WhoScored native)
+      - name: x
+        description: Starting X position (0-100 scale, WhoScored format)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: y
+        description: Starting Y position (0-100 scale, WhoScored format)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: end_x
+        description: Ending X position (0-100 scale) - for passes, shots, carries
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: end_y
+        description: Ending Y position (0-100 scale) - for passes, shots, carries
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      # Position Data (StatsBomb 120x80 pitch - scaled for defensive heatmaps)
+      - name: x_sb
+        description: Starting X position (0-120 scale, StatsBomb format) for defensive visualizations
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 120
+
+      - name: y_sb
+        description: Starting Y position (0-80 scale, StatsBomb format) for defensive visualizations
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 80
+
+      # Players and Teams
+      - name: player_id
+        description: WhoScored player identifier
+        tests:
+          - not_null
+
+      - name: team_id
+        description: WhoScored team identifier
+        tests:
+          - not_null
+
+      # Timing
+      - name: minute
+        description: Minute of the match (0-90+)
+        tests:
+          - not_null
+
+      - name: second
+        description: Second within the minute
+
+      # Event Outcome Flags
+      - name: is_shot
+        description: Whether event is a shot or attempt
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      - name: is_goal
+        description: Whether event is a goal
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      - name: is_touch
+        description: Whether event is a player touch on the ball
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      # Progressive Pass Metric
+      - name: prog_pass
+        description: |
+          Progressive pass distance in meters (FIFA pitch: 105x68).
+          Calculated as reduction in distance to opponent goal.
+          Threshold for "progressive pass": >= 9.11 meters.
+          Used for identifying forward passes that advance team significantly.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 105

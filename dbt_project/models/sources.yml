@@ -1,0 +1,57 @@
+version: 2
+
+sources:
+  - name: football_rag
+    description: Raw football match and event data from scrapers
+    database: memory  # DuckDB default
+    schema: main
+    tables:
+      - name: bronze_matches
+        description: Raw match metadata from WhoScored and FotMob
+        columns:
+          - name: match_id
+            description: Unique match identifier
+            tests:
+              - unique
+              - not_null
+          - name: match_date
+            description: Date of the match
+            tests:
+              - not_null
+          - name: home_team
+            description: Home team name
+            tests:
+              - not_null
+          - name: away_team
+            description: Away team name
+            tests:
+              - not_null
+
+      - name: bronze_events
+        description: Raw event-level tactical data (passes, shots, tackles, etc.)
+        columns:
+          - name: event_row_id
+            description: Unique event identifier
+            tests:
+              - unique
+              - not_null
+          - name: match_id
+            description: Foreign key to bronze_matches
+            tests:
+              - not_null
+          - name: event_type
+            description: Type of event (pass, shot, tackle, etc.)
+            tests:
+              - not_null
+          - name: x
+            description: X position on pitch (0-100)
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+          - name: y
+            description: Y position on pitch (0-100)
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100

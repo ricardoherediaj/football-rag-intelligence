@@ -1,0 +1,10 @@
+football_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/ricardoheredia/football-rag-intelligence/data/lakehouse.duckdb
+      threads: 4
+      timeout_seconds: 300
+      memory_limit: 4GB
+      schema: main
