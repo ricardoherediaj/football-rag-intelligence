@@ -21,7 +21,6 @@
 /.venv/
 
 # Project
-/docs/
 /mlruns/*
 /outputs/*
 !**/.gitkeep

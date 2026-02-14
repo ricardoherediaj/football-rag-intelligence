@@ -2,8 +2,8 @@
 
 **Purpose**: Persistent session state that survives context clears. Update this file throughout your work session. When context gets bloated, `/clear` and reload only this file + CLAUDE.md.
 
-**Session Started**: 2026-02-14 (Evening)
-**Current Branch**: `feat/scraping-strategies`
+**Session Started**: 2026-02-14 (Evening) → 2026-02-15 (Morning continuation)
+**Current Branch**: `feat/phase1-data-pipeline` (changed from feat/scraping-strategies)
 
 ---
 
@@ -13,7 +13,7 @@
 
 **Goal**: Fix the disconnect between MVP (Gradio + ChromaDB) and V2 (Dagster + dbt + DuckDB) to enable automated post-match reports with production-grade data quality.
 
-**Completed Today (2026-02-14)**:
+**Completed (2026-02-14 Evening)**:
 - ✅ Diagnosed Phase 1 data pipeline status (NOT complete as thought)
 - ✅ Identified root cause: TWO parallel pipelines (Dagster simplified schema vs dbt full schema)
 - ✅ Mapped MVP architecture (ChromaDB, 38 pre-calc metrics, Gradio visualizers)
@@ -23,12 +23,36 @@
 - ✅ Documented comprehensive analysis in SCRATCHPAD.md + engineering diary
 - ✅ Decided on Option C (Hybrid): Dagster orchestrates, dbt transforms, DuckDB VSS replaces ChromaDB
 
-**Next Steps (When Resuming Tomorrow)**:
-1. [ ] **Wire up dbt** (20 min) - Create profiles.yml, fix sources.yml, replace Dagster Silver/Gold with dbt
-2. [ ] **Enhance dbt models** (60 min) - Add missing 6 columns, add 38 tactical metrics to Gold layer
-3. [ ] **Migrate to DuckDB VSS** (45 min) - Set up vector extension, create embedding pipeline, update rag_pipeline.py
-4. [ ] **Reconnect Gradio** (30 min) - Update visualizers.py to read DuckDB, test all 6 viz types
-5. [ ] **End-to-end verification** - Test "Show dashboard" + "What was pressing strategy" queries
+**Completed (2026-02-15 Morning)**:
+- ✅ Created new branch `feat/phase1-data-pipeline`
+- ✅ Wired dbt to DuckDB (~/.dbt/profiles.yml created)
+- ✅ Fixed sources.yml database reference (memory → lakehouse)
+- ✅ Created silver_team_metrics.sql with 24 tactical metrics
+- ✅ **CRITICAL FIX**: Resolved xG=0 issue using existing match_mapping.json from MVP
+  - Loaded data/match_mapping.json (108 matches) into DuckDB
+  - Updated silver_team_metrics.sql xG join to map WhoScored ↔ FotMob IDs
+  - Verified: 57.1% teams have xG > 0, realistic values (2.34, 1.17, etc.)
+- ✅ Updated CLAUDE.md: Added "Check MVP solutions first" to Simplicity Challenge
+- ✅ Created .claude/lessons.md: Documented xG fix and "search before implementing" rule
+- ✅ Committed changes with detailed explanation
+
+**Next Steps (From Plan in ~/.claude/plans/)** - Continue Phase 1:
+1. [x] Git workflow setup - DONE (new branch created)
+2. [x] Wire up dbt to DuckDB - DONE (profiles.yml, sources.yml fixed)
+3. [x] Build Silver layer - DONE (silver_team_metrics.sql with 24 metrics, xG working)
+4. [ ] **Build Gold layer** (60 min) - Create gold_match_summaries.sql for LLM embedding
+   - Aggregate Silver metrics to match level (home vs away)
+   - Create summary_text with tactical narrative
+   - Expected: 55 columns (metadata + 24 home + 24 away + summary_text)
+   - Expected: ~379 rows (one per match)
+5. [ ] **Enable DuckDB VSS** (45 min) - Generate embeddings with sentence-transformers
+   - Create gold_match_embeddings table (768-dim vectors)
+   - Use all-mpnet-base-v2 model (proven in MVP)
+   - Create HNSW index for fast similarity search
+6. [ ] **End-to-end verification** (45 min)
+   - Verify pipeline: Bronze (379) → Silver (279K events) → Gold (379 embeddings)
+   - Test vector search: "Find high pressing matches"
+   - Update documentation with completion status
 
 ---
 
@@ -174,15 +198,17 @@
 
 ## 📊 Metrics / Verification
 
-**Data Pipeline Status**:
+**Data Pipeline Status (Updated 2026-02-15 Morning)**:
 - Scrapers: ✅ 188/190 matches (98.9% parity), 379 files in MinIO
 - DuckDB: ✅ 485 MB lakehouse.duckdb, 279,104 events in silver_events
-- dbt: ✅ Wired to DuckDB (profiles.yml created)
+- dbt: ✅ Wired to DuckDB (profiles.yml created, sources.yml fixed)
 - Schema: ✅ 23 columns in silver_events (MVP parity)
-- Team Metrics: ⚠️ 24/24 metrics created, xG=0 (needs match_mapping.json integration)
-- Match Mapping: ✅ `data/match_mapping.json` exists (108 matches mapped WhoScored ↔ FotMob)
-- ChromaDB: ❌ rag_pipeline.py still queries ChromaDB (data is in DuckDB)
-- Gradio: ❌ Can't generate reports (data source disconnected)
+- Team Metrics: ✅ 24/24 metrics created, **xG VALUES WORKING** (57.1% teams have xG > 0)
+- Match Mapping: ✅ Loaded into DuckDB, integrated in silver_team_metrics.sql
+- Gold Layer: 🚧 IN PROGRESS - Need to create gold_match_summaries.sql
+- DuckDB VSS: ⏳ NEXT - Set up vector extension + embeddings
+- ChromaDB: ❌ rag_pipeline.py still queries ChromaDB (data is in DuckDB) - DEFERRED
+- Gradio: ❌ Can't generate reports (data source disconnected) - DEFERRED
 
 **Critical Discovery (2026-02-15)** - xG Values Fix:
 - **Problem**: WhoScored match_id (1903733) ≠ FotMob match_id (4815204), team IDs also different
@@ -200,15 +226,18 @@
 - Rebuild Speed: 18 seconds for 108 matches
 
 **Phase 1 Completion Checklist**:
-- [ ] dbt wired to DuckDB (profiles.yml created)
-- [ ] dbt models run successfully (dbt run passes)
-- [ ] Schema complete (23 columns in silver_events, not 17)
-- [ ] 38 tactical metrics in Gold layer
+- [x] dbt wired to DuckDB (profiles.yml created) - DONE 2026-02-15
+- [x] dbt models run successfully (dbt run passes) - DONE 2026-02-15
+- [x] Schema complete (23 columns in silver_events) - DONE (verified in plan)
+- [x] 24 tactical metrics in Silver layer (silver_team_metrics) - DONE 2026-02-15
+- [x] xG values working (match_mapping.json integrated) - DONE 2026-02-15
+- [ ] Gold layer: gold_match_summaries.sql (match-level aggregations) - IN PROGRESS
 - [ ] DuckDB VSS set up (vector extension + embeddings)
-- [ ] rag_pipeline.py queries DuckDB (not ChromaDB)
-- [ ] visualizers.py reads DuckDB (not raw JSON)
-- [ ] End-to-end test: "Show dashboard for PSV vs Ajax" works
-- [ ] End-to-end test: "What was Feyenoord's pressing?" works
+- [ ] HNSW index created for fast similarity search
+- [ ] rag_pipeline.py queries DuckDB (not ChromaDB) - DEFERRED to Phase 2
+- [ ] visualizers.py reads DuckDB (not raw JSON) - DEFERRED to Phase 2
+- [ ] End-to-end test: "Show dashboard for PSV vs Ajax" works - DEFERRED to Phase 2
+- [ ] End-to-end test: "What was Feyenoord's pressing?" works - DEFERRED to Phase 2
 
 ---
 
@@ -271,3 +300,14 @@
 ---
 
 **Last Updated**: 2026-02-14 23:45 CET (Evening session, comprehensive Phase 1 diagnosis completed)
+
+---
+
+## 📚 Engineering Diary Entries
+
+- **2026-02-14**: [Phase 1 Diagnosis](docs/engineering_diary/2026-02-14-phase1-diagnosis.md) - Discovered two parallel pipelines, chose Hybrid architecture
+- **2026-02-15**: [Silver Layer Complete](docs/engineering_diary/2026-02-15-phase1-silver-layer-complete.md) - Wired dbt, built 24 metrics, fixed xG with match_mapping.json
+
+---
+
+**Last Updated**: 2026-02-15 08:50 CET (Morning session, Silver layer + xG fix complete, ready for Gold layer)
