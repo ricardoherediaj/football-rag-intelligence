@@ -68,44 +68,6 @@ def raw_matches_bronze(
 
 
 @asset(deps=[raw_matches_bronze], compute_kind="duckdb")
-def events_silver(config: DuckDBConfig) -> None:
-    """Flatten WhoScored events from Bronze JSON into Silver table."""
-    db = duckdb.connect(config.database_path)
-    db.execute("""
-        CREATE OR REPLACE TABLE silver_events AS
-        WITH raw_events AS (
-            SELECT
-                match_id,
-                unnest(
-                    from_json(json_extract(data, '$.events'), '["json"]')
-                ) AS event
-            FROM bronze_matches
-            WHERE source = 'whoscored'
-        )
-        SELECT
-            match_id,
-            CAST(json_extract_string(event, '$.id') AS BIGINT) AS event_row_id,
-            CAST(json_extract_string(event, '$.event_id') AS INTEGER) AS event_id,
-            json_extract_string(event, '$.type_display_name') AS event_type,
-            json_extract_string(event, '$.outcome_type_display_name') AS outcome,
-            json_extract_string(event, '$.period_display_name') AS period,
-            CAST(json_extract_string(event, '$.player_id') AS INTEGER) AS player_id,
-            CAST(json_extract_string(event, '$.team_id') AS INTEGER) AS team_id,
-            CAST(json_extract_string(event, '$.x') AS DOUBLE) AS x,
-            CAST(json_extract_string(event, '$.y') AS DOUBLE) AS y,
-            CAST(json_extract_string(event, '$.end_x') AS DOUBLE) AS end_x,
-            CAST(json_extract_string(event, '$.end_y') AS DOUBLE) AS end_y,
-            CAST(json_extract_string(event, '$.minute') AS INTEGER) AS minute,
-            CAST(json_extract_string(event, '$.second') AS DOUBLE) AS second,
-            json_extract_string(event, '$.is_shot') = 'true' AS is_shot,
-            json_extract_string(event, '$.is_goal') = 'true' AS is_goal,
-            json_extract_string(event, '$.is_touch') = 'true' AS is_touch
-        FROM raw_events
-    """)
-    db.close()
-
-
-@asset(deps=[raw_matches_bronze], compute_kind="duckdb")
 def silver_fotmob(config: DuckDBConfig) -> None:
     """Flatten FotMob shot data from Bronze JSON into Silver table."""
     db = duckdb.connect(config.database_path)
@@ -155,59 +117,7 @@ def silver_fotmob(config: DuckDBConfig) -> None:
     db.close()
 
 
-@asset(deps=[events_silver, silver_fotmob], compute_kind="duckdb")
-def gold_match_summary(config: DuckDBConfig) -> None:
-    """Aggregate match-level stats combining WhoScored events and FotMob xG."""
-    db = duckdb.connect(config.database_path)
-    db.execute("""
-        CREATE OR REPLACE TABLE gold_match_summary AS
-        WITH ws_stats AS (
-            SELECT
-                match_id,
-                team_id,
-                COUNT(*) AS total_events,
-                SUM(CASE WHEN event_type = 'Pass' THEN 1 ELSE 0 END) AS passes,
-                SUM(CASE WHEN is_shot THEN 1 ELSE 0 END) AS shots,
-                SUM(CASE WHEN is_goal THEN 1 ELSE 0 END) AS goals,
-                SUM(CASE WHEN event_type = 'Tackle' THEN 1 ELSE 0 END) AS tackles
-            FROM silver_events
-            GROUP BY match_id, team_id
-        ),
-        fm_stats AS (
-            SELECT
-                match_id,
-                team_id,
-                home_team,
-                away_team,
-                match_date,
-                COUNT(*) AS fm_shots,
-                SUM(CASE WHEN is_goal THEN 1 ELSE 0 END) AS fm_goals,
-                ROUND(SUM(xg), 2) AS total_xg,
-                SUM(CASE WHEN is_on_target THEN 1 ELSE 0 END) AS shots_on_target
-            FROM silver_fotmob_shots
-            GROUP BY match_id, team_id, home_team, away_team, match_date
-        )
-        SELECT
-            ws.match_id,
-            ws.team_id,
-            fm.home_team,
-            fm.away_team,
-            fm.match_date,
-            ws.total_events,
-            ws.passes,
-            ws.shots,
-            ws.goals,
-            ws.tackles,
-            fm.total_xg,
-            fm.shots_on_target
-        FROM ws_stats ws
-        LEFT JOIN fm_stats fm
-            ON ws.match_id = fm.match_id AND ws.team_id = fm.team_id
-    """)
-    db.close()
-
-
-@asset(deps=[events_silver], compute_kind="duckdb")
+@asset(deps=[raw_matches_bronze], compute_kind="duckdb")
 def gold_player_stats(config: DuckDBConfig) -> None:
     """Aggregate player-level shooting and passing stats."""
     db = duckdb.connect(config.database_path)
