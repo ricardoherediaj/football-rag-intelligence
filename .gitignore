@@ -21,12 +21,7 @@
 /.venv/
 
 # Project
-/docs/*
-!docs/assets/
-!docs/architecture/
-!docs/api/
-!docs/engineering_diary/
-!docs/archive/
+/docs/
 /mlruns/*
 /outputs/*
 !**/.gitkeep

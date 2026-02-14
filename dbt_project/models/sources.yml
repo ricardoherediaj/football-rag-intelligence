@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: football_rag
     description: Raw football match and event data from scrapers
-    database: memory  # DuckDB default
+    database: lakehouse  # DuckDB lakehouse.duckdb
     schema: main
     tables:
       - name: bronze_matches
@@ -55,3 +55,39 @@ sources:
               - dbt_utils.accepted_range:
                   min_value: 0
                   max_value: 100
+
+      - name: silver_fotmob_shots
+        description: FotMob shot data with xG values (flattened from Bronze JSON)
+        columns:
+          - name: match_id
+            description: Match identifier
+            tests:
+              - not_null
+          - name: shot_id
+            description: Unique shot identifier
+            tests:
+              - unique
+              - not_null
+          - name: team_id
+            description: Team taking the shot
+            tests:
+              - not_null
+          - name: xg
+            description: Expected goals value for this shot
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+      - name: match_mapping
+        description: Mapping between WhoScored and FotMob match/team IDs (from scripts/create_match_mapping.py)
+        columns:
+          - name: whoscored_match_id
+            description: WhoScored match identifier
+            tests:
+              - unique
+              - not_null
+          - name: fotmob_match_id
+            description: FotMob match identifier
+            tests:
+              - not_null

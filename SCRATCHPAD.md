@@ -177,10 +177,20 @@
 **Data Pipeline Status**:
 - Scrapers: ✅ 188/190 matches (98.9% parity), 379 files in MinIO
 - DuckDB: ✅ 485 MB lakehouse.duckdb, 279,104 events in silver_events
-- dbt: ❌ Models created but not connected (no profiles.yml)
-- Schema: ❌ Missing 6 columns needed by Gradio visualizers
+- dbt: ✅ Wired to DuckDB (profiles.yml created)
+- Schema: ✅ 23 columns in silver_events (MVP parity)
+- Team Metrics: ⚠️ 24/24 metrics created, xG=0 (needs match_mapping.json integration)
+- Match Mapping: ✅ `data/match_mapping.json` exists (108 matches mapped WhoScored ↔ FotMob)
 - ChromaDB: ❌ rag_pipeline.py still queries ChromaDB (data is in DuckDB)
 - Gradio: ❌ Can't generate reports (data source disconnected)
+
+**Critical Discovery (2026-02-15)** - xG Values Fix:
+- **Problem**: WhoScored match_id (1903733) ≠ FotMob match_id (4815204), team IDs also different
+- **Root Cause**: Assumed failure too early, didn't search codebase for existing solutions
+- **Solution Found**: MVP already solved this with `scripts/create_match_mapping.py` + `data/match_mapping.json`
+- **Implementation**: Loaded mapping into DuckDB, updated `silver_team_metrics.sql` xG join
+- **Result**: ✅ xG values now working (57.1% teams have xG > 0, realistic values like 2.34, 1.17)
+- **Lesson**: ALWAYS search `/scripts` and `/data` for existing solutions before implementing new ones
 
 **MVP Quality Benchmarks (Target for V2)**:
 - Retrieval Accuracy: 100% (metadata filtering)

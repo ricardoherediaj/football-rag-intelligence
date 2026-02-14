@@ -22,6 +22,28 @@ This file tracks patterns, mistakes, and rules discovered during development to 
 
 ---
 
+---
+
+## Lesson: CLAUDE.md Instruction Limit & Context Engineering
+**Date:** 2026-02-13
+**Context:** CLAUDE.md was 424 lines with ~200+ instructions; expert playbook revealed Claude only follows ~150 instructions max
+
+**Pattern:** Treated CLAUDE.md as comprehensive documentation covering everything (architecture, patterns, git workflow, development commands)
+**Why:** Didn't understand Claude's instruction-following limit (~150-200 total, system prompt uses ~50, leaving ~100-150 for CLAUDE.md). More instructions = attention competition = degraded output quality
+**Rule:** Keep CLAUDE.md to ~150 instructions. Move stable architectural decisions to ARCHITECTURE.md, coding patterns to PATTERNS.md, session state to SCRATCHPAD.md. Only behavioral guidelines belong in CLAUDE.md
+**Project Impact:**
+- CLAUDE.md: 424 lines → 396 lines (behavioral focus only)
+- Created external memory: ARCHITECTURE.md (stable system design), PATTERNS.md (coding reference), SCRATCHPAD.md (session persistence)
+- Enables context degradation management: `/compact` → `/clear` → reload only SCRATCHPAD.md + CLAUDE.md
+- Follows expert playbook: "Good CLAUDE.md = amnesia notes to yourself, not new hire documentation"
+
+**References:**
+- Expert playbook tweet thread on context management
+- GSD methodology (external state files for multi-session work)
+- New files: ARCHITECTURE.md, PATTERNS.md, SCRATCHPAD.md
+
+---
+
 ## Template for New Lessons
 
 ## Lesson: [Brief Description]
