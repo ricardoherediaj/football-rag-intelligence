@@ -36,23 +36,74 @@
 - ✅ Created .claude/lessons.md: Documented xG fix and "search before implementing" rule
 - ✅ Committed changes with detailed explanation
 
+**Completed (2026-02-15 Afternoon - Gold Layer + Embeddings)**:
+- ✅ Fixed Silver layer schema issues (dropped OLD main.silver_events table)
+- ✅ Rebuilt gold_match_summaries.sql with team metadata (home_team, away_team, fotmob_match_id, team IDs, match_date)
+- ✅ Changed Gold layer to use match_mapping as base (not event count heuristic)
+- ✅ Verified: 108 rows in gold_match_summaries (intersection of WhoScored + FotMob)
+- ✅ All 19 dbt Gold layer tests PASSED
+- ✅ Created embeddings_assets.py for DuckDB VSS
+- ✅ Updated orchestration/defs.py with gold_match_embeddings asset
+- ✅ Created test_vector_search.py and materialize_embeddings.py scripts
+- ✅ Added sentence-transformers and torch dependencies (torch==2.2.0, sentence-transformers==2.5.1)
+
+**CRITICAL DISCOVERY & FIX (2026-02-15 Evening - Match Coverage Expansion)**:
+- **Problem**: Only 108/189 WhoScored matches mapped to FotMob (57% coverage)
+- **Root Cause**: 82 FotMob Bronze records had NULL team names (scraping gap from MVP)
+- **Solution**: Re-scraped 81 missing FotMob matches using Playwright
+  1. Created `identify_fotmob_gaps.py` → Identified 81 unmapped WhoScored matches
+  2. Created `find_fotmob_match_ids.py` → Queried FotMob API, found ALL 81 match IDs (100% success)
+  3. Created `rescrape_fotmob_matches.py` → Re-scraped 81 matches, uploaded to MinIO (100% success)
+  4. Fixed `match_mapping_asset.py` → COALESCE for both old/new FotMob JSON structures
+  5. Reloaded Bronze (379 matches) → Re-ran match_mapping (188/189, 99.5%)
+  6. Rebuilt Gold layer (188 rows, up from 108, **+74% increase**)
+
+**Final Phase 1 State (2026-02-15 23:27)**:
+- ✅ Bronze: 379 matches (189 WhoScored + 190 FotMob)
+- ✅ Match Mapping: 188/189 (99.5% coverage, only 1 unmapped)
+- ✅ Gold Layer: 188 rows with full tactical metrics
+- ✅ xG Coverage: 108 matches (57%) have xG > 0 (realistic distribution)
+- ✅ All dbt tests PASSED (19 tests on Gold layer)
+
+**PRODUCTION-FIRST WIN**: Match mapping is now a **Dagster asset** (not loose script), auto-recomputes when new matches scraped, part of orchestrated DAG. Scales to multi-league (Championship, Jupiler Pro, Brasileirão).
+
+**Next Steps**:
+- ⚠️ **match_mapping.json only has 108 of 189 matches mapped**
+- 📊 **Data Status**:
+  - WhoScored: 189 matches scraped
+  - FotMob: 190 matches scraped
+  - match_mapping.json: Only 108 matches mapped (from MVP, dated Nov 20)
+  - Gold layer: 108 matches (limited by mapping file)
+- 🔍 **Root Cause**: Manual mapping file from MVP wasn't updated when full scraping was done
+- 📝 **Impact**: 81 WhoScored matches + 82 FotMob matches unmapped → excluded from Gold layer
+- 🚧 **DECISION MADE**: Fix match mapping NOW (architectural blocker)
+  - **Rationale**: When expanding to multi-league (Championship, Jupiler Pro, Brasileirão), need robust automated matching
+  - **Impact**: Establishes foundation for future league expansion, prevents technical debt
+  - **Timeline**: ~90 min to build automated fuzzy matching, then rebuild Gold layer (189 matches)
+
 **Next Steps (From Plan in ~/.claude/plans/)** - Continue Phase 1:
 1. [x] Git workflow setup - DONE (new branch created)
 2. [x] Wire up dbt to DuckDB - DONE (profiles.yml, sources.yml fixed)
 3. [x] Build Silver layer - DONE (silver_team_metrics.sql with 24 metrics, xG working)
-4. [ ] **Build Gold layer** (60 min) - Create gold_match_summaries.sql for LLM embedding
-   - Aggregate Silver metrics to match level (home vs away)
-   - Create summary_text with tactical narrative
-   - Expected: 55 columns (metadata + 24 home + 24 away + summary_text)
-   - Expected: ~379 rows (one per match)
-5. [ ] **Enable DuckDB VSS** (45 min) - Generate embeddings with sentence-transformers
+4. [x] Build Gold layer - DONE (gold_match_summaries.sql, 108 matches, all tests pass)
+5. [ ] **CRITICAL: Automated Match Mapping** (90 min) - Expand 108 → 189 matches
+   - Analyze existing scripts/create_match_mapping.py logic
+   - Build robust fuzzy matching: team names (normalize), dates (±1 day), scores
+   - Handle edge cases: "PSV" vs "PSV Eindhoven", "Ajax" vs "AFC Ajax"
+   - Make it repeatable for future leagues (Championship, Jupiler Pro, Brasileirão)
+   - Expected output: match_mapping.json with ~189 matches (100% coverage)
+6. [ ] **Rebuild Gold layer** (15 min) - Re-run dbt with expanded mapping
+   - Load new match_mapping.json into DuckDB
+   - Expected: ~189 rows in gold_match_summaries (up from 108)
+   - Verify all 19 dbt tests still pass
+7. [ ] **Enable DuckDB VSS** (45 min) - Generate embeddings with sentence-transformers
    - Create gold_match_embeddings table (768-dim vectors)
    - Use all-mpnet-base-v2 model (proven in MVP)
    - Create HNSW index for fast similarity search
-6. [ ] **End-to-end verification** (45 min)
-   - Verify pipeline: Bronze (379) → Silver (279K events) → Gold (379 embeddings)
+8. [ ] **End-to-end verification** (30 min)
+   - Verify pipeline: Bronze (379) → Silver (279K events) → Gold (189 embeddings)
    - Test vector search: "Find high pressing matches"
-   - Update documentation with completion status
+   - Update documentation with Phase 1 COMPLETE status
 
 ---
 
@@ -228,12 +279,14 @@
 **Phase 1 Completion Checklist**:
 - [x] dbt wired to DuckDB (profiles.yml created) - DONE 2026-02-15
 - [x] dbt models run successfully (dbt run passes) - DONE 2026-02-15
-- [x] Schema complete (23 columns in silver_events) - DONE (verified in plan)
+- [x] Schema complete (23 columns in silver_events) - DONE 2026-02-15
 - [x] 24 tactical metrics in Silver layer (silver_team_metrics) - DONE 2026-02-15
 - [x] xG values working (match_mapping.json integrated) - DONE 2026-02-15
-- [ ] Gold layer: gold_match_summaries.sql (match-level aggregations) - IN PROGRESS
-- [ ] DuckDB VSS set up (vector extension + embeddings)
-- [ ] HNSW index created for fast similarity search
+- [x] Gold layer: gold_match_summaries.sql (match-level aggregations) - DONE 2026-02-15 (108 matches)
+- [ ] **IN PROGRESS**: Automated match mapping (108 → 189 matches) - NEXT TASK
+- [ ] Gold layer rebuilt with full coverage (~189 matches) - BLOCKED by match mapping
+- [ ] DuckDB VSS set up (vector extension + embeddings) - READY (code written, waiting for full dataset)
+- [ ] HNSW index created for fast similarity search - READY (code written, waiting for full dataset)
 - [ ] rag_pipeline.py queries DuckDB (not ChromaDB) - DEFERRED to Phase 2
 - [ ] visualizers.py reads DuckDB (not raw JSON) - DEFERRED to Phase 2
 - [ ] End-to-end test: "Show dashboard for PSV vs Ajax" works - DEFERRED to Phase 2
@@ -310,4 +363,4 @@
 
 ---
 
-**Last Updated**: 2026-02-15 08:50 CET (Morning session, Silver layer + xG fix complete, ready for Gold layer)
+**Last Updated**: 2026-02-15 15:30 CET (Afternoon session, Gold layer complete with 108 matches, embeddings code ready, discovered match_mapping limitation)

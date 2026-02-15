@@ -80,7 +80,7 @@ sources:
                   max_value: 1
 
       - name: match_mapping
-        description: Mapping between WhoScored and FotMob match/team IDs (from scripts/create_match_mapping.py)
+        description: Mapping between WhoScored and FotMob match/team IDs (Dagster asset with fuzzy matching)
         columns:
           - name: whoscored_match_id
             description: WhoScored match identifier
