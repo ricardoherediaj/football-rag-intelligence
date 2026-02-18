@@ -27,34 +27,6 @@ sources:
             tests:
               - not_null
 
-      - name: bronze_events
-        description: Raw event-level tactical data (passes, shots, tackles, etc.)
-        columns:
-          - name: event_row_id
-            description: Unique event identifier
-            tests:
-              - unique
-              - not_null
-          - name: match_id
-            description: Foreign key to bronze_matches
-            tests:
-              - not_null
-          - name: event_type
-            description: Type of event (pass, shot, tackle, etc.)
-            tests:
-              - not_null
-          - name: x
-            description: X position on pitch (0-100)
-            tests:
-              - dbt_utils.accepted_range:
-                  min_value: 0
-                  max_value: 100
-          - name: y
-            description: Y position on pitch (0-100)
-            tests:
-              - dbt_utils.accepted_range:
-                  min_value: 0
-                  max_value: 100
 
       - name: silver_fotmob_shots
         description: FotMob shot data with xG values (flattened from Bronze JSON)
