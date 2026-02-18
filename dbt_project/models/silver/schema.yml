@@ -1,0 +1,309 @@
+version: 2
+
+models:
+  - name: silver_events
+    description: Cleaned, flattened WhoScored tactical events with all metrics for dashboard visualizations. Includes position data (both FIFA and StatsBomb scales), outcome types, qualifiers, and progressive pass distances.
+    columns:
+      # Event Identifiers
+      - name: event_row_id
+        description: Unique event identifier from WhoScored
+        tests:
+          - unique
+          - not_null
+
+      - name: event_id
+        description: WhoScored event type code (Pass=1, Shot=16, Tackle=7, etc.)
+
+      - name: match_id
+        description: Foreign key to bronze_matches
+        tests:
+          - not_null
+
+      # Event Classification (required for filtering in dashboards)
+      - name: type_display_name
+        description: Human-readable event type (Pass, Shot, Tackle, Interception, etc.)
+        tests:
+          - not_null
+
+      - name: outcome_type_display_name
+        description: Outcome of the event (Successful, Unsuccessful, Incomplete, etc.) - CRITICAL for filtering passes/tackles
+        tests:
+          - not_null
+
+      - name: period_display_name
+        description: Match period (1st Half, 2nd Half, etc.)
+
+      - name: qualifiers
+        description: JSON array of event modifiers (e.g., CornerTaken, Freekick, Defensive, etc.) - used for filtering corner/free kick passes
+        meta:
+          column_type: json
+
+      # Position Data (FIFA 105x68 pitch - WhoScored native)
+      - name: x
+        description: Starting X position (0-100 scale, WhoScored format)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: y
+        description: Starting Y position (0-100 scale, WhoScored format)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: end_x
+        description: Ending X position (0-100 scale) - for passes, shots, carries
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: end_y
+        description: Ending Y position (0-100 scale) - for passes, shots, carries
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      # Position Data (StatsBomb 120x80 pitch - scaled for defensive heatmaps)
+      - name: x_sb
+        description: Starting X position (0-120 scale, StatsBomb format) for defensive visualizations
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 120
+
+      - name: y_sb
+        description: Starting Y position (0-80 scale, StatsBomb format) for defensive visualizations
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 80
+
+      # Players and Teams
+      - name: player_id
+        description: WhoScored player identifier
+        tests:
+          - not_null
+
+      - name: team_id
+        description: WhoScored team identifier
+        tests:
+          - not_null
+
+      # Timing
+      - name: minute
+        description: Minute of the match (0-90+)
+        tests:
+          - not_null
+
+      - name: second
+        description: Second within the minute
+
+      # Event Outcome Flags
+      - name: is_shot
+        description: Whether event is a shot or attempt
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      - name: is_goal
+        description: Whether event is a goal
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      - name: is_touch
+        description: Whether event is a player touch on the ball
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+      # Progressive Pass Metric
+      - name: prog_pass
+        description: |
+          Progressive pass distance in meters (FIFA pitch: 105x68).
+          Calculated as reduction in distance to opponent goal.
+          Threshold for "progressive pass": >= 9.11 meters.
+          Used for identifying forward passes that advance team significantly.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 105
+
+  - name: silver_team_metrics
+    description: Pre-calculated tactical metrics for each team in each match (24 unique metrics). Translates 38 MVP Python metrics to SQL for production pipeline.
+    columns:
+      - name: match_id
+        description: Match identifier
+        tests:
+          - not_null
+          - relationships:
+              to: source('football_rag', 'bronze_matches')
+              field: match_id
+
+      - name: team_id
+        description: Team identifier
+        tests:
+          - not_null
+
+      # Passing & Progression (8 metrics)
+      - name: progressive_passes
+        description: Passes that move ball >= 9.11 meters closer to opponent goal
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+
+      - name: total_passes
+        description: Total number of pass attempts
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 2000
+
+      - name: pass_accuracy
+        description: Percentage of successful passes
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: verticality
+        description: Average forward component of passes (positive = forward, negative = backward)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 50
+
+      # Defensive Pressure (8 metrics)
+      - name: ppda
+        description: Passes Per Defensive Action - opponent passes allowed per defensive action (lower = more pressure)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: high_press
+        description: Defensive actions in final third (x >= 70)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 500
+
+      - name: defensive_actions
+        description: Total tackles, interceptions, aerials, recoveries
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 500
+
+      - name: successful_tackles
+        description: Tackles won
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 200
+
+      - name: interceptions
+        description: Number of interceptions
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 200
+
+      # Attacking (6 metrics)
+      - name: shots
+        description: Total shot attempts
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: shots_on_target
+        description: Shots on target (saved, goal, or post)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: goals
+        description: Goals scored
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 20
+
+      - name: total_xg
+        description: Total expected goals (from FotMob shot data)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      # Team Positioning (8 metrics)
+      - name: median_position
+        description: Median X position of all touches (0-100 scale)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: defense_line
+        description: 25th percentile of defensive actions X position
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: forward_line
+        description: 75th percentile of attacking actions X position
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: compactness
+        description: Distance between forward and defense lines
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      # Match Context (8 metrics)
+      - name: possession
+        description: Possession percentage (sum of touches / match total touches)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: field_tilt
+        description: Percentage of touches in attacking half (x >= 50)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: clearances
+        description: Number of clearances
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 200
+
+      - name: aerials_won
+        description: Successful aerial duels
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 200
+
+      - name: fouls
+        description: Fouls committed
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100

@@ -1,0 +1,108 @@
+version: 2
+
+models:
+  - name: gold_match_summaries
+    description: Match-level aggregations combining all tactical metrics for LLM embedding
+    columns:
+      - name: match_id
+        description: WhoScored match identifier
+        tests:
+          - unique
+          - not_null
+
+      - name: fotmob_match_id
+        description: FotMob match identifier (for joining to shot data)
+        tests:
+          - not_null
+
+      - name: home_team
+        description: Home team name
+        tests:
+          - not_null
+
+      - name: away_team
+        description: Away team name
+        tests:
+          - not_null
+
+      - name: match_date
+        description: Match date (ISO 8601 format)
+        tests:
+          - not_null
+
+      - name: league
+        description: League name (Eredivisie)
+        tests:
+          - not_null
+
+      - name: season
+        description: Season identifier (2024-2025)
+        tests:
+          - not_null
+
+      - name: home_whoscored_id
+        description: Home team WhoScored ID (for joining to events)
+        tests:
+          - not_null
+
+      - name: away_whoscored_id
+        description: Away team WhoScored ID (for joining to events)
+        tests:
+          - not_null
+
+      - name: home_fotmob_id
+        description: Home team FotMob ID (for filtering shot data in visualizers)
+        tests:
+          - not_null
+
+      - name: away_fotmob_id
+        description: Away team FotMob ID (for filtering shot data in visualizers)
+        tests:
+          - not_null
+
+      - name: summary_text
+        description: Concatenated tactical narrative for embedding generation
+        tests:
+          - not_null
+
+      - name: home_total_xg
+        description: Home team total expected goals
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      - name: away_total_xg
+        description: Away team total expected goals
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      - name: home_possession
+        description: Home team possession percentage
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: away_possession
+        description: Away team possession percentage
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: home_ppda
+        description: Home team PPDA (passes allowed per defensive action)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: away_ppda
+        description: Away team PPDA (passes allowed per defensive action)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100

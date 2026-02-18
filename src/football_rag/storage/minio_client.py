@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -9,10 +10,10 @@ from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ENDPOINT = "http://localhost:9000"
-DEFAULT_ACCESS_KEY = "admin"
-DEFAULT_SECRET_KEY = "password123"
-DEFAULT_BUCKET = "football-raw"
+DEFAULT_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
+DEFAULT_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "admin")
+DEFAULT_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "password123")
+DEFAULT_BUCKET = os.getenv("MINIO_BUCKET", "football-raw")
 
 
 class MinIOClient:

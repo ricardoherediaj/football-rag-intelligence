@@ -21,12 +21,6 @@
 /.venv/
 
 # Project
-/docs/*
-!docs/assets/
-!docs/architecture/
-!docs/api/
-!docs/engineering_diary/
-!docs/archive/
 /mlruns/*
 /outputs/*
 !**/.gitkeep
@@ -51,6 +45,11 @@
 # Logs
 /ops/dagster_home/logs/
 /ops/dagster_home/storage/
+/logs/
+.tmp_dagster_home*/
+
+# AI tooling
+/agent-os/
 
 # Python
 *.py[cod]

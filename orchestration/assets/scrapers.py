@@ -44,13 +44,15 @@ async def whoscored_match_data(context: AssetExecutionContext, config: ScraperCo
     if df is not None and not df.empty:
         count = save_matches_locally(df)
         context.log.info(f"Successfully scraped and saved {count} matches")
-
-        local_dir = Path("data/raw/whoscored_matches/eredivisie/2025-2026")
-        _sync_to_minio(local_dir, "whoscored/eredivisie/2025-2026", context)
-        return count
     else:
-        context.log.info("No matches found to scrape")
-        return 0
+        context.log.info("No new matches scraped")
+
+    # Always sync local files to MinIO (idempotent)
+    local_dir = Path("data/raw/whoscored_matches/eredivisie/2025-2026")
+    if local_dir.exists():
+        _sync_to_minio(local_dir, "whoscored/eredivisie/2025-2026", context)
+
+    return len(df) if df is not None and not df.empty else 0
 
 
 @asset(compute_kind="playwright")
@@ -68,10 +70,12 @@ async def fotmob_match_data(context: AssetExecutionContext, config: ScraperConfi
     if matches:
         count = save_fotmob_matches_locally(matches)
         context.log.info(f"Successfully scraped and saved {count} Fotmob matches")
-
-        local_dir = Path("data/raw/fotmob_matches/eredivisie/2025-2026")
-        _sync_to_minio(local_dir, "fotmob/eredivisie/2025-2026", context)
-        return count
     else:
-        context.log.info("No matches found")
-        return 0
+        context.log.info("No new matches scraped")
+
+    # Always sync local files to MinIO (idempotent — ensures catch-up data is uploaded)
+    local_dir = Path("data/raw/fotmob_matches/eredivisie/2025-2026")
+    if local_dir.exists():
+        _sync_to_minio(local_dir, "fotmob/eredivisie/2025-2026", context)
+
+    return len(matches) if matches else 0

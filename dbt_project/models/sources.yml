@@ -1,0 +1,93 @@
+version: 2
+
+sources:
+  - name: football_rag
+    description: Raw football match and event data from scrapers
+    database: "{{ env_var('BRONZE_DATABASE', 'lakehouse') }}"  # lakehouse (dev) or football_rag (prod)
+    schema: main
+    tables:
+      - name: bronze_matches
+        description: Raw match metadata from WhoScored and FotMob
+        columns:
+          - name: match_id
+            description: Unique match identifier
+            tests:
+              - unique
+              - not_null
+          - name: match_date
+            description: Date of the match
+            tests:
+              - not_null
+          - name: home_team
+            description: Home team name
+            tests:
+              - not_null
+          - name: away_team
+            description: Away team name
+            tests:
+              - not_null
+
+      - name: bronze_events
+        description: Raw event-level tactical data (passes, shots, tackles, etc.)
+        columns:
+          - name: event_row_id
+            description: Unique event identifier
+            tests:
+              - unique
+              - not_null
+          - name: match_id
+            description: Foreign key to bronze_matches
+            tests:
+              - not_null
+          - name: event_type
+            description: Type of event (pass, shot, tackle, etc.)
+            tests:
+              - not_null
+          - name: x
+            description: X position on pitch (0-100)
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+          - name: y
+            description: Y position on pitch (0-100)
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+      - name: silver_fotmob_shots
+        description: FotMob shot data with xG values (flattened from Bronze JSON)
+        columns:
+          - name: match_id
+            description: Match identifier
+            tests:
+              - not_null
+          - name: shot_id
+            description: Unique shot identifier
+            tests:
+              - unique
+              - not_null
+          - name: team_id
+            description: Team taking the shot
+            tests:
+              - not_null
+          - name: xg
+            description: Expected goals value for this shot
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+      - name: match_mapping
+        description: Mapping between WhoScored and FotMob match/team IDs (Dagster asset with fuzzy matching)
+        columns:
+          - name: whoscored_match_id
+            description: WhoScored match identifier
+            tests:
+              - unique
+              - not_null
+          - name: fotmob_match_id
+            description: FotMob match identifier
+            tests:
+              - not_null
