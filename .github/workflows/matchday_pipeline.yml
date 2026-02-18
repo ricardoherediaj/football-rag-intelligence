@@ -20,6 +20,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --no-dev
 
+      - name: Install dbt packages
+        run: cd dbt_project && uv run dbt deps
+
       - name: Run dbt Silver + Gold → MotherDuck
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
