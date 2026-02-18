@@ -1,0 +1,30 @@
+# Build artifacts
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+
+# Data (too large / not needed for coding)
+data/
+archive/
+logs/
+
+# Lock files
+uv.lock
+
+# Python cache
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+
+# Temp / generated
+.tmp_dagster_home*/
+.dagster/
+
+# Binaries / assets
+docs/assets/*.png
+docs/assets/*.jpg
+
+# Personal notes (not codebase docs)
+MENTORSHIP_NOTES.md

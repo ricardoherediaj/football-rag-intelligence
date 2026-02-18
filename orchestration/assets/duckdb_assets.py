@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import duckdb
 from dagster import AssetExecutionContext, Config, asset
@@ -18,21 +19,14 @@ def _sanitize_json(raw: str) -> str:
     return raw.replace(": NaN", ": null").replace(":NaN", ":null")
 
 
-@asset(compute_kind="python")
-def raw_matches_bronze(
-    context: AssetExecutionContext, config: DuckDBConfig
-) -> int:
-    """Load raw JSON from MinIO into DuckDB bronze_matches (idempotent)."""
-    db = duckdb.connect(config.database_path)
+def _load_matches_into(db: duckdb.DuckDBPyConnection, client: MinIOClient) -> int:
+    """Load all WhoScored + FotMob matches from MinIO into an open DuckDB connection."""
     db.execute(
         "CREATE OR REPLACE TABLE bronze_matches "
         "(match_id VARCHAR, source VARCHAR, data JSON)"
     )
-
-    client = MinIOClient()
     count = 0
 
-    # WhoScored matches from MinIO
     for key in client.list_objects(DEFAULT_BUCKET, prefix="whoscored/"):
         if not key.endswith(".json"):
             continue
@@ -45,7 +39,6 @@ def raw_matches_bronze(
         )
         count += 1
 
-    # FotMob matches from MinIO
     for key in client.list_objects(DEFAULT_BUCKET, prefix="fotmob/"):
         if not key.endswith(".json"):
             continue
@@ -61,7 +54,35 @@ def raw_matches_bronze(
         )
         count += 1
 
-    db.close()
+    return count
+
+
+@asset(compute_kind="python")
+def raw_matches_bronze(
+    context: AssetExecutionContext, config: DuckDBConfig
+) -> int:
+    """Load raw JSON from MinIO into DuckDB bronze_matches (idempotent).
+
+    Writes to local lakehouse.duckdb always. If MOTHERDUCK_TOKEN is set,
+    also syncs to MotherDuck so GitHub Actions can run dbt independently.
+    """
+    client = MinIOClient()
+
+    # Always write to local DuckDB
+    local_db = duckdb.connect(config.database_path)
+    count = _load_matches_into(local_db, client)
+    local_db.close()
+
+    # Sync to MotherDuck if token is available (enables cloud CI)
+    motherduck_token = os.getenv("MOTHERDUCK_TOKEN")
+    if motherduck_token:
+        md_db = duckdb.connect(
+            f"md:football_rag?motherduck_token={motherduck_token}"
+        )
+        _load_matches_into(md_db, client)
+        md_db.close()
+        context.log.info(f"Bronze: synced {count} matches to MotherDuck")
+
     context.log.info(f"Bronze: loaded {count} matches from MinIO")
     context.add_output_metadata({"matches_loaded": count})
     return count

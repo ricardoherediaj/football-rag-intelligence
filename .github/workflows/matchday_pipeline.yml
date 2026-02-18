@@ -1,0 +1,34 @@
+name: Matchday Pipeline
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"  # Monday 7am UTC (post-weekend matchday)
+    - cron: "0 7 * * 4"  # Thursday 7am UTC (midweek / cup games)
+  workflow_dispatch:      # Manual trigger for catch-up runs
+
+jobs:
+  transform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --no-dev
+
+      - name: Run dbt Silver + Gold → MotherDuck
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+          BRONZE_DATABASE: "football_rag"
+          DUCKDB_MEMORY_LIMIT: "6GB"
+        run: cd dbt_project && uv run dbt run --target prod
+
+      - name: Run dbt tests
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+          BRONZE_DATABASE: "football_rag"
+        run: cd dbt_project && uv run dbt test --target prod

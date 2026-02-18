@@ -3,8 +3,18 @@ football_analytics:
   outputs:
     dev:
       type: duckdb
-      path: /Users/ricardoheredia/football-rag-intelligence/data/lakehouse.duckdb
-      threads: 4
-      timeout_seconds: 300
-      memory_limit: 4GB
+      path: "{{ env_var('DUCKDB_PATH', '/Users/ricardoheredia/football-rag-intelligence/data/lakehouse.duckdb') }}"
+      threads: 1
+      timeout_seconds: 600
       schema: main
+      settings:
+        memory_limit: "{{ env_var('DUCKDB_MEMORY_LIMIT', '4GB') }}"
+        preserve_insertion_order: false
+    prod:
+      type: duckdb
+      path: "md:football_rag?motherduck_token={{ env_var('MOTHERDUCK_TOKEN') }}"
+      threads: 4
+      schema: main
+      settings:
+        memory_limit: "8GB"
+        preserve_insertion_order: false

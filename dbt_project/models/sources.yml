@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: football_rag
     description: Raw football match and event data from scrapers
-    database: lakehouse  # DuckDB lakehouse.duckdb
+    database: "{{ env_var('BRONZE_DATABASE', 'lakehouse') }}"  # lakehouse (dev) or football_rag (prod)
     schema: main
     tables:
       - name: bronze_matches
