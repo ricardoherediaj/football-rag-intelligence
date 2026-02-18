@@ -43,6 +43,11 @@ services:
     ports:
       - "3000:3000"
     environment:
+      MINIO_ENDPOINT:   "http://minio:9000"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "password123"
+      MINIO_BUCKET:     "football-raw"
+      DUCKDB_PATH:      "/opt/dagster/app/data/lakehouse.duckdb"
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
@@ -50,6 +55,7 @@ services:
       - ./orchestration:/opt/dagster/app/orchestration
       - ./src:/opt/dagster/app/src
       - ./data:/opt/dagster/app/data
+      - ./dbt_project:/opt/dagster/app/dbt_project
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres
@@ -64,6 +70,11 @@ services:
       dockerfile: ops/Dockerfile
     container_name: football_scheduler
     environment:
+      MINIO_ENDPOINT:   "http://minio:9000"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "password123"
+      MINIO_BUCKET:     "football-raw"
+      DUCKDB_PATH:      "/opt/dagster/app/data/lakehouse.duckdb"
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
@@ -71,6 +82,7 @@ services:
       - ./orchestration:/opt/dagster/app/orchestration
       - ./src:/opt/dagster/app/src
       - ./data:/opt/dagster/app/data
+      - ./dbt_project:/opt/dagster/app/dbt_project
       - ./workspace.yaml:/opt/dagster/app/workspace.yaml
     depends_on:
       - postgres

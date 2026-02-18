@@ -8,7 +8,7 @@ DBT_PROJECT_DIR = Path(__file__).parents[2] / "dbt_project"
 
 
 @asset(
-    deps=["raw_matches_bronze"],
+    deps=["raw_matches_bronze", "match_mapping"],
     compute_kind="dbt",
     group_name="transformations",
 )
@@ -22,8 +22,9 @@ def dbt_silver_models(context: AssetExecutionContext) -> None:
     )
 
     if result.returncode != 0:
-        context.log.error(f"dbt Silver failed:\n{result.stderr}")
-        raise RuntimeError(f"dbt Silver models failed: {result.stderr}")
+        context.log.error(f"dbt Silver stdout:\n{result.stdout}")
+        context.log.error(f"dbt Silver stderr:\n{result.stderr}")
+        raise RuntimeError(f"dbt Silver models failed: {result.stdout[-500:]}")
 
     context.log.info(f"dbt Silver output:\n{result.stdout}")
 
@@ -43,8 +44,9 @@ def dbt_gold_models(context: AssetExecutionContext) -> None:
     )
 
     if result.returncode != 0:
-        context.log.error(f"dbt Gold failed:\n{result.stderr}")
-        raise RuntimeError(f"dbt Gold models failed: {result.stderr}")
+        context.log.error(f"dbt Gold stdout:\n{result.stdout}")
+        context.log.error(f"dbt Gold stderr:\n{result.stderr}")
+        raise RuntimeError(f"dbt Gold models failed: {result.stdout[-500:]}")
 
     context.log.info(f"dbt Gold output:\n{result.stdout}")
 
@@ -64,7 +66,8 @@ def dbt_tests(context: AssetExecutionContext) -> None:
     )
 
     if result.returncode != 0:
-        context.log.error(f"dbt tests failed:\n{result.stderr}")
-        raise RuntimeError(f"dbt tests failed: {result.stderr}")
+        context.log.error(f"dbt tests stdout:\n{result.stdout}")
+        context.log.error(f"dbt tests stderr:\n{result.stderr}")
+        raise RuntimeError(f"dbt tests failed: {result.stdout[-500:]}")
 
     context.log.info(f"dbt test output:\n{result.stdout}")

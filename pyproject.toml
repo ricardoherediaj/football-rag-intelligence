@@ -37,6 +37,8 @@ dependencies = [
     "dagster-docker>=0.22.0",
     "dbt-duckdb>=1.10.0",
     "dagster-dbt>=0.28.13",
+    "torch==2.2.0",
+    "sentence-transformers==2.5.1",
 ]
 
 [project.scripts]
