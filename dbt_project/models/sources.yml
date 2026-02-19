@@ -7,24 +7,12 @@ sources:
     schema: main
     tables:
       - name: bronze_matches
-        description: Raw match metadata from WhoScored and FotMob
+        description: Raw match metadata from WhoScored and FotMob. Schema is (match_id, source, data JSON).
         columns:
           - name: match_id
             description: Unique match identifier
             tests:
               - unique
-              - not_null
-          - name: match_date
-            description: Date of the match
-            tests:
-              - not_null
-          - name: home_team
-            description: Home team name
-            tests:
-              - not_null
-          - name: away_team
-            description: Away team name
-            tests:
               - not_null
 
 
