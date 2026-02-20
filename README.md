@@ -1,14 +1,16 @@
-# ⚽ Football RAG Intelligence
+# Football RAG Intelligence
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
 
-**Post-match tactical analysis for Eredivisie 2025-26 season. Ask questions, get grounded answers backed by real match data.**
+**An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline, not hallucinations.
 
-🚀 **[Try the Live Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)**
+🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 build — updated UI coming in Phase 3)*
+
+> **Status:** Phase 1 complete (data pipeline + cloud infrastructure). Phase 2 in progress (RAG engine rewire + query routing).
 
 ---
 
-## 📸 Demo
+## Demo
 
 ### Text Analysis
 ![Text Analysis](docs/assets/app_sc.png)
@@ -18,451 +20,251 @@
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
-**For coaches, scouts, and analysts:** Browsing post-match data across multiple apps (WhoScored, Fotmob, StatsBomb) wastes valuable time. You need quick, centralized access to tactical insights from past games.
+Coaches, scouts, and analysts spend time bouncing between WhoScored, FotMob, and other tools to reconstruct what happened in a match. Traditional LLMs can't help because they can fabricate stats instead of retrieving them:
 
-**Traditional LLMs can't help** because they hallucinate when asked about specific matches:
-- ❌ "PSV dominated possession" (actually 45%)
-- ❌ "Heracles created few chances" (actually 24 shots)
-- ❌ Generic analysis without tactical depth
+- ❌ "PSV dominated possession" (actual: 45%)
+- ❌ "Heracles created few chances" (actual: 24 shots)
+- ❌ Generic tactical commentary with no grounding
 
-**Why this happens:** LLMs lack access to your match data and fabricate plausible-sounding stats instead of retrieving real numbers.
-
-## 💡 The Solution
-
-A **centralized RAG system** that ingests and processes your own match data, enabling natural language queries for instant visual and text reports:
-
-**What it does:**
-1. **Centralizes** your data: Ingest from WhoScored, Fotmob (108 Eredivisie matches indexed)
-2. **Retrieves** actual match data from a vector database (ChromaDB)
-3. **Generates** tactical insights using LLMs grounded in real metrics (xG, PPDA, progressive passes)
-4. **Validates** faithfulness (100% retrieval, 99.4% faithfulness, 95% tactical insight)
-5. **Visualizes** tactical patterns instantly (6 visualization types, $0 cost)
-
-**Ask in natural language, get instant answers:**
-- "What was PSV's pressing strategy against Ajax?" → Text analysis
-- "Show dashboard for Heracles vs PEC Zwolle" → Visual report
-- No more browsing multiple apps. No hallucinations. Just grounded insights from your data.
-
+The solution presented here is a RAG system built on real match data.
 ---
 
-## ✨ Key Features
+## Architecture
 
-### 🎨 Dual-Mode Interface
-- **Text Analysis:** LLM-generated tactical commentary using engineered prompts
-- **Visualizations:** Instant, $0-cost rendering (passing networks, shot maps, dashboards)
-
-### 🔄 Multi-Provider Support
-Choose your LLM provider - no vendor lock-in:
-- **Anthropic Claude** (Haiku 3.5 - recommended)
-- **OpenAI GPT** (GPT-4o mini)
-- **Google Gemini** (Gemini 1.5 Flash)
-
-### 🎯 Smart Routing
-- **Questions** (What/How/Why) → LLM text analysis
-- **Explicit commands** (Show/Display) → Keyword-based visualization routing
-- **Zero hallucinations:** Every stat traced to source data
-
-### 📊 Production-Quality Evaluation
-- **Retrieval Accuracy:** 100% (metadata filtering)
-- **Faithfulness:** 99.4% (Pydantic validation)
-- **Tactical Insight:** 95.0% (LLM-as-a-Judge)
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.10+
-- `uv` package manager (or `pip`)
-- API key for your chosen LLM provider
-
-### Installation
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/football-rag-intelligence
-cd football-rag-intelligence
-
-# Install dependencies
-uv pip install -e .
-
-# Run the app
-uv run python -m football_rag.app
 ```
-
-Visit `http://localhost:7860` in your browser.
-
-### Example Queries
-
-**Text Analysis:**
-```
-"What was PSV's pressing strategy against Ajax?"
-"How did Heracles build up play against PEC Zwolle?"
-"Explain the tactics in Feyenoord vs Ajax"
-```
-
-**Visualizations:**
-```
-"Show dashboard for Heracles vs PEC Zwolle"
-"Show passing network for Feyenoord"
-"Show shot map for AZ vs Utrecht"
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  DATA COLLECTION  (local — residential IP required)             │
+ │                                                                 │
+ │  WhoScored ──► Playwright scraper                               │
+ │  FotMob    ──► SSR extractor (__NEXT_DATA__)                    │
+ │                      │                                          │
+ │                 Dagster Assets                                  │
+ │         (Mon/Thu schedule + manual trigger)                     │
+ └────────────────────┬────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  STORAGE LAYER                                                  │
+ │                                                                 │
+ │  MinIO (object store)          DuckDB — lakehouse.duckdb        │
+ │  └─ raw JSON                   └─ bronze_matches (412)          │
+ │                                └─ match_mapping  (205)          │
+ │                                └─ silver_events  (279k)         │
+ │              MotherDuck (cloud DuckDB)                          │
+ │              └─ same schema, auto-synced on scrape              │
+ │              └─ silver_team_metrics, gold_match_summaries       │
+ └────────────────────┬────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  TRANSFORMATION  (dbt Core + GitHub Actions)                    │
+ │                                                                 │
+ │  bronze_matches ──► silver_events      (279,104 events)         │
+ │                 └─► silver_team_metrics (378 team performances) │
+ │                 └─► gold_match_summaries (205 match summaries)  │
+ │                                                                 │
+ │  CI: GitHub Actions runs dbt --target prod on Mon/Thu 7am UTC  │
+ │  Tests: PASS=69 WARN=0 ERROR=0 FAIL=0                          │
+ └────────────────────┬────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  EMBEDDINGS (local DuckDB — VSS not supported in MotherDuck)    │
+ │                                                                 │
+ │  gold_match_summaries ──► sentence-transformers/all-mpnet-base-v2
+ │                       └─► gold_match_embeddings (205 × 768-dim) │
+ │                           HNSW index, array_distance() queries  │
+ └────────────────────┬────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  RAG ENGINE  [Phase 2 — in progress]                            │
+ │                                                                 │
+ │  User query ──► router.classify_intent()                        │
+ │                 │                                               │
+ │         ┌───────┴────────┐                                      │
+ │         ▼                ▼                                      │
+ │   semantic query    viz request                                 │
+ │   array_distance()  fetch df_events from DuckDB                 │
+ │   → LLM (Claude)    → visualizers.py → PNG                      │
+ │         │                │                                      │
+ │         └───────┬────────┘                                      │
+ │                 ▼                                               │
+ │         {"text": ..., "chart_path": ...}                        │
+ └─────────────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  UI + OBSERVABILITY  [Phase 3 — planned]                        │
+ │                                                                 │
+ │  Streamlit / Reflex / React                                     │
+ │  Opik (LLM observability) + RAGAS / DeepEval (evaluation)      │
+ │  Modal (serverless GPU inference for open-source models)        │
+ └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 💰 Cost Estimation
+## Tech Stack
 
-**Testing all features costs < $0.50:**
-
-| Provider | Cost per Query | 100 Queries |
-|----------|----------------|-------------|
-| **Claude Haiku 3.5** | ~$0.0001 | ~$0.01 |
-| **GPT-4o mini** | ~$0.00015 | ~$0.015 |
-| **Gemini Flash 1.5** | ~$0.00005 | ~$0.005 |
-
-**Why so cheap?**
-- Prompt engineering reduced tokens by 80% (V1.0 → V3.5)
-- Keyword routing for visualizations ($0 cost)
-- Average response: ~360 tokens
-
----
-
-## 🏗️ Architecture
-
-### The Flow
-```
-User Query → Router (classify_intent)
-             ↓
-    ┌────────┴─────────┐
-    ↓                  ↓
-LLM Analysis      Visualization
-(Prompt V3.5)     (Keyword-based)
-    ↓                  ↓
-pipeline.run()    viz_tools.*
-    ↓                  ↓
-Commentary        Image Output
-```
-
-### Key Design Decisions
-
-**1. Prompt-First RAG (Why?)**
-- Designed Prompt V3.5 BEFORE building ChromaDB
-- Result: Zero retrieval-generation mismatch
-- ChromaDB metadata perfectly aligned with prompt requirements
-
-**2. Pre-Calculated Metrics (Why?)**
-- 38 tactical metrics computed during ingestion
-- Trade-off: Must rebuild if metric logic changes (18 sec rebuild)
-- Benefit: Simpler RAG pipeline, faster queries, stable V3.5 prompt
-
-**3. 2-Chunk Architecture (Why?)**
-- Each match → 2 ChromaDB documents:
-  1. **Summary** (filtering by team/date)
-  2. **Tactical Metrics** (LLM generation)
-- Enables selective retrieval: "Get only tactical metrics"
-- Visualizations bypass ChromaDB entirely (load raw JSON files directly)
-
-**4. Keyword-Based Routing (Why?)**
-- $0 cost, instant, works with any provider
-- Priority: Questions → LLM, Commands → Viz
-- Prevents routing collisions (e.g., "pressing strategy" ≠ "pressing heatmap")
-
-**5. Golden Dataset ETL (Why?)**
-- Decoupled pipeline: Extract → Transform → Load
-- Catches data bugs BEFORE indexing (fail-fast)
-- Pydantic "airlock" prevents corrupt data from reaching LLM
+| Layer | Tool | Why |
+|---|---|---|
+| Language | Python 3.10+ via `uv` | |
+| Orchestration | Dagster (Software-Defined Assets) | Asset lineage, local scheduling |
+| Object storage | MinIO | S3-compatible, runs in Docker |
+| Analytics DB | DuckDB + MotherDuck | Same SQL dialect local and cloud |
+| Transformation | dbt Core (`dbt-duckdb`) | SQL version control, tested models |
+| Embeddings | `sentence-transformers/all-mpnet-base-v2` | 768-dim, semantic match retrieval |
+| Vector search | DuckDB VSS (`array_distance`) | No external vector DB needed |
+| LLM | Anthropic Claude (primary) | Multi-provider via `generate.py` |
+| CI/CD | GitHub Actions | `dbt run --target prod` Mon/Thu |
+| Cloud inference | Modal (planned — Phase 3) | Serverless GPU for open-source models |
+| Observability | Opik (planned — Phase 3) | LLM tracing + prompt tracking |
 
 ---
 
-## 📊 Data Pipeline
+## Data Coverage
 
-### Sources
-- **WhoScored:** Event-level granularity (108 matches)
-- **Fotmob:** xG values + shot data
-- **Match Mapping:** `match_mapping.json` for cross-source linking
+- **League:** Eredivisie 2025-26
+- **Matches:** 205 (100% coverage, auto-updated)
+- **Events:** 279,104 tactical events (passes, shots, tackles, aerials...)
+- **Metrics per match:** 24 pre-calculated tactical metrics per team (PPDA, progressive passes, xG, field tilt, compactness...)
+- **Embeddings:** 205 match summary vectors, HNSW index
 
-### ETL Architecture
-```
-scripts/process_raw_data.py (Factory)
-    ↓
-matches_gold.json (Golden Dataset)
-    ↓
-scripts/rebuild_chromadb.py (Delivery)
-    ↓
-ChromaDB (216 documents = 108 matches × 2 chunks)
-```
-
-**Why this matters:** Fixed "Home/Away swap bug" that caused hallucinations (e.g., Heracles showing 7 shots instead of 24).
+Sources: WhoScored (event-level) + FotMob (xG + shot data), cross-linked via `match_mapping`.
 
 ---
 
-## 🧪 Evaluation
+## Visualizations
 
-### The Strategy
-Quantitative harness using "LLM-as-a-Judge" methodology across 3 dimensions:
+6 tactical visualization types — rendered from raw event data, $0 LLM cost:
 
-| Metric | Target | Achieved | How |
-|--------|--------|----------|-----|
-| **Retrieval Accuracy** | >90% | **100%** | Metadata filtering ("Sniper" approach) |
-| **Faithfulness** | >90% | **99.4%** | Pydantic validation + ground truth check |
-| **Tactical Insight** | >80% | **95.0%** | Reference-based LLM judging (strict rubric) |
-
-**Test Dataset:** 10 diverse matches (blowouts, close games, tactical variations)
-
-**Key Fixes:**
-- False Failure #1: Aligned test to match-specific queries (not broad search)
-- False Failure #2: Expanded ground truth to full `matches_gold.json`
-- False Failure #3: Fixed API key loading + structured JSON output
-
-### Evaluation Dataset Details
-
-**Location:** [data/eval_datasets/tactical_analysis_eval.json](data/eval_datasets/tactical_analysis_eval.json)
-
-**Test Cases (10 matches):**
-1. **Blowout Game** - Heracles vs PEC Zwolle (2-8): Testing xG paradox detection
-2. **High-Scoring** - NEC Nijmegen vs PSV (5-3): Testing aggressive tactical analysis
-3. **Stalemate** - Twente vs Telstar (0-0): Testing dominance without goals
-4. **Narrow Win** - PEC Zwolle vs Twente (1-0): Testing tight margin analysis
-5. **Upset** - Feyenoord vs FC Volendam (1-3): Testing counter-attack recognition
-6. **Efficiency Study** - Heracles vs AZ Alkmaar (2-1): Testing conversion rate insights
-7. **Defensive Struggle** - NAC Breda vs Go Ahead Eagles (0-1): Testing low xG analysis
-8. **Counter-Attack** - NEC Nijmegen vs Twente (4-2): Testing transition patterns
-9. **Defensive Dominance** - Excelsior vs Sparta Rotterdam (0-1): Testing clean sheet analysis
-10. **Tight Margins** - Excelsior vs PSV (1-2): Testing competitive balance
-
-**Ground Truth Source:** [data/processed/matches_gold.json](data/processed/matches_gold.json) (108 matches, Pydantic-validated)
-
-**Run Evaluation:**
-```bash
-uv run python tests/evaluate_pipeline.py
-```
-
-**Results File:** [data/eval_datasets/eval_results.json](data/eval_datasets/eval_results.json)
+| Type | What it shows |
+|---|---|
+| **Dashboard** | Full 3×3 match report |
+| **Passing Network** | Player positions + connection strength |
+| **Defensive Heatmap** | KDE of defensive actions, block compactness |
+| **Progressive Passes** | Forward pass zones with comet lines |
+| **Shot Map** | Both teams' shots by type and xG |
+| **xT Momentum** | Match flow over time (weighted Expected Threat) |
 
 ---
 
-## 🎨 Visualizations
+## LLM Providers
 
-6 tactical visualization types (generated via matplotlib):
+No vendor lock-in — swap via `provider` parameter:
 
-1. **Dashboard** - 3x3 grid with all metrics
-2. **Passing Network** - Player positions + connections
-3. **Defensive Heatmap** - Defensive actions KDE
-4. **Progressive Passes** - Forward pass zones
-5. **Shot Map** - Both teams' shots with xG
-6. **xT Momentum** - Match flow over time
-7. **Match Stats** - Stats comparison bars
-
-**Access:** Use "Show [viz_type] for [match]" queries
+| Provider | Model |
+|---|---|
+| Anthropic (default) | `claude-haiku-4-5` |
+| OpenAI | `gpt-4o-mini` |
+| Google | `gemini-1.5-flash` |
+| Ollama (local) | `llama3.2:1b` |
 
 ---
 
-## 🔑 API Keys
-
-Paste your API key in the UI (keys never stored):
-
-- **Anthropic:** [console.anthropic.com/account/keys](https://console.anthropic.com/account/keys)
-- **OpenAI:** [platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys)
-- **Gemini:** [makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
-
-**Security:**
-- ✅ Never stored in files or database
-- ✅ Only used in-memory for current session
-- ✅ Not logged or tracked
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 football-rag-intelligence/
-├── src/football_rag/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── __main__.py        # Entry point: python -m football_rag.app
-│   │   └── main.py            # Gradio UI
+├── orchestration/              # Dagster assets, schedules, sensors
+│   ├── assets/                 # bronze, silver, gold, embeddings
+│   └── definitions.py
+├── dbt_project/                # dbt models
 │   ├── models/
-│   │   └── rag_pipeline.py    # RAG orchestration
-│   ├── data/
-│   │   ├── models.py          # Pydantic schemas
-│   │   ├── schemas.py         # Match context models
-│   │   └── scrapers.py        # Web scrapers
-│   ├── router.py              # Intent classification
-│   ├── visualizers.py         # Matplotlib visualizations
-│   ├── viz_tools.py           # Viz wrapper API
-│   ├── prompts_loader.py      # Load prompts from YAML
-│   └── custom_logging.py      # JSON logging
+│   │   ├── sources.yml
+│   │   ├── silver/             # silver_events, silver_team_metrics
+│   │   └── gold/               # gold_match_summaries
+│   └── profiles.yml            # dev (local DuckDB) + prod (MotherDuck)
+├── src/football_rag/
+│   ├── models/
+│   │   ├── rag_pipeline.py     # RAG orchestration [Phase 2]
+│   │   └── generate.py         # LLM provider abstraction
+│   ├── router.py               # Intent classification
+│   ├── visualizers.py          # Matplotlib plot functions
+│   ├── viz_tools.py            # Viz API (dashboard/team/match)
+│   ├── data/schemas.py         # Pydantic models
+│   └── prompts_loader.py
 ├── scripts/
-│   ├── process_raw_data.py    # ETL: Raw → Golden Dataset
-│   └── rebuild_chromadb.py    # ETL: Golden → ChromaDB
+│   ├── materialize_embeddings.py   # Regenerate HNSW index
+│   └── test_vector_search.py       # Verify VSS queries
 ├── tests/
-│   └── evaluate_pipeline.py  # Evaluation harness
-├── prompts/
-│   └── v3.5_balanced.yml      # Production prompt (4.9/5 score)
-├── data/
-│   ├── chroma/                # Vector database (git-ignored)
-│   └── matches_gold.json      # Validated dataset
-└── pyproject.toml
+├── docs/
+│   ├── engineering_diary/      # Session-by-session build log
+│   └── motherduck-setup.md     # Cloud DB operational reference
+├── ARCHITECTURE.md
+├── SCRATCHPAD.md               # Active session state
+└── CLAUDE.md                   # AI assistant instructions
 ```
 
 ---
 
-## 🛠️ Development
+## Quick Start
 
-### Run Tests
 ```bash
+git clone https://github.com/ricardoherediaj/football-rag-intelligence
+cd football-rag-intelligence
+uv sync
+
+# Run dbt transformations (local)
+cd dbt_project && uv run dbt run
+
+# Run dbt against MotherDuck (cloud)
+MOTHERDUCK_TOKEN=<token> uv run dbt run --target prod
+
+# Start Dagster UI
+uv run dagster dev
+
+# Verify vector search
+uv run python scripts/test_vector_search.py
+
+# Run tests
 uv run pytest
 ```
 
-### Rebuild ChromaDB
-```bash
-# Process raw data → Golden Dataset
-uv run python scripts/process_raw_data.py
+---
 
-# Ingest Golden Dataset → ChromaDB
-uv run python scripts/rebuild_chromadb.py
-```
+## Pipeline Status
 
-### Run Evaluation
-```bash
-uv run python tests/evaluate_pipeline.py
-```
+| Layer | Status | Count |
+|---|---|---|
+| Bronze (raw JSON) | ✅ Live | 412 matches in MinIO + MotherDuck |
+| Match Mapping | ✅ Live | 205/205 (100% coverage) |
+| dbt Silver | ✅ Live | 279,104 events, 378 team performances |
+| dbt Gold | ✅ Live | 205 summaries in MotherDuck |
+| GitHub Actions CI | ✅ Live | PASS=69, runs Mon/Thu |
+| Embeddings | ✅ Live | 205 × 768-dim, HNSW index |
+| RAG engine (DuckDB VSS) | 🔄 Phase 2 | Rewiring from ChromaDB |
+| Query router (wired) | 🔄 Phase 2 | Orchestrator layer |
+| UI | 📋 Phase 3 | Streamlit / Reflex / React |
+| Observability (Opik) | 📋 Phase 3 | LLM tracing + evaluation |
 
 ---
 
-## 🚀 Deployment
+## Roadmap
 
-### Hugging Face Spaces
+**Phase 2 — RAG Engine** *(in progress)*
+- Rewire `rag_pipeline.py` from ChromaDB → DuckDB VSS (`array_distance` on `gold_match_embeddings`)
+- Build orchestrator: router → semantic retrieval or viz dispatch → unified response
+- CLI test harness: `uv run python scripts/test_rag.py "Analyze Ajax vs PSV"`
 
-1. Create Space: [huggingface.co/new-space](https://huggingface.co/new-space) (Gradio SDK)
-2. Connect GitHub repo
-3. Add API key secrets (optional, users can provide their own)
-4. Auto-deploy from main branch
-
-### Local Docker (Optional)
-```bash
-docker compose up -d  # If using ChromaDB service
-```
-
----
-
-## 📚 Technical Learnings
-
-### What Worked
-1. **Prompt-first design** → ChromaDB aligned with project goal
-2. **Simple code** → Functions over classes
-3. **Pre-calculated metrics** → quick rebuild
-4. **Golden Dataset ETL** → Caught data bugs before indexing
-
-### What We Avoided
-- ❌ Over-engineering (no abstract classes, factories)
-- ❌ Premature optimization (no caching, retry logic)
-- ❌ On-demand calculation (slow, complex)
-- ❌ Pure semantic search (added metadata filtering)
-
-### Design Principles Applied
-- **KISS:** Simplest solution that works
-- **DRY:** Reused visualizers.py logic
-- **SOLID:** Single responsibility per module
-- **Rule of Three:** Only abstract after third repetition
+**Phase 3 — UI + Observability** *(planned)*
+- Streamlit or Reflex frontend (React long-term)
+- Opik integration for LLM tracing and prompt versioning
+- RAGAS or DeepEval evaluation harness
+- Modal for serverless GPU inference (open-source model option)
+- Updated HF Spaces demo with the new UI
 
 ---
 
-## 🏆 Acknowledgments
+## Engineering Log
 
-Built for the [Full Stack AI Engineering](https://www.towardsai.net/) course capstone project.
-
-**Course Requirements Met:**
-- ✅ RAG system with retrieval + generation
-- ✅ Multi-provider LLM support (Anthropic, OpenAI, Gemini)
-- ✅ Hugging Face Spaces deployment
-- ✅ Cost < $0.50 for full demo
-- ✅ API key security (no hardcoding)
-- ✅ Comprehensive README with cost estimation
-- ✅ **7/5 optional features** (see section above)
-
-**Inspired by:**
-- [LLMOps Python Package](https://github.com/callmesora/llmops-python-package)
-- [Stop Launching AI Apps Without This - Decoding AI](https://www.decodingai.com/p/stop-launching-ai-apps-without-this)
-- [AI Tutor Skeleton - Towards AI](https://github.com/towardsai/ai-tutor-skeleton/tree/main)
+Build decisions and session notes documented in [`docs/engineering_diary/`](docs/engineering_diary/).
 
 ---
 
-## 📋 Course Optional Features Implemented
+## License
 
-**Required: 5 features minimum | Implemented: 7 features ✅**
-
-1. ✅ **RAG Evaluation Code & Results** - Complete evaluation harness with 3-metric system:
-   - Retrieval Accuracy: 100%
-   - Faithfulness: 99.4%
-   - Tactical Insight: 95.0%
-   - Evaluation script: [tests/evaluate_pipeline.py](tests/evaluate_pipeline.py)
-   - Test dataset: [data/eval_datasets/tactical_analysis_eval.json](data/eval_datasets/tactical_analysis_eval.json)
-   - Results: [data/eval_datasets/eval_results.json](data/eval_datasets/eval_results.json)
-
-2. ✅ **Domain-Specific Application** - Football tactical analysis system (not an AI tutor)
-   - Specialized for coaches, scouts, and analysts
-   - 38 pre-calculated tactical metrics
-   - Eredivisie 2025-26 season focus
-
-3. ✅ **2+ Data Sources Collection** - Multi-source data ingestion with cross-linking:
-   - WhoScored: Event-level data (108 matches, ~1355 events/match)
-   - Fotmob: xG values and shot data
-   - ID mapping system: [match_mapping.json](data/match_mapping.json) for reliable cross-source linking
-   - Data collection scripts: [src/football_rag/data/scrapers.py](src/football_rag/data/scrapers.py)
-
-4. ✅ **Structured JSON Outputs** - Pydantic-validated data pipeline:
-   - Golden dataset: [data/processed/matches_gold.json](data/processed/matches_gold.json)
-   - Pydantic schemas: [src/football_rag/data/models.py](src/football_rag/data/models.py)
-   - Contract → Factory → Delivery ETL architecture
-   - Prevents corrupt data via "airlock" pattern
-
-5. ✅ **Metadata Filtering** - "Sniper" approach for 100% retrieval accuracy:
-   - Team-based filtering (home_team/away_team metadata)
-   - Entity extraction from queries
-   - 100% retrieval accuracy vs 70% with semantic-only search
-
-6. ✅ **Query Routing** - Intent classification system:
-   - Router module: [src/football_rag/router.py](src/football_rag/router.py)
-   - Routes queries to text analysis (LLM) or visualization (keyword-based)
-   - Priority logic prevents routing collisions
-   - Example: "What was PSV's pressing?" → Text | "Show pressing heatmap" → Viz
-
-7. ✅ **Function Calling** - Dynamic visualization generation:
-   - 6 visualization types (dashboard, passing network, heatmaps, shot maps, etc.)
-   - Keyword-based routing to viz functions
-   - $0 cost (no LLM calls for visualizations)
-   - Viz tools: [src/football_rag/viz_tools.py](src/football_rag/viz_tools.py)
-
----
-
-## 🚀 Next Steps: Production Scaling
-
-**Vision:** Scale from 108 Eredivisie matches → 2000+ matches across Championship, Jupiler Pro League, and Brasileirão with automated daily updates.
-
-### Core Stack (TODO)
-
-- **Orchestration:** Apache Airflow - Schedule scraping, ETL, ChromaDB rebuilds
-- **Data Quality:** dbt + Great Expectations - Transform & validate data
-- **Cloud Inference:** Modal - Serverless embedding generation
-- **Storage:** AWS S3 Free Tier - Raw data storage
-- **Monitoring:** Opik - LLM observability & prompt tracking
-
-### Learning Path
-- [Data Engineering Academy](https://iansaura.com)
-- [dbt Fundamentals](https://courses.getdbt.com/collections)
-- [Modal Examples](https://modal.com/docs/examples)
-
----
-
-## 📝 License
-
-MIT License - See LICENSE file
-
----
-
-## 📧 Contact
-
-Questions or issues? Open a GitHub issue.
+MIT
