@@ -3,8 +3,8 @@
 **Single source of truth for behavioral guidelines.**
 
 **External References** (load only when needed):
-- 📐 **ARCHITECTURE.md**: System design, tech stack rationale, deployment strategy
-- 📘 **PATTERNS.md**: Coding standards, dbt patterns, testing conventions
+- 📐 **.claude/ARCHITECTURE.md**: System design, tech stack rationale, deployment strategy
+- 📘 **.claude/PATTERNS.md**: Coding standards, dbt patterns, testing conventions
 - 📝 **.claude/SCRATCHPAD.md**: Current session state — read at session start, update throughout
 
 ---
