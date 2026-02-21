@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [Phase 2] — 2026-02-21 — RAG Engine Rewire (ChromaDB → DuckDB VSS)
+
+### Added
+- `src/football_rag/orchestrator.py` — single public `query()` entry point routing intent to text or viz path
+- `src/football_rag/models/rag_pipeline.py` — complete rewrite: ChromaDB replaced with DuckDB VSS (`array_distance` on `gold_match_embeddings` HNSW index)
+- `prompts/prompt_versions.yaml` — machine-readable v3.5_balanced prompt (system + user template)
+- `scripts/test_rag.py` — CLI harness for end-to-end query testing
+
+### Changed
+- `src/football_rag/config/settings.py` — removed `DatabaseSettings` (ChromaDB config), added `duckdb_path`
+- `src/football_rag/models/generate.py` — updated Anthropic model to `claude-haiku-4-5-20251001`
+- `tests/models/test_rag.py` — updated import to `FootballRAGPipeline`
+- `README.md` — reframed as active engineering project; added architecture diagram, pipeline status table, roadmap
+
+### Fixed
+- SQL column aliases bridging `TacticalMetrics` field names to `gold_match_summaries` columns (`home_total_xg → home_xg`, `home_median_position → home_position`, `home_goals → home_score`)
+- Team filter logic: AND condition when 2 teams mentioned (prevents wrong match on OR-based queries)
+- `main_main` schema prefix required for dbt-built tables in local DuckDB
+
+### Removed
+- All ChromaDB imports and retrieval logic from `rag_pipeline.py`
+- `PHASE1_COMPLETION_PLAN.md` — planning artifact, work complete
+- `ARCHITECTURE.md`, `PATTERNS.md` from root → moved to `.claude/` (local session references)
+- `logs/dbt.log` from git tracking (already gitignored)
+
+
 ### Added
 - **Infrastructure V2 (The Data Foundation)**
     - Added `docker-compose.yml` orchestrating MinIO, Dagster, and Postgres.

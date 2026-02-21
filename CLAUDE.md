@@ -79,6 +79,15 @@ Use `TodoWrite` for multi-step work:
 ### 3.9 Autonomous Error Resolution
 When tests/pipeline fail: read logs completely → diagnose root cause → fix minimally → verify → document in commit. Only ask if the fix requires an architectural decision.
 
+### 3.10 End-of-Phase Documentation (MANDATORY)
+When a Phase or significant task set is **verified working**, always complete all four before closing the session:
+1. **CHANGELOG.md** — add a dated section under `[Unreleased]` with Added/Changed/Fixed/Removed
+2. **Engineering diary** — create `docs/engineering_diary/YYYY-MM-DD-<topic>.md` (use `/diary` skill)
+3. **`.claude/SCRATCHPAD.md`** — update Current State, Pipeline Status table, Next Session section
+4. **README.md status line** — update Phase status if a Phase completed
+
+Never mark a Phase done without all four updated.
+
 ---
 
 ## 4. Technology Stack
@@ -164,7 +173,8 @@ Read lessons at session start. Check before repeating similar patterns.
 - No over-engineering?
 - Proof of working (tests/logs/counts)?
 - `.claude/lessons.md` updated if corrected?
-- `SCRATCHPAD.md` updated?
+- `.claude/SCRATCHPAD.md` updated?
+- Phase/task complete? → CHANGELOG + diary + SCRATCHPAD + README all updated (§3.10)
 
 ---
 
