@@ -5,7 +5,7 @@
 **External References** (load only when needed):
 - 📐 **ARCHITECTURE.md**: System design, tech stack rationale, deployment strategy
 - 📘 **PATTERNS.md**: Coding standards, dbt patterns, testing conventions
-- 📝 **SCRATCHPAD.md**: Current session state — read at session start, update throughout
+- 📝 **.claude/SCRATCHPAD.md**: Current session state — read at session start, update throughout
 
 ---
 

@@ -2,7 +2,7 @@
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
 
-**An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline, not hallucinations.
+**An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
 
 🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 build — updated UI coming in Phase 3)*
 
