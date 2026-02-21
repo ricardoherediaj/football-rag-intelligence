@@ -39,6 +39,7 @@ dependencies = [
     "dagster-dbt>=0.28.13",
     "torch==2.2.0",
     "sentence-transformers==2.5.1",
+    "mplsoccer>=1.6.1",
 ]
 
 [project.scripts]
