@@ -40,6 +40,7 @@ dependencies = [
     "torch==2.2.0",
     "sentence-transformers==2.5.1",
     "mplsoccer>=1.6.1",
+    "opik>=1.10.18",
 ]
 
 [project.scripts]
@@ -51,6 +52,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/football_rag"]
+
+[tool.pytest.ini_options]
+markers = [
+    "edd: EDD evaluation suite — requires --run-edd flag and live LLM access",
+]
 
 [dependency-groups]
 dev = [

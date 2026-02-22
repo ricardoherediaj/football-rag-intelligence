@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 import duckdb
+import opik
 from sentence_transformers import SentenceTransformer
 
 from football_rag.models.generate import generate_with_llm
@@ -54,6 +55,7 @@ class FootballRAGPipeline:
 
         logger.info(f"Football RAG Ready | Provider: {provider} | DB: {self.db_path}")
 
+    @opik.track(name="rag_pipeline")
     def run(self, user_query: str) -> Dict[str, Any]:
         """End-to-end execution: identify match → fetch metrics → generate commentary."""
         logger.info(f"Processing: '{user_query}'")
@@ -93,6 +95,7 @@ class FootballRAGPipeline:
             "metrics_used": prompt_variables,
         }
 
+    @opik.track(name="match_retrieval")
     def _identify_match(self, query: str) -> Optional[MatchContext]:
         """Find the best matching match using DuckDB VSS (array_distance on embeddings).
 
@@ -137,6 +140,7 @@ class FootballRAGPipeline:
             match_date=row[5],
         )
 
+    @opik.track(name="metrics_fetch")
     def _fetch_tactical_metrics(self, match_id: str) -> Optional[TacticalMetrics]:
         """Fetch tactical metrics from gold_match_summaries for the given match."""
         db = duckdb.connect(str(self.db_path))
