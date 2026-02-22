@@ -6,6 +6,8 @@ Routes intent → RAG pipeline (text) or viz tools (chart), returns unified resp
 import logging
 from typing import Dict, Any
 
+import opik
+
 from football_rag.router import classify_intent
 from football_rag.models.rag_pipeline import FootballRAGPipeline
 from football_rag import viz_tools
@@ -13,6 +15,7 @@ from football_rag import viz_tools
 logger = logging.getLogger(__name__)
 
 
+@opik.track(name="football_rag_query")
 def query(user_query: str, provider: str = "anthropic") -> Dict[str, Any]:
     """Process a user query end-to-end.
 

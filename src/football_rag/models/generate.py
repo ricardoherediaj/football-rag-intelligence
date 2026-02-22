@@ -2,6 +2,8 @@
 
 from typing import Optional
 
+import opik
+
 from football_rag.custom_logging import get_logger
 
 logger = get_logger(__name__)
@@ -71,6 +73,7 @@ def _generate_ollama(
         raise RuntimeError("Ollama not running. Start with: ollama serve")
 
 
+@opik.track(name="llm_generation", tags=["provider:anthropic"])
 def _generate_anthropic(
     prompt: str,
     api_key: Optional[str],
@@ -98,6 +101,7 @@ def _generate_anthropic(
     return response.content[0].text.strip()
 
 
+@opik.track(name="llm_generation", tags=["provider:openai"])
 def _generate_openai(
     prompt: str,
     api_key: Optional[str],
@@ -129,6 +133,7 @@ def _generate_openai(
     return response.choices[0].message.content.strip()
 
 
+@opik.track(name="llm_generation", tags=["provider:gemini"])
 def _generate_gemini(
     prompt: str,
     api_key: Optional[str],

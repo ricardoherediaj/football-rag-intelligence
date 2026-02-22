@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Phase 3a] — 2026-02-22 — Opik Observability + EDD Eval Harness
+
+### Added
+- `tests/test_edd.py` — EDD suite: `opik.evaluate()` with 4 scorers (Hallucination, AnswerRelevance, retrieval_accuracy, tactical_insight), 31 pytest-runnable tests gated by `--run-edd` flag
+- `scripts/refresh_eval_golden.py` — syncs `tactical_analysis_eval.json` viz_metrics from live DuckDB (`main_main.gold_match_summaries`)
+- `data/eval_datasets/tactical_analysis_eval.json` — all 10 test cases now have ground-truth viz_metrics (16 fields each) pulled from DuckDB; corrected multiple hand-written errors
+- `@opik.track` decorators on `orchestrator.query()`, `rag_pipeline` retrieval + generation, and `generate_with_llm` — full trace coverage in Opik dashboard
+
+### Changed
+- `pyproject.toml` — added `[tool.pytest.ini_options]` with `edd` mark registration
+
+### Removed
+- `tests/evaluate_pipeline.py` — superseded by `test_edd.py` (not pytest-runnable, regex faithfulness, no experiment logging)
+
 ## [Phase 2] — 2026-02-21 — RAG Engine Rewire (ChromaDB → DuckDB VSS)
 
 ### Added
