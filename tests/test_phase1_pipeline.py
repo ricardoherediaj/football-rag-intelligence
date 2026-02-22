@@ -26,9 +26,9 @@ class TestBronzeLayer:
     """Test Bronze Layer - Raw Scraped Data."""
 
     def test_bronze_matches_exist(self, db):
-        """Bronze matches table should have 379 rows."""
+        """Bronze matches table should have rows (count grows as scraper runs)."""
         count = db.execute("SELECT COUNT(*) FROM main.bronze_matches").fetchone()[0]
-        assert count == 379, f"Expected 379 bronze matches, got {count}"
+        assert count >= 379, f"Expected ≥379 bronze matches, got {count}"
 
     def test_bronze_has_json_data(self, db):
         """Bronze matches should contain JSON data."""
@@ -113,9 +113,9 @@ class TestGoldLayer:
     """Test Gold Layer - Match Summaries."""
 
     def test_gold_match_summaries_count(self, db):
-        """Gold layer should have 188 match summaries."""
+        """Gold layer should have match summaries (count grows as pipeline runs)."""
         count = db.execute("SELECT COUNT(*) FROM main_main.gold_match_summaries").fetchone()[0]
-        assert count == 188, f"Expected 188 gold summaries, got {count}"
+        assert count >= 188, f"Expected ≥188 gold summaries, got {count}"
 
     def test_gold_match_summaries_completeness(self, db):
         """Match summaries should have all key fields."""

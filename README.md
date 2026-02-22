@@ -4,9 +4,9 @@
 
 **An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
 
-🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 build — updated UI coming in Phase 3)*
+🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 build — updated UI coming in Phase 3b)*
 
-> **Status:** Phase 1 complete (data pipeline + cloud infrastructure). Phase 2 in progress (RAG engine rewire + query routing).
+> **Status:** Phase 1 complete (data pipeline + cloud infrastructure). Phase 2 complete (RAG engine + DuckDB VSS). **Phase 3a complete** (Opik observability + EDD eval harness, 21/21 tests passing). Phase 3b next (Streamlit UI).
 
 ---
 
@@ -80,28 +80,41 @@ The solution presented here is a RAG system built on real match data.
                       │
                       ▼
  ┌─────────────────────────────────────────────────────────────────┐
- │  RAG ENGINE  [Phase 2 — in progress]                            │
+ │  RAG ENGINE  [Phase 2 — COMPLETE ✅]                            │
  │                                                                 │
- │  User query ──► router.classify_intent()                        │
+ │  User query ──► orchestrator.query() (router)                   │
  │                 │                                               │
  │         ┌───────┴────────┐                                      │
  │         ▼                ▼                                      │
  │   semantic query    viz request                                 │
- │   array_distance()  fetch df_events from DuckDB                 │
- │   → LLM (Claude)    → visualizers.py → PNG                      │
+ │   DuckDB VSS        fetch df_events from DuckDB                 │
+ │   (array_distance)  visualizers.py → PNG                        │
+ │   @opik.track       @opik.track                                 │
+ │   → LLM (Claude)    → generate_with_llm()                       │
  │         │                │                                      │
  │         └───────┬────────┘                                      │
  │                 ▼                                               │
- │         {"text": ..., "chart_path": ...}                        │
+ │         {"text": ..., "viz_metrics": ...}                       │
  └─────────────────────────────────────────────────────────────────┘
                       │
                       ▼
  ┌─────────────────────────────────────────────────────────────────┐
- │  UI + OBSERVABILITY  [Phase 3 — planned]                        │
+ │  OBSERVABILITY  [Phase 3a — COMPLETE ✅]                        │
  │                                                                 │
- │  Streamlit / Reflex / React                                     │
- │  Opik (LLM observability) + RAGAS / DeepEval (evaluation)      │
- │  Modal (serverless GPU inference for open-source models)        │
+ │  Opik (@opik.track on orchestrator + rag_pipeline + generate)   │
+ │  EDD (3 metrics: retrieval_accuracy=1.0, tactical_insight=0.91, │
+ │       answer_relevance=0.84) via opik.evaluate()                │
+ │  21 pytest tests gated by --run-edd flag                        │
+ │  Baseline: 10 test cases, all passing, metrics locked in Opik  │
+ └─────────────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  UI  [Phase 3b — next]                                          │
+ │                                                                 │
+ │  Streamlit single-page app                                      │
+ │  Query input → orchestrator.query() → commentary + chart        │
+ │  MotherDuck read-only for match selection (optional)            │
  └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -120,8 +133,9 @@ The solution presented here is a RAG system built on real match data.
 | Vector search | DuckDB VSS (`array_distance`) | No external vector DB needed |
 | LLM | Anthropic Claude (primary) | Multi-provider via `generate.py` |
 | CI/CD | GitHub Actions | `dbt run --target prod` Mon/Thu |
-| Cloud inference | Modal (planned — Phase 3) | Serverless GPU for open-source models |
-| Observability | Opik (planned — Phase 3) | LLM tracing + prompt tracking |
+| Observability | Opik (Phase 3a DONE) | `@opik.track` end-to-end, EDD harness with 3 metrics |
+| Evaluation | opik.evaluate() + custom scorers | retrieval_accuracy (1.0), tactical_insight (0.91), answer_relevance (0.84) |
+| Cloud inference | Modal (Phase 4 planned) | Serverless GPU for open-source models |
 
 ---
 

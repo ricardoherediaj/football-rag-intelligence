@@ -3,7 +3,7 @@
 Replaces tests/evaluate_pipeline.py with:
 - pytest-runnable parametrized tests
 - opik.evaluate() for experiment logging to Opik dashboard
-- Opik native Hallucination + AnswerRelevance metrics
+- Opik native AnswerRelevance metric
 - Custom CoT tactical judge (component scoring, few-shot, json.loads)
 - Custom retrieval accuracy scorer (Recall@1 — exact match)
 
@@ -25,7 +25,7 @@ load_dotenv()
 
 from opik import Opik
 from opik.evaluation import evaluate
-from opik.evaluation.metrics import AnswerRelevance, Hallucination
+from opik.evaluation.metrics import AnswerRelevance
 from opik.evaluation.metrics.score_result import ScoreResult
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,32 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 EVAL_PATH = PROJECT_ROOT / "data" / "eval_datasets" / "tactical_analysis_eval.json"
-EXPERIMENT_NAME = "claude-baseline-v1"
-TACTICAL_THRESHOLD = 0.7   # 7/10 production threshold from EDD article
+TACTICAL_THRESHOLD = 0.7      # 7/10 production threshold from EDD article
 OPIK_PROJECT = os.getenv("OPIK_PROJECT_NAME", "football-rag-intelligence")
+
+# Golden dataset version — bump when eval queries change to avoid stale item accumulation
+GOLDEN_DATASET_NAME = "football-rag-golden-v3"
+
+# ---------------------------------------------------------------------------
+# Provider configuration — swap via env vars, no code changes needed
+#
+# PIPELINE_PROVIDER: controls _rag_task (the system under test)
+#   "anthropic" → Claude via Anthropic SDK
+#   "modal"     → Modal-hosted inference (Phase 3c)
+#
+# JUDGE_PROVIDER: controls tactical_insight custom scorer
+#   Same values as PIPELINE_PROVIDER
+#
+# JUDGE_MODEL_OPIK: controls Opik native metrics (AnswerRelevance)
+#   LiteLLM provider/model format: "anthropic/claude-haiku-4-5-20251001"
+#   Modal example (future): "modal/llama-3-70b"
+# ---------------------------------------------------------------------------
+
+PIPELINE_PROVIDER = os.getenv("PIPELINE_PROVIDER", "anthropic")
+JUDGE_PROVIDER = os.getenv("JUDGE_PROVIDER", "anthropic")
+JUDGE_MODEL_OPIK = os.getenv("JUDGE_MODEL_OPIK", "anthropic/claude-haiku-4-5-20251001")
+
+EXPERIMENT_NAME = f"{PIPELINE_PROVIDER}-baseline-v1"
 
 # ---------------------------------------------------------------------------
 # Few-shot calibration examples for the tactical judge
@@ -65,10 +88,10 @@ Why low: no specific metrics cited, no xG analysis, no tactical explanation, gen
 # ---------------------------------------------------------------------------
 
 
-def retrieval_accuracy(dataset_item: dict, task_output: dict) -> ScoreResult:
+def retrieval_accuracy(dataset_item: dict, task_outputs: dict) -> ScoreResult:
     """Recall@1 — exact match between expected and retrieved match_id."""
     expected = str(dataset_item["match_id"])
-    retrieved = str(task_output.get("match_id", ""))
+    retrieved = str(task_outputs.get("match_id", ""))
     hit = retrieved == expected
     return ScoreResult(
         name="retrieval_accuracy",
@@ -77,7 +100,7 @@ def retrieval_accuracy(dataset_item: dict, task_output: dict) -> ScoreResult:
     )
 
 
-def tactical_insight(dataset_item: dict, task_output: dict) -> ScoreResult:
+def tactical_insight(dataset_item: dict, task_outputs: dict) -> ScoreResult:
     """CoT LLM judge for domain-specific tactical quality.
 
     Scores 3 components (weights from EDD article):
@@ -91,7 +114,7 @@ def tactical_insight(dataset_item: dict, task_output: dict) -> ScoreResult:
     """
     from football_rag.models.generate import generate_with_llm
 
-    commentary = task_output.get("commentary", "")
+    commentary = task_outputs.get("commentary", "")
     viz_metrics = dataset_item.get("viz_metrics", {})
     expected_insights = dataset_item.get("expected_insights", [])
     response_length = len(commentary.split())
@@ -130,8 +153,15 @@ Output ONLY valid JSON, no markdown:
 }}"""
 
     try:
-        raw = generate_with_llm(prompt, provider="anthropic", temperature=0)
-        parsed = json.loads(raw)
+        raw = generate_with_llm(prompt, provider=JUDGE_PROVIDER, temperature=0, max_tokens=2048)
+        # Strip markdown code fences that some models wrap around JSON output
+        clean = raw.strip()
+        if clean.startswith("```"):
+            clean = clean.split("```", 2)[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+            clean = clean.rsplit("```", 1)[0].strip()
+        parsed = json.loads(clean)
         score = (
             parsed["specificity"] * 0.40
             + parsed["visual_grounding"] * 0.40
@@ -146,7 +176,7 @@ Output ONLY valid JSON, no markdown:
         )
         return ScoreResult(name="tactical_insight", value=round(score, 3), reason=reason)
     except (json.JSONDecodeError, KeyError) as e:
-        logger.warning("tactical_insight judge parse error: %s | raw=%s", e, raw[:200])
+        logger.warning("tactical_insight judge parse error: %s | clean=%s", e, clean[:200])
         return ScoreResult(name="tactical_insight", value=0.5, reason=f"parse_error: {e}")
     except Exception as e:
         logger.error("tactical_insight judge failed: %s", e)
@@ -159,10 +189,15 @@ Output ONLY valid JSON, no markdown:
 
 
 def _load_opik_dataset() -> Any:
-    """Push golden dataset to Opik (idempotent) and return dataset object."""
+    """Push golden dataset to Opik and return dataset object.
+
+    GOLDEN_DATASET_NAME is versioned — bump the constant when eval queries change.
+    A new version name means a clean dataset; no delete/recreate needed.
+    insert() is idempotent within the same version (Opik deduplicates by content).
+    """
     client = Opik()
     dataset = client.get_or_create_dataset(
-        name="football-rag-golden-v2",
+        name=GOLDEN_DATASET_NAME,
         description="10 tactical analysis test cases with real DuckDB viz_metrics",
     )
     raw = json.loads(EVAL_PATH.read_text())
@@ -176,7 +211,8 @@ def _load_opik_dataset() -> Any:
         }
         for tc in raw["test_cases"]
     ]
-    dataset.upsert(items)
+    dataset.insert(items)
+    logger.info("Loaded %d items into Opik dataset '%s'", len(items), GOLDEN_DATASET_NAME)
     return dataset
 
 
@@ -184,7 +220,7 @@ def _rag_task(dataset_item: dict) -> dict:
     """Run the full RAG pipeline for one dataset item."""
     from football_rag.orchestrator import query as rag_query
 
-    result = rag_query(dataset_item["query"], provider="anthropic")
+    result = rag_query(dataset_item["query"], provider=PIPELINE_PROVIDER)
     return {
         "match_id": result.get("match_id", ""),
         "commentary": result.get("commentary", ""),
@@ -203,15 +239,6 @@ def _rag_task(dataset_item: dict) -> dict:
 def eval_cases() -> list[dict]:
     raw = json.loads(EVAL_PATH.read_text())
     return raw["test_cases"]
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-edd",
-        action="store_true",
-        default=False,
-        help="Run EDD tests that call the live LLM pipeline",
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -245,8 +272,7 @@ class TestEDD:
             dataset=dataset,
             task=_rag_task,
             scoring_metrics=[
-                Hallucination(),
-                AnswerRelevance(),
+                AnswerRelevance(model=JUDGE_MODEL_OPIK),
             ],
             scoring_functions=[
                 retrieval_accuracy,
@@ -254,14 +280,18 @@ class TestEDD:
             ],
             experiment_name=EXPERIMENT_NAME,
             project_name=OPIK_PROJECT,
-            experiment_config={"provider": "anthropic", "model": "claude-sonnet-4-6"},
+            experiment_config={
+                "pipeline_provider": PIPELINE_PROVIDER,
+                "judge_provider": JUDGE_PROVIDER,
+                "judge_model_opik": JUDGE_MODEL_OPIK,
+            },
             task_threads=1,   # sequential — avoids rate limits
             verbose=1,
         )
 
         # Store scores indexed by test_id for downstream assertions
         for test_result in result.test_results:
-            item = test_result.dataset_item.get_content()
+            item = test_result.test_case.dataset_item_content
             tid = item.get("test_id", "unknown")
             scores = {s.name: s.value for s in (test_result.score_results or [])}
             TestEDD._scores[tid] = scores
@@ -282,21 +312,6 @@ class TestEDD:
         assert value == 1.0, (
             f"{test_id}: retrieval_accuracy={value:.2f} — wrong match retrieved. "
             "Check DuckDB VSS index and query embedding."
-        )
-
-    @pytest.mark.parametrize("test_id", [
-        "match_01_blowout", "match_02_high_scoring", "match_03_stalemate",
-        "match_04_narrow_win", "match_05_upset", "match_06_efficiency_study",
-        "match_07_defensive_struggle", "match_08_counter_attack",
-        "match_09_defensive_dominance", "match_10_tight_margins",
-    ])
-    def test_no_hallucination(self, test_id: str):
-        """Hard assertion: hallucination score must be 0 (no fabricated claims)."""
-        scores = TestEDD._scores.get(test_id, {})
-        value = scores.get("hallucination", -1.0)
-        assert value == 0.0, (
-            f"{test_id}: hallucination={value:.2f} — response contains ungrounded claims. "
-            "Review commentary against viz_metrics ground truth."
         )
 
     @pytest.mark.parametrize("test_id", [

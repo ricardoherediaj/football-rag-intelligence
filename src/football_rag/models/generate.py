@@ -1,5 +1,6 @@
 """Simple LLM generation function supporting multiple providers."""
 
+import os
 from typing import Optional
 
 import opik
@@ -35,8 +36,9 @@ def generate_with_llm(
     if provider == "ollama":
         return _generate_ollama(prompt, system_prompt, temperature, max_tokens)
     elif provider == "anthropic":
+        resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         return _generate_anthropic(
-            prompt, api_key, system_prompt, temperature, max_tokens
+            prompt, resolved_key, system_prompt, temperature, max_tokens
         )
     elif provider == "openai":
         return _generate_openai(prompt, api_key, system_prompt, temperature, max_tokens)

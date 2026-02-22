@@ -116,12 +116,13 @@ class FootballRAGPipeline:
                    s.home_goals, s.away_goals, s.match_date
             FROM main_main.gold_match_summaries s
             JOIN (
-                SELECT match_id
+                SELECT match_id, array_distance(embedding, ?::FLOAT[768]) AS dist
                 FROM gold_match_embeddings
-                ORDER BY array_distance(embedding, ?::FLOAT[768])
+                ORDER BY dist
                 LIMIT 5
             ) ranked USING (match_id)
             {team_filter}
+            ORDER BY ranked.dist
             LIMIT 1
         """
         row = db.execute(sql, [query_emb]).fetchone()
@@ -182,8 +183,8 @@ class FootballRAGPipeline:
             if team.lower() in query_lower:
                 found_teams.append(team)
                 continue
-            short_name = team.split()[0]
-            if len(short_name) > 3 and short_name.lower() in query_lower:
+            # Match any token in the team name (e.g. "Twente" matches "FC Twente")
+            if any(len(tok) > 3 and tok.lower() in query_lower for tok in team.split()):
                 found_teams.append(team)
 
         if not found_teams:
