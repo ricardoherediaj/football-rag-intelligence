@@ -11,7 +11,7 @@ import os
 import logging
 from typing import List, Tuple
 from dotenv import load_dotenv
-from football_rag.models.rag_pipeline import RAGPipeline
+from football_rag.models.rag_pipeline import FootballRAGPipeline as RAGPipeline
 
 # Load .env for API keys
 load_dotenv()
