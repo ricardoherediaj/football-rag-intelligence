@@ -30,7 +30,11 @@ def _load_all_match_data(match_id: str) -> dict:
     db = duckdb.connect("md:football_rag")
 
     df_events = db.execute(
-        "SELECT * FROM football_rag.main_main.silver_events WHERE match_id = ?",
+        """
+        SELECT *, event_row_id AS id
+        FROM football_rag.main_main.silver_events
+        WHERE match_id = ?
+        """,
         [str(match_id)],
     ).df()
 
