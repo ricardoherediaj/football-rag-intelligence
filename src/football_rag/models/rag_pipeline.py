@@ -109,6 +109,7 @@ class FootballRAGPipeline:
         team_filter = self._build_team_filter(query)
 
         db = duckdb.connect(str(self.db_path))
+        db.execute("INSTALL vss")
         db.execute("LOAD vss")
 
         sql = f"""
