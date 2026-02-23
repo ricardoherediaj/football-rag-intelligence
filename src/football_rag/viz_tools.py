@@ -5,7 +5,7 @@ Simple, focused functions following CLAUDE.md principles:
 - Shared data loading logic (_load_all_match_data)
 - 3 public functions (dashboard, team viz, match viz)
 """
-import json
+import duckdb
 import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path
@@ -13,84 +13,114 @@ from football_rag import visualizers
 
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-RAW_DIR = PROJECT_ROOT / "data" / "raw"
+XTG_GRID_PATH = PROJECT_ROOT / "data" / "raw" / "xT_grid.csv"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _load_all_match_data(match_id: str):
-    """Load all data needed for visualizations.
+def _load_all_match_data(match_id: str) -> dict:
+    """Load all data needed for visualizations from MotherDuck.
+
+    Replaces local JSON reads with MotherDuck queries so the app runs
+    stateless (no raw data files required at runtime).
 
     Returns dict with: df_events, fotmob_shots, xT_grid, team_ids,
                        team_players, player_names, team_names_dict
     """
-    ws_path = RAW_DIR / "whoscored_matches" / "eredivisie" / "2025-2026" / f"match_{match_id}.json"
-    if not ws_path.exists():
-        raise FileNotFoundError(f"Match data not found: {match_id}")
+    db = duckdb.connect("md:football_rag")
 
-    with open(ws_path) as f:
-        ws_data = json.load(f)
+    df_events = db.execute(
+        """
+        SELECT *, event_row_id AS id
+        FROM football_rag.main_main.silver_events
+        WHERE match_id = ?
+        """,
+        [str(match_id)],
+    ).df()
 
-    df_events = pd.DataFrame(ws_data['events'])
-    xT_grid = pd.read_csv(RAW_DIR / "xT_grid.csv", header=None).values
+    if df_events.empty:
+        db.close()
+        raise FileNotFoundError(f"Match data not found in silver_events: {match_id}")
 
-    team_ids = list(df_events['team_id'].unique())
+    shots_rows = db.execute(
+        """
+        SELECT s.*
+        FROM football_rag.main.silver_fotmob_shots s
+        JOIN football_rag.main.match_mapping m ON s.match_id = m.fotmob_match_id
+        WHERE m.whoscored_match_id = ?
+        """,
+        [str(match_id)],
+    ).fetchall()
+    shots_cols = [d[0] for d in db.description]
 
-    player_names = {}
-    for _, event in df_events.iterrows():
-        if 'player_id' in event and pd.notna(event['player_id']):
-            player_names[event['player_id']] = f"Player {event['player_id']}"
+    # Get real team names from match_mapping
+    mapping_row = db.execute(
+        """
+        SELECT whoscored_team_id_1, whoscored_team_id_2, home_team, away_team
+        FROM football_rag.main.match_mapping
+        WHERE whoscored_match_id = ?
+        """,
+        [str(match_id)],
+    ).fetchone()
+    db.close()
+
+    xT_grid = pd.read_csv(XTG_GRID_PATH, header=None).values
+
+    team_ids = [int(t) for t in df_events["team_id"].dropna().unique().tolist()]
+
+    player_names = {
+        int(pid): f"Player {int(pid)}"
+        for pid in df_events["player_id"].dropna().unique()
+    }
 
     team_players = {
         team_id: [
             {
-                'playerId': pid,
-                'name': f"Player {pid}",
-                'shirtNo': idx + 1,
-                'position': 'Unknown',
-                'isFirstEleven': idx < 11
+                "playerId": pid,
+                "name": f"Player {pid}",
+                "shirtNo": idx + 1,
+                "position": "Unknown",
+                "isFirstEleven": idx < 11,
             }
-            for idx, pid in enumerate(df_events[df_events['team_id'] == team_id]['player_id'].unique()[:20])
+            for idx, pid in enumerate(
+                df_events[df_events["team_id"] == team_id]["player_id"]
+                .dropna()
+                .unique()[:20]
+                .tolist()
+            )
         ]
         for team_id in team_ids
     }
 
-    team_names_dict = {tid: f"Team {tid}" for tid in team_ids}
+    # Use real team names from match_mapping when available
+    if mapping_row:
+        tid1, tid2, home_name, away_name = mapping_row
+        team_names_dict = {int(tid1): home_name, int(tid2): away_name}
+    else:
+        team_names_dict = {tid: f"Team {tid}" for tid in team_ids}
 
-    match_mapping_file = PROJECT_ROOT / "data" / "match_mapping.json"
-    fotmob_match_id = None
-    if match_mapping_file.exists():
-        with open(match_mapping_file) as f:
-            mappings = json.load(f)
-        mapping = mappings.get(str(match_id))
-        if mapping:
-            fotmob_match_id = mapping.get('fotmob_id')
-
-    fotmob_bulk = RAW_DIR / "eredivisie_2025_2026_fotmob.json"
     fotmob_shots = []
-    if fotmob_bulk.exists() and fotmob_match_id:
-        with open(fotmob_bulk) as f:
-            all_matches = json.load(f)
-        for match in all_matches:
-            if match.get('match_id') == fotmob_match_id:
-                shots = match.get('shots', [])
-                shots_df = pd.DataFrame(shots)
-                if len(shots_df) > 0:
-                    if 'teamId' in shots_df.columns:
-                        shots_df = shots_df.rename(columns={'teamId': 'team_id'})
-                    shots_df['is_big_chance'] = False
-                    shots_df['is_own_goal'] = shots_df.get('isOwnGoal', False)
-                    fotmob_shots = shots_df.to_dict('records')
-                break
+    if shots_rows:
+        shots_df = pd.DataFrame(shots_rows, columns=shots_cols)
+        # Rename snake_case DB columns to camelCase expected by visualizers.py
+        shots_df = shots_df.rename(columns={
+            "event_type": "eventType",
+            "player_name": "playerName",
+            "shot_type": "shotType",
+            "is_on_target": "isOnTarget",
+        })
+        shots_df["is_big_chance"] = False
+        shots_df["is_own_goal"] = shots_df.get("is_own_goal", False)
+        fotmob_shots = shots_df.to_dict("records")
 
     return {
-        'df_events': df_events,
-        'fotmob_shots': fotmob_shots,
-        'xT_grid': xT_grid,
-        'team_ids': team_ids,
-        'team_players': team_players,
-        'player_names': player_names,
-        'team_names_dict': team_names_dict
+        "df_events": df_events,
+        "fotmob_shots": fotmob_shots,
+        "xT_grid": xT_grid,
+        "team_ids": team_ids,
+        "team_players": team_players,
+        "player_names": player_names,
+        "team_names_dict": team_names_dict,
     }
 
 
@@ -222,9 +252,13 @@ def generate_match_viz(match_id: str, viz_type: str) -> str:
         ax.set_facecolor('#0e1117')
 
         if len(data['fotmob_shots']) > 0:
+            shots_df_tmp = pd.DataFrame(data['fotmob_shots'])
+            fotmob_ids = shots_df_tmp['team_id'].unique().tolist()
+            home_fotmob_id = fotmob_ids[0] if len(fotmob_ids) > 0 else None
+            away_fotmob_id = fotmob_ids[1] if len(fotmob_ids) > 1 else None
             visualizers.plot_shot_map_on_axis(
                 ax, data['fotmob_shots'],
-                home_fotmob_id=9791, away_fotmob_id=6413,
+                home_fotmob_id=home_fotmob_id, away_fotmob_id=away_fotmob_id,
                 home_team_name=team_id_to_name[data['team_ids'][0]],
                 away_team_name=team_id_to_name[data['team_ids'][1]]
             )

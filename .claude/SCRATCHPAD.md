@@ -5,10 +5,10 @@
 
 ---
 
-## 📍 Current State (2026-02-22)
+## 📍 Current State (2026-02-23)
 
-**Branch**: `main` (Phase 3a complete, ready to merge PR)
-**Status**: Phase 3a COMPLETE + DEBUGGED ✅ — EDD baseline 21/21 passing, all metrics locked
+**Branch**: `feat/phase3b-streamlit-ui` — PR #8 open, ready to merge
+**Status**: Phase 3b COMPLETE ✅ — Streamlit UI working locally, all 7 viz types verified
 
 ### Pipeline Status
 | Layer | Status | Count |
@@ -21,31 +21,42 @@
 | Embeddings | ✅ | 205 match embeddings, 768-dim HNSW index |
 | RAG Engine | ✅ | DuckDB VSS, orchestrator wired, viz dispatch working |
 | Observability | ✅ | `@opik.track` on orchestrator + rag_pipeline + generate |
-| EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers (no Hallucination), 10-case golden dataset |
+| EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
 | **EDD Baseline** | ✅ | **retrieval_accuracy=1.0000, tactical_insight=0.9142, answer_relevance=0.8380** |
-
-### EDD Metrics (Final Stack)
-1. **retrieval_accuracy** (custom): Perfect (1.0) — all 10 matches retrieved correctly
-2. **tactical_insight** (custom CoT): 0.9142 — strong domain quality, well above 0.7 threshold
-3. **answer_relevance** (Opik native): 0.8380 — solid query-output alignment
-4. ~~Hallucination~~ **REMOVED** — design mismatch for numerical-context RAG (kept visual_grounding in tactical_insight instead)
+| **Streamlit UI** | ✅ | **All 7 viz types + text commentary working locally** |
 
 ---
 
 ## 🎯 Next Session — Start Here
 
-**Immediate**: Merge PR `feat/phase3a-opik-edd` → `main`
+**Immediate**: Merge PR #8 `feat/phase3b-streamlit-ui` → `main`
 
 **Next tasks (in order)**:
-1. **Phase 3b: Streamlit UI** — Single-page app: query input → commentary + optional chart. Wire to `orchestrator.query(text|viz path)`. No external deps, pure Streamlit + DuckDB.
-2. **Phase 4: REST API** — FastAPI wrapper on orchestrator, Modal inference backend (optional upgrade from local Claude)
-3. **HF Spaces deploy** — Push Phase 2/3a engine to public demo after Streamlit works locally
+1. **Prompt improvement** — Make LLM more tactical analyst, less metric reciter. Edit `prompts/prompt_versions.yaml` v3.5_balanced → v4.0_tactical. Focus: interpret numbers, not report them.
+2. **HF Spaces deploy** — Upload `lakehouse.duckdb` to HF Dataset repo (supports >100MB via git-lfs), configure app to download at startup, add `requirements.txt` + `app.py` entrypoint for HF.
+3. **Update cron script** — After scrape+embed cycle: `huggingface-cli upload` lakehouse.duckdb → HF Dataset, then restart HF Space.
+
+### 🔑 DEPLOY ARCHITECTURE (confirmed)
+- **MotherDuck**: silver_events, silver_fotmob_shots, match_mapping, gold_match_summaries ✅ (already stateless)
+- **lakehouse.duckdb**: 536MB, contains HNSW embeddings index — must go to HF Dataset repo (git-lfs)
+- **xT_grid.csv**: 1KB static file, stays in repo ✅
+- **Secrets needed in HF Spaces**: MOTHERDUCK_TOKEN, ANTHROPIC_API_KEY, HF_TOKEN (for dataset download)
+- **Run command for HF**: `streamlit run src/football_rag/app/main.py --server.port 7860`
+
+### Viz column mapping (implemented, do not revert)
+`silver_fotmob_shots` → `visualizers.py` requires these renames:
+- `event_type` → `eventType`
+- `player_name` → `playerName`
+- `shot_type` → `shotType`
+- `is_on_target` → `isOnTarget`
+
+`silver_events` → `visualizers.py` requires:
+- `event_row_id AS id` (for groupby count in calculate_player_defensive_positions)
 
 ### EDD Maintenance
 When eval queries change:
 ```python
 GOLDEN_DATASET_NAME = "football-rag-golden-v3"  # Bump to v4, v5, etc.
-# That's it — new dataset name guarantees clean slate, no delete logic needed
 ```
 
 ---
@@ -75,6 +86,7 @@ Full session logs in engineering diary:
 **Completed milestones**:
 - Phase 1: Bronze → Match Mapping → Silver → Gold → Embeddings → Vector Search → MotherDuck + CI
 - Phase 2: RAG engine rewired to DuckDB VSS, orchestrator built, viz dispatch wired, 25/25 tests passing
-- Phase 3a: Opik `@opik.track` end-to-end, `test_edd.py` with 4 scorers + 31 tests, golden dataset ground-truthed from DuckDB
+- Phase 3a: Opik `@opik.track` end-to-end, EDD 3 scorers + 21 tests, golden dataset ground-truthed from DuckDB
+- Phase 3b: Streamlit UI live locally, all 7 viz types working, viz fully migrated to MotherDuck
 
-**Last Updated**: 2026-02-22
+**Last Updated**: 2026-02-23
