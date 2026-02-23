@@ -1,6 +1,6 @@
 # HF Spaces runtime dependencies — minimal set for the Streamlit app.
 # Dagster, dbt, Playwright, and dev tools are excluded (not needed at runtime).
-streamlit>=1.32.0
+streamlit>=1.40.0
 duckdb>=0.9.0
 pandas>=2.0.0
 numpy>=1.24.0
