@@ -1,77 +1,118 @@
-"""
-HuggingFace Spaces Entry Point for Football RAG Intelligence
-Launches the dual-mode Gradio interface (text analysis + visualizations)
+"""HuggingFace Spaces entrypoint — Football RAG Intelligence.
 
-Downloads ChromaDB from HF Dataset on first launch.
+Streamlit is configured to run this file directly:
+    streamlit run app.py --server.port 7860
+
+On cold start, downloads lakehouse.duckdb from HF Dataset before rendering UI.
 """
-import sys
 import logging
-import tarfile
+import os
+import sys
 from pathlib import Path
-from huggingface_hub import hf_hub_download
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-# Add src to Python path
+# ---------------------------------------------------------------------------
+# Bootstrap: sys.path + lakehouse.duckdb download (before any app imports)
+# ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-# Constants
-CHROMA_DATA_DIR = PROJECT_ROOT / "data" / "chroma"
-HF_DATASET_REPO = "rheredia8/football-rag-chromadb"
-CHROMA_ARCHIVE = "football_matches_chromadb.tar.gz"
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+LAKEHOUSE_PATH = PROJECT_ROOT / "data" / "lakehouse.duckdb"
 
 
-def download_chromadb_if_needed():
-    """Download ChromaDB from HF Dataset if not exists locally."""
-    if CHROMA_DATA_DIR.exists() and any(CHROMA_DATA_DIR.iterdir()):
-        logger.info("✓ ChromaDB already exists locally")
-        return True
+def _download_lakehouse_if_needed() -> None:
+    """Download lakehouse.duckdb from HF Dataset on cold start."""
+    if LAKEHOUSE_PATH.exists():
+        logger.info(f"lakehouse.duckdb present ({LAKEHOUSE_PATH.stat().st_size / 1e6:.0f} MB)")
+        return
 
-    logger.info("📦 Downloading ChromaDB from Hugging Face Dataset...")
-
+    logger.info("Cold start: downloading lakehouse.duckdb from HF Dataset...")
+    LAKEHOUSE_PATH.parent.mkdir(parents=True, exist_ok=True)
     try:
-        # Download from HF Dataset
-        logger.info(f"Fetching from {HF_DATASET_REPO}...")
-        archive_path = hf_hub_download(
-            repo_id=HF_DATASET_REPO,
-            filename=CHROMA_ARCHIVE,
+        from huggingface_hub import hf_hub_download
+
+        hf_hub_download(
+            repo_id="rheredia8/football-rag-data",
+            filename="lakehouse.duckdb",
             repo_type="dataset",
+            token=os.getenv("HF_TOKEN"),
+            local_dir=str(LAKEHOUSE_PATH.parent),
         )
-
-        # Extract archive
-        logger.info("📂 Extracting ChromaDB archive...")
-        CHROMA_DATA_DIR.parent.mkdir(parents=True, exist_ok=True)
-
-        with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(path=CHROMA_DATA_DIR.parent)
-
-        logger.info("✅ ChromaDB downloaded and extracted successfully!")
-        return True
-
+        logger.info(f"Downloaded: {LAKEHOUSE_PATH.stat().st_size / 1e6:.0f} MB")
     except Exception as e:
-        logger.error(f"❌ Failed to download ChromaDB: {e}")
-        return False
+        logger.error(f"Failed to download lakehouse.duckdb: {e}")
+        logger.error("Vector search unavailable. Check HF_TOKEN secret and rheredia8/football-rag-data dataset.")
 
 
-if __name__ == "__main__":
-    logger.info("🚀 Starting Football RAG Intelligence for Hugging Face Spaces...")
+_download_lakehouse_if_needed()
 
-    # Download ChromaDB first (crucial!)
-    if not download_chromadb_if_needed():
-        logger.error("Failed to initialize ChromaDB. Exiting.")
-        exit(1)
+# ---------------------------------------------------------------------------
+# Streamlit UI (identical to src/football_rag/app/main.py)
+# ---------------------------------------------------------------------------
+import streamlit as st  # noqa: E402
 
-    # Import and launch the demo (after ChromaDB is ready)
-    from football_rag.app.main import demo
+from football_rag.orchestrator import query as rag_query  # noqa: E402
 
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False  # HF Spaces handles public URL
-    )
+st.set_page_config(
+    page_title="Football RAG Intelligence",
+    page_icon="⚽",
+    layout="centered",
+)
+
+st.title("⚽ Football RAG Intelligence")
+st.caption("Eredivisie 2025-26 · 205 matches · Grounded by real event data")
+
+st.markdown(
+    """
+Ask anything about Eredivisie matches — tactical analysis, passing networks,
+shot maps, or team comparisons.
+
+**Example queries:**
+- *Why did Heracles beat NEC Nijmegen despite lower possession?*
+- *Show me the passing network for Ajax vs Feyenoord*
+- *Analyze PSV Eindhoven's pressing intensity last match*
+- *Show the shot map from Fortuna Sittard vs Go Ahead Eagles*
+"""
+)
+
+user_query = st.text_input(
+    label="Your query",
+    placeholder="e.g. Analyze the Feyenoord vs Ajax match...",
+    key="query_input",
+)
+
+provider = st.selectbox(
+    "LLM provider",
+    options=["anthropic", "openai", "gemini"],
+    index=0,
+    help="anthropic = Claude Haiku (default).",
+)
+
+submit = st.button("Analyze", type="primary", disabled=not user_query.strip())
+
+if submit and user_query.strip():
+    with st.spinner("Retrieving match data and generating analysis…"):
+        result = rag_query(user_query.strip(), provider=provider)
+
+    if "error" in result:
+        st.error(result["error"])
+    elif "commentary" in result:
+        st.success(f"**{result['match_name']}**")
+        st.markdown(result["commentary"])
+        with st.expander("Metrics used"):
+            st.json(result.get("metrics_used", {}))
+    elif "chart_path" in result:
+        st.success(f"**{result['match_name']}**")
+        chart_path = Path(result["chart_path"])
+        if chart_path.exists():
+            st.image(str(chart_path), use_container_width=True)
+        else:
+            st.warning(f"Chart generated but not found at: {chart_path}")
+    else:
+        st.warning("Unexpected response format.")
+        st.json(result)
+
+st.divider()
+st.caption("Powered by DuckDB VSS · MotherDuck · Anthropic Claude · Opik observability")
