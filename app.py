@@ -22,9 +22,14 @@ logger = logging.getLogger(__name__)
 LAKEHOUSE_PATH = PROJECT_ROOT / "data" / "lakehouse.duckdb"
 
 
+_DOWNLOAD_ERROR: str = ""
+
+
 def _download_lakehouse_if_needed() -> None:
     """Download lakehouse.duckdb from HF Dataset on cold start."""
-    if LAKEHOUSE_PATH.exists():
+    global _DOWNLOAD_ERROR
+
+    if LAKEHOUSE_PATH.exists() and LAKEHOUSE_PATH.stat().st_size > 1_000_000:
         logger.info(f"lakehouse.duckdb present ({LAKEHOUSE_PATH.stat().st_size / 1e6:.0f} MB)")
         return
 
@@ -33,17 +38,24 @@ def _download_lakehouse_if_needed() -> None:
     try:
         from huggingface_hub import hf_hub_download
 
-        hf_hub_download(
+        token = os.getenv("HF_TOKEN")
+        if not token:
+            raise ValueError("HF_TOKEN secret not set — cannot download private dataset")
+
+        dest = hf_hub_download(
             repo_id="rheredia8/football-rag-data",
             filename="lakehouse.duckdb",
             repo_type="dataset",
-            token=os.getenv("HF_TOKEN"),
+            token=token,
             local_dir=str(LAKEHOUSE_PATH.parent),
         )
-        logger.info(f"Downloaded: {LAKEHOUSE_PATH.stat().st_size / 1e6:.0f} MB")
+        size_mb = Path(dest).stat().st_size / 1e6
+        logger.info(f"Downloaded: {dest} ({size_mb:.0f} MB)")
+        if size_mb < 100:
+            raise ValueError(f"Downloaded file too small ({size_mb:.0f} MB) — likely corrupt")
     except Exception as e:
+        _DOWNLOAD_ERROR = str(e)
         logger.error(f"Failed to download lakehouse.duckdb: {e}")
-        logger.error("Vector search unavailable. Check HF_TOKEN secret and rheredia8/football-rag-data dataset.")
 
 
 _download_lakehouse_if_needed()
@@ -63,6 +75,10 @@ st.set_page_config(
 
 st.title("⚽ Football RAG Intelligence")
 st.caption("Eredivisie 2025-26 · 205 matches · Grounded by real event data")
+
+if _DOWNLOAD_ERROR:
+    st.error(f"Failed to load vector database: {_DOWNLOAD_ERROR}")
+    st.stop()
 
 st.markdown(
     """
