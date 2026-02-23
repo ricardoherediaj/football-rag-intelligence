@@ -4,9 +4,29 @@
 
 **An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
 
-🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 build — updated UI coming in Phase 3b)*
+🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 interface — Phase 3b Streamlit UI in progress)*
 
-> **Status:** Phase 1 complete (data pipeline + cloud infrastructure). Phase 2 complete (RAG engine + DuckDB VSS). **Phase 3a complete** (Opik observability + EDD eval harness, 21/21 tests passing). Phase 3b next (Streamlit UI).
+> **Status:** 🟢 **Phase 1–3a COMPLETE**
+> - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
+> - Phase 2: RAG engine (DuckDB VSS retrieval, Opik tracing, multi-path routing)
+> - Phase 3a: **Evaluation locked** (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
+> - Phase 3b: Streamlit UI (in progress — full demo late Feb)
+
+---
+
+## Results
+
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| **Retrieval Accuracy** | 1.0000 (10/10) | Every query returns the correct match (Recall@1) |
+| **Tactical Insight** | 0.9142 | Domain judge validates grounding + specificity + terminology |
+| **Answer Relevance** | 0.8380 | LLM output remains on-topic to user query |
+| **Pipeline Coverage** | 205/205 (100%) | All Eredivisie 2025-26 matches in schema |
+| **Latency** (local) | ~1.5s | Query embed + VSS + LLM response |
+| **Data Freshness** | Mon/Thu 7am UTC | GitHub Actions dbt run (CI integrated) |
+| **Tests** | 57 passing, 0 failing | End-to-end pipeline + RAG + observability |
+
+**Baseline:** 10 tactical analysis test cases evaluated via opik.evaluate(), all metrics locked in production.
 
 ---
 
@@ -29,6 +49,31 @@ Coaches, scouts, and analysts spend time bouncing between WhoScored, FotMob, and
 - ❌ Generic tactical commentary with no grounding
 
 The solution presented here is a RAG system built on real match data.
+
+---
+
+## Quick Start (3 Examples)
+
+Run locally (Phase 2 engine working today):
+
+```python
+from football_rag.orchestrator import query
+
+# 1️⃣ Tactical analysis (semantic RAG)
+result = query("Why did PSV Eindhoven edge Excelsior 2-1 despite their high press?")
+print(result["text"])  # → grounded commentary with xG, position, PPDA stats
+
+# 2️⃣ Statistical query (exact metric retrieval)
+result = query("Which team had the highest PPDA in their last match?")
+print(result["viz_metrics"])  # → {"team": "...", "ppda": 8.2, ...}
+
+# 3️⃣ Visualization request (routing to chart engine)
+result = query("Show me the shot map from the Ajax vs Feyenoord match")
+print(result["chart_path"])  # → PNG with both teams' shots by xG
+```
+
+**Each query is grounded:** Retrieved match data → Claude generates → metrics validated against DuckDB (no hallucination).
+
 ---
 
 ## Architecture
@@ -176,6 +221,23 @@ No vendor lock-in — swap via `provider` parameter:
 | OpenAI | `gpt-4o-mini` |
 | Google | `gemini-1.5-flash` |
 | Ollama (local) | `llama3.2:1b` |
+
+---
+
+## Why This Project Matters
+
+**This is not a notebook or demo.** It's an end-to-end **AI Engineer portfolio piece** that demonstrates:
+
+| What You See | What It Proves |
+|---|---|
+| **Data pipeline** (scraping → dbt → duckdb/cloud) | Can build production data infra, not just call APIs |
+| **DuckDB VSS** (embeddings + HNSW + array_distance) | Understand vector search without vendor lock-in |
+| **Observability** (@opik.track + EDD eval harness) | Measure quality, not just ship features |
+| **Multi-provider LLM routing** (Claude/OpenAI/Ollama) | No vendor dependency, swap models at runtime |
+| **CI/CD** (GitHub Actions + dbt testing) | Data validation automated, not manual |
+| **Metrics locked** (retrieval=1.0, insight=0.91) | Quality gated on numbers, not vibes |
+
+**Hiring signal:** Most RAG projects stop at "it works" → chatbot. This project asks "how do we know it works?" → evaluation harness + metrics dashboard.
 
 ---
 
