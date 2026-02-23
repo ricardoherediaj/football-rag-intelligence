@@ -226,18 +226,14 @@ No vendor lock-in — swap via `provider` parameter:
 
 ## Why This Project Matters
 
-**This is not a notebook or demo.** It's an end-to-end **AI Engineer portfolio piece** that demonstrates:
+Every component answers a production question:
 
-| What You See | What It Proves |
-|---|---|
-| **Data pipeline** (scraping → dbt → duckdb/cloud) | Can build production data infra, not just call APIs |
-| **DuckDB VSS** (embeddings + HNSW + array_distance) | Understand vector search without vendor lock-in |
-| **Observability** (@opik.track + EDD eval harness) | Measure quality, not just ship features |
-| **Multi-provider LLM routing** (Claude/OpenAI/Ollama) | No vendor dependency, swap models at runtime |
-| **CI/CD** (GitHub Actions + dbt testing) | Data validation automated, not manual |
-| **Metrics locked** (retrieval=1.0, insight=0.91) | Quality gated on numbers, not vibes |
-
-**Hiring signal:** Most RAG projects stop at "it works" → chatbot. This project asks "how do we know it works?" → evaluation harness + metrics dashboard.
+- **Data pipeline (Dagster → dbt → DuckDB/MotherDuck):** Scales from Eredivisie → Championship → Brasileirão with zero code changes. Parameterized by league. Multi-source deduplication via match_mapping.
+- **Vector search without vendor lock-in (DuckDB HNSW):** No Pinecone, Weaviate, or Milvus. `array_distance()` on FLOAT[768]. Embedding updates are SQL transactions, not API calls.
+- **Observability as infrastructure (Opik @opik.track + EDD):** Not a dashboard bolt-on. LLM calls traced from orchestrator → rag_pipeline → generate. 3 domain-specific scorers with custom CoT reasoning.
+- **Metrics locked, not tuned (retrieval=1.0, insight=0.91):** Each metric answers "is this production ready?" Not vibes. Baseline committed, thresholds in code.
+- **Multi-provider LLM routing (Claude/OpenAI/Gemini/Ollama):** One `provider` parameter. No vendor dependency. Cost optimization and model experiments are one-line changes.
+- **CI/CD on data quality (GitHub Actions + dbt testing):** Data tests automated. Pipeline broken? Workflow fails before MotherDuck updates. Same rigor as app code.
 
 ---
 
@@ -304,34 +300,49 @@ uv run pytest
 
 ## Pipeline Status
 
-| Layer | Status | Count |
+| Layer | Status | Details |
 |---|---|---|
-| Bronze (raw JSON) | ✅ Live | 412 matches in MinIO + MotherDuck |
-| Match Mapping | ✅ Live | 205/205 (100% coverage) |
-| dbt Silver | ✅ Live | 279,104 events, 378 team performances |
-| dbt Gold | ✅ Live | 205 summaries in MotherDuck |
-| GitHub Actions CI | ✅ Live | PASS=69, runs Mon/Thu |
-| Embeddings | ✅ Live | 205 × 768-dim, HNSW index |
-| RAG engine (DuckDB VSS) | 🔄 Phase 2 | Rewiring from ChromaDB |
-| Query router (wired) | 🔄 Phase 2 | Orchestrator layer |
-| UI | 📋 Phase 3 | Streamlit / Reflex / React |
-| Observability (Opik) | 📋 Phase 3 | LLM tracing + evaluation |
+| **Data Collection** | ✅ Live | WhoScored + FotMob scrapers, 412 raw matches in MinIO |
+| **Match Mapping** | ✅ Live | 205/205 (100% coverage) cross-linked via fotmob_id |
+| **dbt Silver** | ✅ Live | 279,104 events, 378 team performances, GitHub Actions CI=PASS |
+| **dbt Gold** | ✅ Live | 205 match summaries in MotherDuck (24 metrics per match) |
+| **Embeddings (Phase 1)** | ✅ Live | 205 × 768-dim sentences, HNSW index in DuckDB |
+| **RAG Engine (Phase 2)** | ✅ DONE | DuckDB VSS retrieval, multi-path routing (semantic + viz), @opik.track |
+| **EDD Eval (Phase 3a)** | ✅ DONE | 3 scorers (retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84), 21 pytest tests locked |
+| **Streamlit UI (Phase 3b)** | 📋 Next | Query input → orchestrator → text + chart display |
+| **Modal Inference (Phase 4)** | 📋 Planned | Serverless wrapper for generate_with_llm(), then HF Spaces/Railway deploy |
 
 ---
 
 ## Roadmap
 
-**Phase 2 — RAG Engine** *(in progress)*
-- Rewire `rag_pipeline.py` from ChromaDB → DuckDB VSS (`array_distance` on `gold_match_embeddings`)
-- Build orchestrator: router → semantic retrieval or viz dispatch → unified response
-- CLI test harness: `uv run python scripts/test_rag.py "Analyze Ajax vs PSV"`
+**Phase 1 — Data Pipeline** ✅ COMPLETE
+- Bronze/Silver/Gold medallion (dbt + Dagster)
+- 205 matches with 24 tactical metrics each
+- Auto-sync to MotherDuck, CI/CD on Mon/Thu
 
-**Phase 3 — UI + Observability** *(planned)*
-- Streamlit or Reflex frontend (React long-term)
-- Opik integration for LLM tracing and prompt versioning
-- RAGAS or DeepEval evaluation harness
-- Modal for serverless GPU inference (open-source model option)
-- Updated HF Spaces demo with the new UI
+**Phase 2 — RAG Engine** ✅ COMPLETE
+- DuckDB VSS retrieval (no external vector DB)
+- Intent router: semantic text → LLM, viz requests → charts
+- `orchestrator.query()` as single entry point
+- Multi-provider LLM support (Claude/OpenAI/Gemini/Ollama)
+
+**Phase 3a — Observability** ✅ COMPLETE
+- `@opik.track` end-to-end (orchestrator → rag_pipeline → generate)
+- EDD harness: 3 scorers, 21 pytest tests, 10 golden eval cases
+- Metrics locked in Opik (baseline: retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84)
+- Maintenance: Version dataset names (v3 → v4) when eval queries change
+
+**Phase 3b — Streamlit UI** *(starting now)*
+- Query textbox → display commentary + optional tactical chart
+- DuckDB read-only for match selection widget
+- Local Streamlit dev server working first, then public URL
+
+**Phase 4 — Modal Inference + Deploy** *(planned)*
+- Wrap `generate_with_llm()` as Modal serverless function
+- Swap provider parameter: local Anthropic → Modal GPU backend
+- Deploy options: Modal native, Railway, Render, or HF Spaces
+- Open-source model inference (Llama 3 via vLLM, optional)
 
 ---
 
