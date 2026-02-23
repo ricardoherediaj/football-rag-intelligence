@@ -48,6 +48,16 @@ def _load_all_match_data(match_id: str) -> dict:
         [str(match_id)],
     ).fetchall()
     shots_cols = [d[0] for d in db.description]
+
+    # Get real team names from match_mapping
+    mapping_row = db.execute(
+        """
+        SELECT whoscored_team_id_1, whoscored_team_id_2, home_team, away_team
+        FROM football_rag.main.match_mapping
+        WHERE whoscored_match_id = ?
+        """,
+        [str(match_id)],
+    ).fetchone()
     db.close()
 
     xT_grid = pd.read_csv(XTG_GRID_PATH, header=None).values
@@ -78,11 +88,23 @@ def _load_all_match_data(match_id: str) -> dict:
         for team_id in team_ids
     }
 
-    team_names_dict = {tid: f"Team {tid}" for tid in team_ids}
+    # Use real team names from match_mapping when available
+    if mapping_row:
+        tid1, tid2, home_name, away_name = mapping_row
+        team_names_dict = {int(tid1): home_name, int(tid2): away_name}
+    else:
+        team_names_dict = {tid: f"Team {tid}" for tid in team_ids}
 
     fotmob_shots = []
     if shots_rows:
         shots_df = pd.DataFrame(shots_rows, columns=shots_cols)
+        # Rename snake_case DB columns to camelCase expected by visualizers.py
+        shots_df = shots_df.rename(columns={
+            "event_type": "eventType",
+            "player_name": "playerName",
+            "shot_type": "shotType",
+            "is_on_target": "isOnTarget",
+        })
         shots_df["is_big_chance"] = False
         shots_df["is_own_goal"] = shots_df.get("is_own_goal", False)
         fotmob_shots = shots_df.to_dict("records")
@@ -226,9 +248,13 @@ def generate_match_viz(match_id: str, viz_type: str) -> str:
         ax.set_facecolor('#0e1117')
 
         if len(data['fotmob_shots']) > 0:
+            shots_df_tmp = pd.DataFrame(data['fotmob_shots'])
+            fotmob_ids = shots_df_tmp['team_id'].unique().tolist()
+            home_fotmob_id = fotmob_ids[0] if len(fotmob_ids) > 0 else None
+            away_fotmob_id = fotmob_ids[1] if len(fotmob_ids) > 1 else None
             visualizers.plot_shot_map_on_axis(
                 ax, data['fotmob_shots'],
-                home_fotmob_id=9791, away_fotmob_id=6413,
+                home_fotmob_id=home_fotmob_id, away_fotmob_id=away_fotmob_id,
                 home_team_name=team_id_to_name[data['team_ids'][0]],
                 away_team_name=team_id_to_name[data['team_ids'][1]]
             )
