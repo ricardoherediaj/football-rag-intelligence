@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Phase 3b] — 2026-02-23 — Streamlit UI + HF Spaces Deploy (COMPLETE)
+
+### Added
+- **Public URL live**: https://rheredia8-football-rag-intelligence.hf.space/
+- `app.py` — HF Spaces Streamlit entrypoint: cold-start download of `lakehouse.duckdb` (536MB) from private HF Dataset repo, env var mapping, UI rendering
+- `requirements.txt` — runtime-only pip dependencies for HF Spaces (no Dagster/dbt/Playwright)
+- `README_HF.md` — HF Space frontmatter (`sdk: streamlit`)
+- `src/football_rag/app/main.py` — Streamlit single-page app: query → orchestrator → commentary or chart
+- `rheredia8/football-rag-data` — private HF Dataset repo hosting `lakehouse.duckdb` via git-lfs
+- `docs/engineering_diary/2026-02-23-phase3b-streamlit-deploy.md` — full deploy log
+
+### Changed
+- `src/football_rag/viz_tools.py` — migrated `_load_all_match_data()` from local JSON reads to MotherDuck queries (stateless)
+- `src/football_rag/models/rag_pipeline.py` — added `INSTALL vss` before `LOAD vss` (extension not pre-bundled on HF Spaces)
+- `src/football_rag/app/__init__.py` — replaced broken Gradio import with package docstring
+- `src/football_rag/app/__main__.py` — replaced Gradio launch with subprocess Streamlit call
+
+### Fixed
+- Column name mismatch: DB snake_case (`event_type`) → visualizers.py camelCase (`eventType`) — rename in adapter layer
+- `event_row_id AS id` alias required for `calculate_player_defensive_positions` groupby
+- Hardcoded fotmob team IDs → dynamic extraction from shots data
+- `MOTHERDUCK_TOKEN` (uppercase) not read by DuckDB → mapped to `motherduck_token` (lowercase) in `app.py`
+- `use_container_width` (streamlit 1.40+) → `use_column_width` (HF pins streamlit 1.32.0)
+- `.gitignore` on HF Space blocked `data/raw/xT_grid.csv` upload — added exception
+
+### Removed
+- Dead Gradio/ChromaDB entrypoint in `app.py`
+- Stale branches: `hf-deployment` (ChromaDB-era), `feat/phase3b-streamlit-ui` (merged)
+
+### Verified
+- Text analysis: Heracles vs NEC Nijmegen — full tactical commentary with metrics
+- Shot map: Fortuna Sittard vs Go Ahead Eagles — rendered on public URL
+- All 7 viz types verified locally (dashboard, passing_network, defensive_heatmap, progressive_passes, shot_map, xt_momentum, match_stats)
+
 ## [Phase 3a] — 2026-02-22 — Opik Observability + EDD Eval Harness (COMPLETE)
 
 ### Added

@@ -4,13 +4,13 @@
 
 **An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
 
-🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 interface — Phase 3b Streamlit UI in progress)*
+🚀 **[Try the Live Demo](https://rheredia8-football-rag-intelligence.hf.space/)**
 
-> **Status:** 🟢 **Phase 1–3a COMPLETE**
+> **Status:** 🟢 **Phase 1–3b COMPLETE — Live on HF Spaces**
 > - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
 > - Phase 2: RAG engine (DuckDB VSS retrieval, Opik tracing, multi-path routing)
-> - Phase 3a: **Evaluation locked** (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
-> - Phase 3b: Streamlit UI (in progress — full demo late Feb)
+> - Phase 3a: Evaluation locked (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
+> - Phase 3b: **Streamlit UI deployed** — text analysis + 7 viz types live at public URL
 
 ---
 

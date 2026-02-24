@@ -7,8 +7,8 @@
 
 ## 📍 Current State (2026-02-23)
 
-**Branch**: `feat/hf-spaces-deploy` (from `main`, PR #8 merged)
-**Status**: Phase 3b COMPLETE ✅ — Starting HF Spaces deploy
+**Branch**: `feat/hf-spaces-deploy` — PR #9 open
+**Status**: Phase 3b + Deploy COMPLETE ✅ — App live at public URL
 
 ### Pipeline Status
 | Layer | Status | Count |
@@ -24,7 +24,7 @@
 | EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
 | **EDD Baseline** | ✅ | **retrieval_accuracy=1.0000, tactical_insight=0.9142, answer_relevance=0.8380** |
 | **Streamlit UI** | ✅ | **All 7 viz types + text commentary working locally** |
-| **HF Spaces Deploy** | 🚧 | In progress — `feat/hf-spaces-deploy` branch |
+| **HF Spaces Deploy** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
 
 ---
 
@@ -32,10 +32,10 @@
 
 ### v1.0 "Properly Done" Checklist
 ```
-[ ] Public URL live (HF Spaces)
-[ ] Cold start < 90s (lakehouse.duckdb downloads on wake)
-[ ] Secrets configured (MOTHERDUCK_TOKEN, ANTHROPIC_API_KEY, HF_TOKEN)
-[ ] README has live URL + screenshot
+[x] Public URL live (HF Spaces) — https://rheredia8-football-rag-intelligence.hf.space/
+[x] Cold start works (lakehouse.duckdb downloads on wake)
+[x] Secrets configured (MOTHERDUCK_TOKEN, ANTHROPIC_API_KEY, HF_TOKEN)
+[x] README has live URL
 [ ] EDD runs in CI (not just locally)
 ```
 
