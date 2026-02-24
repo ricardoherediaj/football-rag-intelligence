@@ -4,13 +4,13 @@
 
 **An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
 
-🚀 **[Try the Demo](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)** *(Phase 1 interface — Phase 3b Streamlit UI in progress)*
+🚀 **[Try the Live Demo](https://rheredia8-football-rag-intelligence.hf.space/)**
 
-> **Status:** 🟢 **Phase 1–3a COMPLETE**
+> **Status:** 🟢 **Phase 1–3b COMPLETE — Live on HF Spaces**
 > - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
 > - Phase 2: RAG engine (DuckDB VSS retrieval, Opik tracing, multi-path routing)
-> - Phase 3a: **Evaluation locked** (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
-> - Phase 3b: Streamlit UI (in progress — full demo late Feb)
+> - Phase 3a: Evaluation locked (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
+> - Phase 3b: **Streamlit UI deployed** — text analysis + 7 viz types live at public URL
 
 ---
 
@@ -32,11 +32,11 @@
 
 ## Demo
 
-### Text Analysis
-![Text Analysis](docs/assets/app_sc.png)
+### Shot Map
+![Shot Map — Fortuna Sittard vs Go Ahead Eagles](docs/assets/newapp1.png)
 
-### Visualizations
-![Dashboard Visualization](docs/assets/app_sc2.png)
+### Tactical Analysis
+![Text Analysis — Ajax vs Feyenoord](docs/assets/newapp2.png)
 
 ---
 
@@ -309,8 +309,8 @@ uv run pytest
 | **Embeddings (Phase 1)** | ✅ Live | 205 × 768-dim sentences, HNSW index in DuckDB |
 | **RAG Engine (Phase 2)** | ✅ DONE | DuckDB VSS retrieval, multi-path routing (semantic + viz), @opik.track |
 | **EDD Eval (Phase 3a)** | ✅ DONE | 3 scorers (retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84), 21 pytest tests locked |
-| **Streamlit UI (Phase 3b)** | 📋 Next | Query input → orchestrator → text + chart display |
-| **Modal Inference (Phase 4)** | 📋 Planned | Serverless wrapper for generate_with_llm(), then HF Spaces/Railway deploy |
+| **Streamlit UI (Phase 3b)** | ✅ DONE | Wide layout, BYOK API key, 5 free demo queries, deployed on HF Spaces |
+| **Modal Inference (Phase 4)** | 📋 Planned | Serverless wrapper for generate_with_llm(), open-source model inference |
 
 ---
 
@@ -333,16 +333,16 @@ uv run pytest
 - Metrics locked in Opik (baseline: retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84)
 - Maintenance: Version dataset names (v3 → v4) when eval queries change
 
-**Phase 3b — Streamlit UI** *(starting now)*
-- Query textbox → display commentary + optional tactical chart
-- DuckDB read-only for match selection widget
-- Local Streamlit dev server working first, then public URL
+**Phase 3b — Streamlit UI + Deploy** ✅ COMPLETE
+- Wide-layout Streamlit app on HF Spaces
+- BYOK (Bring Your Own Key) with rate-limited demo mode (5 free queries/session)
+- Shot maps, passing networks, dashboards + text analysis — all live at public URL
+- Cold start: downloads 536MB lakehouse.duckdb from private HF Dataset
 
-**Phase 4 — Modal Inference + Deploy** *(planned)*
-- Wrap `generate_with_llm()` as Modal serverless function
-- Swap provider parameter: local Anthropic → Modal GPU backend
-- Deploy options: Modal native, Railway, Render, or HF Spaces
-- Open-source model inference (Llama 3 via vLLM, optional)
+**Phase 4 — Prompt Tuning + Inference** *(planned)*
+- Prompt v4.0: tactical interpretation over metric recitation
+- EDD evaluation in CI (GitHub Actions)
+- Open-source model inference via Modal (Llama 3 / vLLM, optional)
 
 ---
 
