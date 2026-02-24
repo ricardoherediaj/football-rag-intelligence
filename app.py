@@ -127,7 +127,7 @@ if submit and user_query.strip():
         st.success(f"**{result['match_name']}**")
         chart_path = Path(result["chart_path"])
         if chart_path.exists():
-            st.image(str(chart_path), use_container_width=True)
+            st.image(str(chart_path), use_column_width=True)
         else:
             st.warning(f"Chart generated but not found at: {chart_path}")
     else:
