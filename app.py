@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 LAKEHOUSE_PATH = PROJECT_ROOT / "data" / "lakehouse.duckdb"
 
+# MotherDuck reads `motherduck_token` (lowercase); HF Spaces secret is MOTHERDUCK_TOKEN
+if os.getenv("MOTHERDUCK_TOKEN") and not os.getenv("motherduck_token"):
+    os.environ["motherduck_token"] = os.environ["MOTHERDUCK_TOKEN"]
+
 
 _DOWNLOAD_ERROR: str = ""
 
