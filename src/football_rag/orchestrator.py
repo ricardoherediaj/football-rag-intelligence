@@ -16,13 +16,18 @@ logger = logging.getLogger(__name__)
 
 
 @opik.track(name="football_rag_query")
-def query(user_query: str, provider: str = "anthropic") -> Dict[str, Any]:
+def query(
+    user_query: str,
+    provider: str = "anthropic",
+    api_key: str | None = None,
+) -> Dict[str, Any]:
     """Process a user query end-to-end.
 
     Args:
         user_query: Natural language query (e.g. "Analyze Ajax vs PSV" or
                     "Show shot map for Heracles vs PEC Zwolle")
         provider: LLM provider for text queries ('anthropic', 'openai', 'gemini', 'ollama')
+        api_key: Optional API key override. Falls back to env var if None.
 
     Returns:
         Dict with one of:
@@ -31,7 +36,7 @@ def query(user_query: str, provider: str = "anthropic") -> Dict[str, Any]:
         - {"error": str} on failure
     """
     intent = classify_intent(user_query)
-    pipeline = FootballRAGPipeline(provider=provider)
+    pipeline = FootballRAGPipeline(provider=provider, api_key=api_key)
 
     # Text / semantic path
     if intent["tool"] is None:
