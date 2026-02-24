@@ -76,93 +76,96 @@ from football_rag.orchestrator import query as rag_query  # noqa: E402
 st.set_page_config(
     page_title="Football RAG Intelligence",
     page_icon="⚽",
-    layout="centered",
+    layout="wide",
 )
-
-# ---------------------------------------------------------------------------
-# Sidebar: API key + provider config
-# ---------------------------------------------------------------------------
-with st.sidebar:
-    st.header("Settings")
-
-    user_api_key = st.text_input(
-        "API Key (optional)",
-        type="password",
-        placeholder="sk-... or your provider key",
-        help="Bring your own key for unlimited queries. Without one, you get "
-        f"{FREE_QUERY_LIMIT} free queries per session.",
-    )
-
-    provider = st.selectbox(
-        "LLM provider",
-        options=["anthropic", "openai", "gemini"],
-        index=0,
-        help="anthropic = Claude Haiku (default).",
-    )
-
-    st.divider()
-
-    if user_api_key:
-        st.success("Using your API key — unlimited queries.")
-    else:
-        used = st.session_state.get("query_count", 0)
-        remaining = max(0, FREE_QUERY_LIMIT - used)
-        st.info(f"Demo mode: {remaining}/{FREE_QUERY_LIMIT} free queries left.")
-
-    st.caption(
-        "Keys are never stored. They are used only for the current session "
-        "and sent directly to the LLM provider."
-    )
-
-# ---------------------------------------------------------------------------
-# Main content
-# ---------------------------------------------------------------------------
-st.title("⚽ Football RAG Intelligence")
-st.caption("Eredivisie 2025-26 · 205 matches · Grounded by real event data")
 
 if _DOWNLOAD_ERROR:
     st.error(f"Failed to load vector database: {_DOWNLOAD_ERROR}")
     st.stop()
 
+if "query_count" not in st.session_state:
+    st.session_state["query_count"] = 0
+
+# ---------------------------------------------------------------------------
+# Header
+# ---------------------------------------------------------------------------
+st.title("Football RAG Intelligence")
 st.markdown(
-    """
-Ask anything about Eredivisie matches — tactical analysis, passing networks,
-shot maps, or team comparisons.
-
-**Example queries:**
-- *Why did Heracles beat NEC Nijmegen despite lower possession?*
-- *Show me the passing network for Ajax vs Feyenoord*
-- *Analyze PSV Eindhoven's pressing intensity last match*
-- *Show the shot map from Fortuna Sittard vs Go Ahead Eagles*
-"""
+    "Eredivisie 2025-26 · **205 matches** · Grounded by real event data  \n"
+    "Ask about tactics, passing networks, shot maps, or team comparisons."
 )
 
-user_query = st.text_input(
-    label="Your query",
-    placeholder="e.g. Analyze the Feyenoord vs Ajax match...",
-    key="query_input",
+# ---------------------------------------------------------------------------
+# Query input row
+# ---------------------------------------------------------------------------
+col_query, col_provider, col_btn = st.columns([6, 1.5, 1])
+
+with col_query:
+    user_query = st.text_input(
+        label="Your query",
+        placeholder="e.g. Why did Heracles beat NEC despite lower possession?",
+        key="query_input",
+        label_visibility="collapsed",
+    )
+
+with col_provider:
+    provider = st.selectbox(
+        "Provider",
+        options=["anthropic", "openai", "gemini"],
+        index=0,
+        label_visibility="collapsed",
+    )
+
+with col_btn:
+    submit = st.button("Analyze", type="primary", use_container_width=True)
+
+# ---------------------------------------------------------------------------
+# API key + demo status (compact expander)
+# ---------------------------------------------------------------------------
+with st.expander("Bring your own API key (optional)"):
+    key_col, status_col = st.columns([2, 1])
+    with key_col:
+        user_api_key = st.text_input(
+            "API Key",
+            type="password",
+            placeholder="sk-... (Anthropic, OpenAI, or Gemini key)",
+            label_visibility="collapsed",
+        )
+        st.caption("Never stored. Used only for this session, sent directly to the provider.")
+    with status_col:
+        if user_api_key:
+            st.success("Your key active — unlimited queries.")
+        else:
+            used = st.session_state.get("query_count", 0)
+            remaining = max(0, FREE_QUERY_LIMIT - used)
+            st.info(f"Demo mode: **{remaining}/{FREE_QUERY_LIMIT}** free queries left.")
+
+# ---------------------------------------------------------------------------
+# Example queries (clickable)
+# ---------------------------------------------------------------------------
+st.markdown(
+    "<small><b>Try:</b> "
+    "<em>Show the shot map from Fortuna Sittard vs Go Ahead Eagles</em> · "
+    "<em>Analyze Ajax vs Feyenoord</em> · "
+    "<em>Show me the passing network for PSV vs AZ</em></small>",
+    unsafe_allow_html=True,
 )
 
-submit = st.button("Analyze", type="primary", disabled=not user_query.strip())
+st.divider()
 
 # ---------------------------------------------------------------------------
 # Query execution with rate limiting
 # ---------------------------------------------------------------------------
-if "query_count" not in st.session_state:
-    st.session_state["query_count"] = 0
-
 if submit and user_query.strip():
-    # Rate limit check (only for free/demo mode)
     if not user_api_key and st.session_state["query_count"] >= FREE_QUERY_LIMIT:
         st.warning(
-            f"You've used all {FREE_QUERY_LIMIT} free queries for this session. "
-            "Enter your own API key in the sidebar for unlimited access."
+            f"You've used all {FREE_QUERY_LIMIT} free queries. "
+            "Add your own API key above for unlimited access."
         )
     else:
-        # Resolve which API key to use
         api_key = user_api_key if user_api_key else None
 
-        with st.spinner("Retrieving match data and generating analysis…"):
+        with st.spinner("Retrieving match data and generating analysis..."):
             result = rag_query(user_query.strip(), provider=provider, api_key=api_key)
 
         if not user_api_key:
@@ -186,5 +189,7 @@ if submit and user_query.strip():
             st.warning("Unexpected response format.")
             st.json(result)
 
-st.divider()
+# ---------------------------------------------------------------------------
+# Footer
+# ---------------------------------------------------------------------------
 st.caption("Powered by DuckDB VSS · MotherDuck · Anthropic Claude · Opik observability")
