@@ -1,2 +1,4 @@
 load_from:
-  - python_file: orchestration/defs.py
+  - python_module:
+      module_name: orchestration.defs
+      working_directory: /Users/ricardoheredia/football-rag-intelligence
