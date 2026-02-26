@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- BYOK (Bring Your Own Key) sidebar: password-masked API key input, per-session rate limiting (5 free queries), privacy notice
+- `api_key` parameter wired through `orchestrator.query()` → `FootballRAGPipeline` → `generate_with_llm()`
+
 ## [Phase 3b] — 2026-02-23 — Streamlit UI + HF Spaces Deploy (COMPLETE)
 
 ### Added

@@ -5,10 +5,10 @@
 
 ---
 
-## 📍 Current State (2026-02-23)
+## Current State (2026-02-24)
 
 **Branch**: `feat/hf-spaces-deploy` — PR #9 open
-**Status**: Phase 3b + Deploy COMPLETE ✅ — App live at public URL
+**Status**: Phase 3b COMPLETE + BYOK + UI redesign deployed
 
 ### Pipeline Status
 | Layer | Status | Count |
@@ -22,97 +22,60 @@
 | RAG Engine | ✅ | DuckDB VSS, orchestrator wired, viz dispatch working |
 | Observability | ✅ | `@opik.track` on orchestrator + rag_pipeline + generate |
 | EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
-| **EDD Baseline** | ✅ | **retrieval_accuracy=1.0000, tactical_insight=0.9142, answer_relevance=0.8380** |
-| **Streamlit UI** | ✅ | **All 7 viz types + text commentary working locally** |
-| **HF Spaces Deploy** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
+| **HF Spaces** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
+| **BYOK + Rate Limit** | ✅ | **5 free queries/session, unlimited with own API key** |
 
 ---
 
-## 🎯 Current Session — Deploy Plan
+## Next Session — TODO (priority order)
 
-### v1.0 "Properly Done" Checklist
-```
-[x] Public URL live (HF Spaces) — https://rheredia8-football-rag-intelligence.hf.space/
-[x] Cold start works (lakehouse.duckdb downloads on wake)
-[x] Secrets configured (MOTHERDUCK_TOKEN, ANTHROPIC_API_KEY, HF_TOKEN)
-[x] README has live URL
-[ ] EDD runs in CI (not just locally)
-```
+### 1. Merge PR #9 (`feat/hf-spaces-deploy` → `main`)
+- Squash & merge via GitHub
+- This branch has 12+ commits — squash into clean history
 
-### Tasks (in order)
-1. **HF Spaces deploy** (current)
-   - Upload `lakehouse.duckdb` to HF Dataset repo via git-lfs
-   - Add `requirements.txt` (pip format for HF)
-   - Add `app.py` entrypoint (HF Spaces uses `app.py` by default)
-   - Add startup download of `lakehouse.duckdb` from HF Dataset
-   - Set secrets: `MOTHERDUCK_TOKEN`, `ANTHROPIC_API_KEY`, `HF_TOKEN`
-   - Verify public URL + cold start time
-2. **Prompt v4.0_tactical** — after live URL confirmed, tune LLM to interpret metrics tactically, not recite them. Edit `prompts/prompt_versions.yaml`.
-3. **EDD in CI** — add `pytest tests/test_edd.py --run-edd` to GitHub Actions after deploy confirmed.
-4. **Update cron script** — after scrape+embed: `huggingface-cli upload` lakehouse.duckdb → HF Dataset, restart HF Space.
+### 2. Prompt v4.0_tactical
+- Current LLM recites metrics instead of interpreting them tactically
+- Edit `prompts/prompt_versions.yaml` — new system prompt emphasizing "why" over "what"
+- Re-run EDD to measure improvement on `tactical_insight` (currently 0.91)
 
-### 🔑 DEPLOY ARCHITECTURE (confirmed)
-- **MotherDuck**: silver_events, silver_fotmob_shots, match_mapping, gold_match_summaries ✅ (stateless)
+### 3. EDD in CI (GitHub Actions)
+- Add `pytest tests/test_edd.py --run-edd` step to CI workflow
+- Requires `ANTHROPIC_API_KEY` + `MOTHERDUCK_TOKEN` + `OPIK_API_KEY` as GitHub secrets
+- Last v1.0 checklist item
+
+### 4. Data refresh pipeline
+- After scrape+embed: `huggingface-cli upload` lakehouse.duckdb → HF Dataset
+- Restart HF Space via `restart_space()` API
+- Consider automating as cron script
+
+---
+
+## Deploy Architecture (reference)
+- **MotherDuck**: silver_events, silver_fotmob_shots, match_mapping, gold_match_summaries (stateless)
 - **lakehouse.duckdb**: 536MB, HNSW embeddings index — HF Dataset repo (git-lfs), downloaded at startup
-- **xT_grid.csv**: 1KB static file, stays in repo ✅
-- **Secrets in HF Spaces**: `MOTHERDUCK_TOKEN`, `ANTHROPIC_API_KEY`, `HF_TOKEN` (for dataset download)
-- **Run command for HF**: `streamlit run app.py --server.port 7860`
-- **Branch strategy**: `feat/hf-spaces-deploy` → push to `space/main` remote (HF Spaces)
-- **`main` stays clean** — HF-specific files (`app.py`, `requirements.txt`) live on deploy branch only
+- **HF Space remote**: `space` → `https://huggingface.co/spaces/rheredia8/football-rag-intelligence`
+- **HF Dataset**: `rheredia8/football-rag-data` (private, contains lakehouse.duckdb)
+- **Secrets**: `MOTHERDUCK_TOKEN`, `ANTHROPIC_API_KEY`, `HF_TOKEN`
+- **Deploy flow**: edit app.py locally → `upload_file()` → `restart_space()`
 
-### Why HF Spaces over Modal
-Modal = serverless GPU inference, not app hosting. HF Spaces = native Streamlit, 5GB git-lfs, free tier.
-Modal becomes relevant only for Phase 4 (local Llama 3 inference). Not now.
-
----
-
-### Viz column mapping (do not revert)
-`silver_fotmob_shots` → `visualizers.py` requires:
-- `event_type` → `eventType`
-- `player_name` → `playerName`
-- `shot_type` → `shotType`
-- `is_on_target` → `isOnTarget`
-
-`silver_events` → `visualizers.py` requires:
-- `event_row_id AS id` (for groupby count in `calculate_player_defensive_positions`)
-
-`silver_fotmob_shots.match_id` = fotmob_match_id (NOT whoscored). Join via match_mapping.
-
-### EDD Maintenance
-When eval queries change:
-```python
-GOLDEN_DATASET_NAME = "football-rag-golden-v3"  # Bump to v4, v5, etc.
-```
+### HF Spaces gotchas (learned 2026-02-23)
+- Hardcodes `streamlit==1.32.0`, `numpy<2` required
+- Must `INSTALL vss` before `LOAD vss`
+- `motherduck_token` (lowercase) not `MOTHERDUCK_TOKEN`
+- `use_column_width` not `use_container_width` (pre-1.40)
+- Must upload ALL changed source files (not just app.py) — orchestrator.py broke when missed
 
 ---
 
-## 🗺️ Schema Reference (DuckDB — `main_main.*`)
-
-**gold_match_summaries**:
-- Scores: `home_goals`, `away_goals` (NOT `home_score`/`away_score`)
-- xG: `home_total_xg`, `away_total_xg`
-- Position: `home_median_position`, `away_median_position`
-- All aliased in SQL to match `TacticalMetrics` field names
-
-**gold_match_embeddings**: `match_id`, `embedding FLOAT[768]` — HNSW indexed
-
----
-
-## 📚 Historical Reference
+## Historical Reference
 
 Full session logs in engineering diary:
-- [2026-02-14](docs/engineering_diary/2026-02-14-phase1-diagnosis.md) — Two parallel pipelines discovered, chose Hybrid architecture
-- [2026-02-15](docs/engineering_diary/2026-02-15-phase1-silver-layer-complete.md) — dbt wired, 24 metrics, xG fix via match_mapping.json
-- [2026-02-16](docs/engineering_diary/2026-02-16-phase1-complete.md) — Phase 1 declared complete (188 matches, 15/15 tests, vector search working)
-- [2026-02-19](docs/engineering_diary/2026-02-19-phase1-motherduck-complete.md) — Phase 1 complete: MotherDuck migration, CI green, 205 embeddings
-- [2026-02-21](docs/engineering_diary/2026-02-21-phase2-rag-engine.md) — Phase 2 complete: ChromaDB → DuckDB VSS, orchestrator, end-to-end verified
-- [2026-02-22](docs/engineering_diary/2026-02-22-phase3a-opik-edd.md) — Phase 3a complete: Opik tracing, EDD eval harness, golden dataset refreshed from DuckDB
-- [2026-02-23](docs/engineering_diary/2026-02-23-phase3b-streamlit-deploy.md) — Phase 3b complete: Streamlit UI, MotherDuck viz migration, all 7 viz types verified, HF deploy strategy decided
+- [2026-02-14](docs/engineering_diary/2026-02-14-phase1-diagnosis.md) — Two parallel pipelines discovered
+- [2026-02-15](docs/engineering_diary/2026-02-15-phase1-silver-layer-complete.md) — dbt wired, 24 metrics
+- [2026-02-16](docs/engineering_diary/2026-02-16-phase1-complete.md) — Phase 1 complete (188 matches)
+- [2026-02-19](docs/engineering_diary/2026-02-19-phase1-motherduck-complete.md) — MotherDuck migration, CI green
+- [2026-02-21](docs/engineering_diary/2026-02-21-phase2-rag-engine.md) — Phase 2 complete: ChromaDB → DuckDB VSS
+- [2026-02-22](docs/engineering_diary/2026-02-22-phase3a-opik-edd.md) — Phase 3a complete: Opik + EDD
+- [2026-02-23](docs/engineering_diary/2026-02-23-phase3b-streamlit-deploy.md) — Phase 3b complete: Streamlit + HF deploy
 
-**Completed milestones**:
-- Phase 1: Bronze → Match Mapping → Silver → Gold → Embeddings → Vector Search → MotherDuck + CI
-- Phase 2: RAG engine rewired to DuckDB VSS, orchestrator built, viz dispatch wired, 25/25 tests passing
-- Phase 3a: Opik `@opik.track` end-to-end, EDD 3 scorers + 21 tests, golden dataset ground-truthed from DuckDB
-- Phase 3b: Streamlit UI live locally, all 7 viz types working, viz fully migrated to MotherDuck, stale branches cleaned
-
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-02-24
