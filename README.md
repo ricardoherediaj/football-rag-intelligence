@@ -6,11 +6,12 @@
 
 🚀 **[Try the Live Demo](https://rheredia8-football-rag-intelligence.hf.space/)**
 
-> **Status:** 🟢 **Phase 1–3b COMPLETE — Live on HF Spaces**
+> **Status:** 🟢 **Phase 1–4a COMPLETE — Live on HF Spaces, auto-refreshing**
 > - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
 > - Phase 2: RAG engine (DuckDB VSS retrieval, Opik tracing, multi-path routing)
 > - Phase 3a: Evaluation locked (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
 > - Phase 3b: **Streamlit UI deployed** — text analysis + 7 viz types live at public URL
+> - Phase 4a: **Hybrid pipeline automation** — scrape → dbt → embed → HF deploy, fully chained via Dagster sensors. dagster-daemon auto-starts at macOS login via launchd.
 
 ---
 
@@ -170,8 +171,8 @@ print(result["chart_path"])  # → PNG with both teams' shots by xG
 | Layer | Tool | Why |
 |---|---|---|
 | Language | Python 3.10+ via `uv` | |
-| Orchestration | Dagster (Software-Defined Assets) | Asset lineage, local scheduling |
-| Object storage | MinIO | S3-compatible, runs in Docker |
+| Orchestration | Dagster (Software-Defined Assets) | Asset lineage, sensor-chained jobs, daemon as macOS LaunchAgent |
+| Object storage | MinIO | S3-compatible, single Docker container (Bronze JSON only) |
 | Analytics DB | DuckDB + MotherDuck | Same SQL dialect local and cloud |
 | Transformation | dbt Core (`dbt-duckdb`) | SQL version control, tested models |
 | Embeddings | `sentence-transformers/all-mpnet-base-v2` | 768-dim, semantic match retrieval |
@@ -310,7 +311,8 @@ uv run pytest
 | **RAG Engine (Phase 2)** | ✅ DONE | DuckDB VSS retrieval, multi-path routing (semantic + viz), @opik.track |
 | **EDD Eval (Phase 3a)** | ✅ DONE | 3 scorers (retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84), 21 pytest tests locked |
 | **Streamlit UI (Phase 3b)** | ✅ DONE | Wide layout, BYOK API key, 5 free demo queries, deployed on HF Spaces |
-| **Modal Inference (Phase 4)** | 📋 Planned | Serverless wrapper for generate_with_llm(), open-source model inference |
+| **Pipeline Automation (Phase 4a)** | ✅ DONE | scrape → dbt → embed → HF deploy chained via Dagster sensors. dagster-daemon as macOS LaunchAgent (auto-starts at login). Mon/Thu 7am UTC schedule. |
+| **Modal Inference (Phase 4b)** | 📋 Planned | Serverless wrapper for generate_with_llm(), open-source model inference |
 
 ---
 
@@ -339,7 +341,14 @@ uv run pytest
 - Shot maps, passing networks, dashboards + text analysis — all live at public URL
 - Cold start: downloads 536MB lakehouse.duckdb from private HF Dataset
 
-**Phase 4 — Prompt Tuning + Inference** *(planned)*
+**Phase 4a — Hybrid Pipeline Automation** ✅ COMPLETE
+- Dagster sensor chain: `scrape_and_load_job` → `transform_job` → `deploy_job` (fully automatic)
+- `deploy_job`: uploads lakehouse.duckdb (536MB) to HF Dataset + restarts Space
+- `dagster-daemon` as macOS LaunchAgent — auto-starts at login, survives laptop sleep
+- SQLite-backed local Dagster home (no Docker dependency for orchestration)
+- Mon/Thu 7am UTC schedule via `eredivisie_post_matchday`
+
+**Phase 4b — Prompt Tuning + Inference** *(planned)*
 - Prompt v4.0: tactical interpretation over metric recitation
 - EDD evaluation in CI (GitHub Actions)
 - Open-source model inference via Modal (Llama 3 / vLLM, optional)

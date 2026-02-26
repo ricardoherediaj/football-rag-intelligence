@@ -1,13 +1,14 @@
-name: Matchday Pipeline
+name: CI — Code Quality
 
 on:
-  schedule:
-    - cron: "0 7 * * 1"  # Monday 7am UTC (post-weekend matchday)
-    - cron: "0 7 * * 4"  # Thursday 7am UTC (midweek / cup games)
-  workflow_dispatch:      # Manual trigger for catch-up runs
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  transform:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,20 +19,10 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --no-dev
+        run: uv sync
 
-      - name: Install dbt packages
-        run: cd dbt_project && uv run dbt deps
-
-      - name: Run dbt Silver + Gold → MotherDuck
+      - name: Run pytest
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          BRONZE_DATABASE: "football_rag"
-          DUCKDB_MEMORY_LIMIT: "6GB"
-        run: cd dbt_project && uv run dbt run --target prod
-
-      - name: Run dbt tests
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          BRONZE_DATABASE: "football_rag"
-        run: cd dbt_project && uv run dbt test --target prod
+        run: uv run pytest tests/ -x -q --ignore=tests/test_edd.py

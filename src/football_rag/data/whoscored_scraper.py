@@ -200,9 +200,11 @@ async def collect_all_season_matches(page: Page, exclude_match_ids: Optional[set
     matches_collected = 0
 
     async def collect_matches_from_page():
+        """Returns (new_urls, total_on_page) — total includes already-scraped matches."""
         content = await page.content()
         soup = BeautifulSoup(content, 'html.parser')
         page_urls = []
+        total_on_page = 0
         containers = soup.find_all('div', class_='Match-module_match__XlKTY')
 
         for container in containers:
@@ -212,11 +214,12 @@ async def collect_all_season_matches(page: Page, exclude_match_ids: Optional[set
                     match_url = f"https://www.whoscored.com{score_link['href']}"
                     try:
                         match_id = extract_match_id(match_url)
+                        total_on_page += 1
                         if match_id not in exclude_match_ids:
                             page_urls.append(match_url)
                     except ValueError:
                         continue
-        return page_urls
+        return page_urls, total_on_page
 
     async def _js_click(selector: str) -> bool:
         """Click a button via JS to bypass ad overlays."""
@@ -226,24 +229,29 @@ async def collect_all_season_matches(page: Page, exclude_match_ids: Optional[set
         )
 
     async def _collect_direction(btn_selector: str, max_weeks: int) -> None:
-        """Traverse the calendar in one direction, collecting matches."""
+        """Traverse the calendar in one direction, collecting matches.
+
+        Stale detection: only counts a week as "empty" if the page has zero
+        finished matches at all (not just zero *new* ones).  This prevents
+        early termination during incremental scrapes where existing matches
+        are filtered by exclude_match_ids.
+        """
         nonlocal matches_collected
-        prev_total = -1
-        stale = 0
+        empty_weeks = 0
         for _ in range(max_weeks):
-            for url in await collect_matches_from_page():
+            new_urls, total_on_page = await collect_matches_from_page()
+            for url in new_urls:
                 if url not in all_match_urls:
                     all_match_urls.append(url)
                     matches_collected += 1
             if limit and matches_collected >= limit:
                 return
-            if len(all_match_urls) == prev_total:
-                stale += 1
-                if stale >= 3:
+            if total_on_page == 0:
+                empty_weeks += 1
+                if empty_weeks >= 3:
                     return
             else:
-                stale = 0
-            prev_total = len(all_match_urls)
+                empty_weeks = 0
             try:
                 if not await _js_click(btn_selector):
                     return
