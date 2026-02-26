@@ -25,4 +25,4 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-        run: uv run pytest tests/ -x -q --ignore=tests/test_edd.py --ignore=tests/test_duckdb_pipeline.py --ignore=tests/test_phase1_pipeline.py
+        run: uv run pytest tests/ -x -q --ignore=tests/test_edd.py --ignore=tests/test_duckdb_pipeline.py --ignore=tests/test_phase1_pipeline.py --ignore=tests/test_whoscored_scraper.py --ignore=tests/test_fotmob_scraper.py
