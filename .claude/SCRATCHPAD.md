@@ -5,10 +5,10 @@
 
 ---
 
-## Current State (2026-02-24)
+## Current State (2026-02-26)
 
-**Branch**: `feat/hf-spaces-deploy` — PR #9 open
-**Status**: Phase 3b COMPLETE + BYOK + UI redesign deployed
+**Branch**: `main`
+**Status**: Phase 4a COMPLETE — hybrid pipeline fully automated
 
 ### Pipeline Status
 | Layer | Status | Count |
@@ -24,29 +24,33 @@
 | EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
 | **HF Spaces** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
 | **BYOK + Rate Limit** | ✅ | **5 free queries/session, unlimited with own API key** |
+| **Hybrid Automation** | ✅ | **dagster-daemon auto-starts at login via launchd** |
+| **HF Deploy Assets** | ✅ | **hf_lakehouse_upload + hf_space_restart in deploy_job** |
+
+### Automated Flow (now working end-to-end)
+```
+macOS login → launchd → dagster-daemon (background)
+  Schedule Mon/Thu 7am UTC
+    → scrape_and_load_job
+        → [sensor] transform_job  (dbt → MotherDuck + lakehouse.duckdb)
+            → [sensor] deploy_job  (upload DuckDB → HF Dataset → restart Space)
+```
 
 ---
 
 ## Next Session — TODO (priority order)
 
-### 1. Merge PR #9 (`feat/hf-spaces-deploy` → `main`)
-- Squash & merge via GitHub
-- This branch has 12+ commits — squash into clean history
-
-### 2. Prompt v4.0_tactical
+### 1. Prompt v4.0_tactical
 - Current LLM recites metrics instead of interpreting them tactically
 - Edit `prompts/prompt_versions.yaml` — new system prompt emphasizing "why" over "what"
 - Re-run EDD to measure improvement on `tactical_insight` (currently 0.91)
 
-### 3. EDD in CI (GitHub Actions)
+### 2. EDD in CI (GitHub Actions)
 - Add `pytest tests/test_edd.py --run-edd` step to CI workflow
 - Requires `ANTHROPIC_API_KEY` + `MOTHERDUCK_TOKEN` + `OPIK_API_KEY` as GitHub secrets
-- Last v1.0 checklist item
 
-### 4. Data refresh pipeline
-- After scrape+embed: `huggingface-cli upload` lakehouse.duckdb → HF Dataset
-- Restart HF Space via `restart_space()` API
-- Consider automating as cron script
+### 3. HF_TOKEN in GitHub Secrets
+- deploy_job needs HF_TOKEN — add to repo secrets so CI can also trigger deploys
 
 ---
 

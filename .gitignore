@@ -45,6 +45,10 @@
 # Logs
 /ops/dagster_home/logs/
 /ops/dagster_home/storage/
+/ops/dagster_home_local/.telemetry/
+/ops/dagster_home_local/history/
+/ops/dagster_home_local/schedules/
+/ops/dagster_home_local/storage/
 /logs/
 .tmp_dagster_home*/
 

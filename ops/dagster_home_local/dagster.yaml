@@ -1,0 +1,15 @@
+# Local dagster_home for dagster-daemon running outside Docker.
+# Uses SQLite storage (no Postgres dependency).
+# Used by: ~/Library/LaunchAgents/com.football-rag.dagster-daemon.plist
+
+scheduler:
+  module: dagster.core.scheduler
+  class: DagsterDaemonScheduler
+
+run_coordinator:
+  module: dagster.core.run_coordinator
+  class: DefaultRunCoordinator
+
+run_launcher:
+  module: dagster.core.launcher
+  class: DefaultRunLauncher

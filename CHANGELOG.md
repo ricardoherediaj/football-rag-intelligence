@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Phase 4a] — 2026-02-26 — Hybrid Pipeline Automation (COMPLETE)
+
 ### Added
+- `orchestration/assets/hf_deploy_assets.py` — two new Dagster assets:
+  - `hf_lakehouse_upload`: uploads `lakehouse.duckdb` to HF Dataset `rheredia8/football-rag-data` after every pipeline run
+  - `hf_space_restart`: triggers HF Space restart so the public app reloads fresh embeddings
+- `deploy_job` in `orchestration/schedules.py` — Dagster job selecting both deploy assets
+- `post_transform_deploy_sensor` — auto-triggers `deploy_job` after `transform_job` succeeds
+- `ops/dagster_home_local/dagster.yaml` — local Dagster home config (SQLite, no Docker/Postgres dependency)
+- `ops/start_dagster_daemon.sh` — wrapper script that loads `.env` vars and launches `dagster-daemon`
+- `~/Library/LaunchAgents/com.football-rag.dagster-daemon.plist` — macOS LaunchAgent that auto-starts daemon on login
+
+### Changed
+- `orchestration/defs.py` — registered `hf_deploy_assets` module, `deploy_job`, and `post_transform_deploy_sensor`
+- `orchestration/schedules.py` — added `deploy_job` and `post_transform_deploy_sensor`
+
+### Verified
+- `from orchestration.defs import defs` loads cleanly: 12 assets, 3 jobs, 2 sensors
+- `launchctl list | grep football-rag` shows stable PID (daemon running, not restarting)
+- Full automated chain: Schedule → `scrape_and_load_job` → [sensor] `transform_job` → [sensor] `deploy_job`
+
+### Previously (BYOK, now part of Phase 3b)
 - BYOK (Bring Your Own Key) sidebar: password-masked API key input, per-session rate limiting (5 free queries), privacy notice
 - `api_key` parameter wired through `orchestrator.query()` → `FootballRAGPipeline` → `generate_with_llm()`
 
