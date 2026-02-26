@@ -9,6 +9,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
+pytestmark = pytest.mark.local_data  # requires lakehouse.duckdb on disk
+
 # Paths
 PROJECT_ROOT = Path(__file__).parents[1]
 DUCKDB_PATH = PROJECT_ROOT / "data" / "lakehouse.duckdb"
@@ -86,14 +88,22 @@ class TestSilverLayer:
         """).fetchall()
 
         col_names = [c[0] for c in columns]
-        required = ['match_id', 'type_display_name', 'x', 'y', 'outcome_type_display_name']
+        required = [
+            "match_id",
+            "type_display_name",
+            "x",
+            "y",
+            "outcome_type_display_name",
+        ]
 
         for col in required:
             assert col in col_names, f"Missing required column: {col}"
 
     def test_silver_team_metrics_exist(self, db):
         """Team metrics should have tactical data."""
-        count = db.execute("SELECT COUNT(*) FROM main_main.silver_team_metrics").fetchone()[0]
+        count = db.execute(
+            "SELECT COUNT(*) FROM main_main.silver_team_metrics"
+        ).fetchone()[0]
         assert count >= 378, f"Expected ≥378 team metrics, got {count}"
 
         # Check metrics are not null
@@ -114,7 +124,9 @@ class TestGoldLayer:
 
     def test_gold_match_summaries_count(self, db):
         """Gold layer should have match summaries (count grows as pipeline runs)."""
-        count = db.execute("SELECT COUNT(*) FROM main_main.gold_match_summaries").fetchone()[0]
+        count = db.execute(
+            "SELECT COUNT(*) FROM main_main.gold_match_summaries"
+        ).fetchone()[0]
         assert count >= 188, f"Expected ≥188 gold summaries, got {count}"
 
     def test_gold_match_summaries_completeness(self, db):
@@ -152,10 +164,16 @@ class TestEmbeddingsLayer:
 
     def test_embeddings_count_matches_gold(self, db):
         """Embeddings count should match gold layer count."""
-        gold_count = db.execute("SELECT COUNT(*) FROM main_main.gold_match_summaries").fetchone()[0]
-        emb_count = db.execute("SELECT COUNT(*) FROM main.gold_match_embeddings").fetchone()[0]
+        gold_count = db.execute(
+            "SELECT COUNT(*) FROM main_main.gold_match_summaries"
+        ).fetchone()[0]
+        emb_count = db.execute(
+            "SELECT COUNT(*) FROM main.gold_match_embeddings"
+        ).fetchone()[0]
 
-        assert emb_count == gold_count, f"Embeddings ({emb_count}) != Gold ({gold_count})"
+        assert emb_count == gold_count, (
+            f"Embeddings ({emb_count}) != Gold ({gold_count})"
+        )
 
     def test_embeddings_structure(self, db):
         """Embeddings should have correct structure."""
@@ -168,7 +186,9 @@ class TestEmbeddingsLayer:
         assert sample is not None, "No embeddings found"
         assert sample[0] is not None, "Match ID is null"
         assert sample[1] is not None, "Embedding is null"
-        assert len(sample[1]) == 768, f"Embedding should be 768-dim, got {len(sample[1])}"
+        assert len(sample[1]) == 768, (
+            f"Embedding should be 768-dim, got {len(sample[1])}"
+        )
         assert sample[2] is not None, "Summary text is null"
         assert len(sample[2]) > 50, "Summary text too short"
 
@@ -186,11 +206,14 @@ class TestEmbeddingsLayer:
         assert sample is not None, "No embeddings to test with"
 
         # Test array_distance function works
-        results = db.execute("""
+        results = db.execute(
+            """
             SELECT COUNT(*)
             FROM main.gold_match_embeddings
             WHERE array_distance(embedding, ?::FLOAT[768]) < 2.0
-        """, [sample[0]]).fetchone()[0]
+        """,
+            [sample[0]],
+        ).fetchone()[0]
 
         assert results > 0, "Vector search returned no results"
 

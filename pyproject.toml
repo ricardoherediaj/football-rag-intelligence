@@ -56,11 +56,17 @@ packages = ["src/football_rag"]
 
 [tool.pytest.ini_options]
 markers = [
+    "unit: pure logic, no I/O, no browser, no local files — always runs in CI",
+    "integration: requires browser (Playwright) or live network — local only",
+    "local_data: requires lakehouse.duckdb or MinIO on disk — local only",
     "edd: EDD evaluation suite — requires --run-edd flag and live LLM access",
 ]
+addopts = "-m 'not integration and not local_data and not edd'"
 
 [dependency-groups]
 dev = [
+    "detect-secrets>=1.5.0",
+    "pre-commit>=4.5.1",
     "pytest>=8.4.2",
     "pytest-asyncio>=0.23.0",
     "pytest-playwright>=0.4.0",

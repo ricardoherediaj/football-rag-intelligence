@@ -11,10 +11,13 @@ from pathlib import Path
 import duckdb
 import pytest
 
+pytestmark = pytest.mark.local_data  # requires data/raw/ JSON files on disk
+
 
 def _sanitize_json(raw: str) -> str:
     """Replace NaN with null so DuckDB can parse the JSON."""
     return raw.replace(": NaN", ": null").replace(":NaN", ":null")
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -38,8 +41,7 @@ def db_path(tmp_path_factory) -> Path:
 
     # Bronze
     db.execute(
-        "CREATE TABLE bronze_matches "
-        "(match_id VARCHAR, source VARCHAR, data JSON)"
+        "CREATE TABLE bronze_matches (match_id VARCHAR, source VARCHAR, data JSON)"
     )
 
     for json_file in RAW_WS_DIR.rglob("*.json"):
@@ -256,8 +258,15 @@ class TestSilverEvents:
         ]
         db.close()
         required = [
-            "match_id", "event_type", "player_id", "team_id",
-            "x", "y", "minute", "is_shot", "is_goal",
+            "match_id",
+            "event_type",
+            "player_id",
+            "team_id",
+            "x",
+            "y",
+            "minute",
+            "is_shot",
+            "is_goal",
         ]
         for col in required:
             assert col in cols, f"Missing column: {col}"
@@ -278,12 +287,8 @@ class TestSilverEvents:
     def test_silver_events_minutes_reasonable(self, db_path: Path):
         """Match minutes should be between 0 and ~130 (extra time)."""
         db = duckdb.connect(str(db_path))
-        max_min = db.execute(
-            "SELECT MAX(minute) FROM silver_events"
-        ).fetchone()[0]
-        min_min = db.execute(
-            "SELECT MIN(minute) FROM silver_events"
-        ).fetchone()[0]
+        max_min = db.execute("SELECT MAX(minute) FROM silver_events").fetchone()[0]
+        min_min = db.execute("SELECT MIN(minute) FROM silver_events").fetchone()[0]
         db.close()
         assert min_min >= 0
         assert max_min <= 130, f"Max minute {max_min} > 130"
@@ -306,8 +311,7 @@ class TestSilverEvents:
         """Each match should have between 500 and 2500 events."""
         db = duckdb.connect(str(db_path))
         results = db.execute(
-            "SELECT match_id, COUNT(*) AS cnt "
-            "FROM silver_events GROUP BY match_id"
+            "SELECT match_id, COUNT(*) AS cnt FROM silver_events GROUP BY match_id"
         ).fetchall()
         db.close()
         for match_id, cnt in results:

@@ -13,12 +13,12 @@
 ### Pipeline Status
 | Layer | Status | Count |
 |---|---|---|
-| Bronze | ✅ | 412 matches in MinIO + MotherDuck |
-| Match Mapping | ✅ | 205/205 (100% coverage) |
+| Bronze | ✅ | 430 matches in MinIO + MotherDuck |
+| Match Mapping | ✅ | 214/214 (100% coverage) |
 | dbt Silver | ✅ | 279,104 events, 378 team performances |
-| dbt Gold | ✅ | 205 match summaries in MotherDuck |
+| dbt Gold | ✅ | 214 match summaries in MotherDuck |
 | GitHub Actions | ✅ | `dbt run --target prod` → PASS=3 in CI |
-| Embeddings | ✅ | 205 match embeddings, 768-dim HNSW index |
+| Embeddings | ✅ | 214 match embeddings, 768-dim HNSW index |
 | RAG Engine | ✅ | DuckDB VSS, orchestrator wired, viz dispatch working |
 | Observability | ✅ | `@opik.track` on orchestrator + rag_pipeline + generate |
 | EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
@@ -82,4 +82,25 @@ Full session logs in engineering diary:
 - [2026-02-22](docs/engineering_diary/2026-02-22-phase3a-opik-edd.md) — Phase 3a complete: Opik + EDD
 - [2026-02-23](docs/engineering_diary/2026-02-23-phase3b-streamlit-deploy.md) — Phase 3b complete: Streamlit + HF deploy
 
-**Last Updated**: 2026-02-24
+**Last Updated**: 2026-02-26
+
+---
+
+## Dagster Daemon Gotchas (critical)
+- workspace.yaml MUST be in DAGSTER_HOME (symlink to root works)
+- Use python_module + working_directory (NOT python_file with relative path)
+- dagster job execute = in-process, invisible to daemon, sensors DO NOT fire
+- dagster job launch = registered in SQLite, daemon picks up, sensors fire
+
+## Key fixes 2026-02-26
+- WhoScored stale-counter: empty_weeks counts only calendar pages with zero matches total
+- workspace.yaml in DAGSTER_HOME: daemon gRPC resolves code locations
+- HF_TOKEN in .env: deploy_job works from daemon subprocess
+- Pipeline status: 430 bronze, 214/214 mapped, 214 embeddings, HF Space updated
+
+## Next TODO
+1. Test markers: @pytest.mark.integration + @pytest.mark.local_data in conftest.py
+2. pre-commit: ruff + detect-secrets + sqlfluff (duckdb dialect)
+3. Separate CI jobs: lint / unit-tests / type-check
+4. Prompt v4.0_tactical: improve tactical_insight (currently 0.91)
+5. EDD in CI: workflow_dispatch gated job
