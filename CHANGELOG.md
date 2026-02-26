@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [MLOps Foundation] — 2026-02-27 — Developer Experience Hardening (COMPLETE)
+
+### Added
+- `tests/conftest.py` — `pytest_addoption` + `pytest_collection_modifyitems`: skip-gated test tiers with `--run-integration`, `--run-local-data`, `--run-edd` flags
+- `[tool.pytest.ini_options]` in `pyproject.toml` — four markers (`unit`, `integration`, `local_data`, `edd`) + `addopts = "-m 'not integration and not local_data and not edd'"` so CI runs unit tests by default without any `--ignore` lists
+- `.pre-commit-config.yaml` — ruff + ruff-format auto-fix, check-merge-conflict, debug-statements, detect-private-key, check-added-large-files (500KB), trailing-whitespace (excluding docs/)
+- `.secrets.baseline` — 489-line detect-secrets scan baseline (11 false-positives in archive/); re-enabled `detect-secrets` hook
+- `.claude/skills/release/SKILL.md` — CalVer + Phase versioning ceremony: CHANGELOG → annotated tag → `gh release create`
+- `.claude/skills/health-check/SKILL.md` — 6-layer system health table: daemon + MinIO + CI + HF Space + MotherDuck row counts + embeddings
+- `docs/engineering_diary/2026-02-27-mlops-foundation.md` — this session's diary
+
+### Changed
+- `.github/workflows/matchday_pipeline.yml` — split into `lint` (ruff check + format) + `unit-tests` (needs: lint) jobs; removed `--ignore` flag workarounds
+- `tests/test_whoscored_scraper.py` — `@pytest.mark.integration` on browser test; unit tests remain untagged → run in CI
+- `tests/test_fotmob_scraper.py` — replaced `@pytest.mark.skip` with `@pytest.mark.integration`
+- `tests/test_phase1_pipeline.py` — `pytestmark = pytest.mark.local_data` (whole file)
+- `tests/test_duckdb_pipeline.py` — `pytestmark = pytest.mark.local_data` (whole file)
+
+### Verified
+- `uv run pytest`: 17 passed, 62 deselected (markers), 0 failed
+- All pre-commit hooks: Passed (ruff, format, merge-conflict, debug, private-key, large-files, whitespace, detect-secrets)
+- CI: lint ✅ + unit-tests ✅ on `main`
+
 ## [Phase 4a] — 2026-02-26 — Hybrid Pipeline Automation (COMPLETE)
 
 ### Added
