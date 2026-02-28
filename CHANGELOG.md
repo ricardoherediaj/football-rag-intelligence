@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [Metric Audit + v4.1 Scout] — 2026-02-28 — Bug Fixes, Migration, Recalibration (COMPLETE)
+## [v0.4.0] — 2026-03-01 — Phase 4a Complete: Pipeline Automation + Wordalisation + Metric Audit
+
+### Metric Audit + v4.1 Scout (2026-02-28)
 
 ### Fixed
 - `count_progressive_passes`: goal coordinates (105,34)→(100,50) to match WhoScored 0-100 system; threshold 9.11→8.68
