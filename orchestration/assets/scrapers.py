@@ -4,8 +4,14 @@ from typing import Optional
 
 from dagster import asset, AssetExecutionContext, Config
 
-from football_rag.data.whoscored_scraper import scrape_complete_season_async, save_matches_locally
-from football_rag.data.fotmob_scraper import scrape_fotmob_season, save_fotmob_matches_locally
+from football_rag.data.whoscored_scraper import (
+    scrape_complete_season_async,
+    save_matches_locally,
+)
+from football_rag.data.fotmob_scraper import (
+    scrape_fotmob_season,
+    save_fotmob_matches_locally,
+)
 from football_rag.storage.minio_client import MinIOClient, DEFAULT_BUCKET
 
 
@@ -37,7 +43,9 @@ async def whoscored_match_data(context: AssetExecutionContext, config: ScraperCo
       - mode: 'incremental', 'full', 'recent', 'n_matches'
       - limit: Number of matches (for 'n_matches')
     """
-    context.log.info(f"Starting WhoScored scrape (Mode: {config.mode}, Limit: {config.limit})...")
+    context.log.info(
+        f"Starting WhoScored scrape (Mode: {config.mode}, Limit: {config.limit})..."
+    )
 
     df = await scrape_complete_season_async(mode=config.mode, limit=config.limit)
 
@@ -63,7 +71,9 @@ async def fotmob_match_data(context: AssetExecutionContext, config: ScraperConfi
       - mode: 'incremental', 'full', 'recent', 'n_matches'
       - limit: Number of matches (for 'n_matches')
     """
-    context.log.info(f"Starting Fotmob scrape (Mode: {config.mode}, Limit: {config.limit})...")
+    context.log.info(
+        f"Starting Fotmob scrape (Mode: {config.mode}, Limit: {config.limit})..."
+    )
 
     matches = await scrape_fotmob_season(mode=config.mode, limit=config.limit)
 

@@ -1,10 +1,12 @@
 """Configuration settings for the application."""
+
 import os
 from dataclasses import dataclass
 
 # Try to load .env manually if not loaded
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass

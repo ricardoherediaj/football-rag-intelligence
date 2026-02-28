@@ -63,9 +63,7 @@ with st.sidebar:
 # Header
 # ---------------------------------------------------------------------------
 st.title("⚽ Football RAG Intelligence")
-st.caption(
-    "Eredivisie 2025-26 · 205 matches · Grounded by real event data"
-)
+st.caption("Eredivisie 2025-26 · 205 matches · Grounded by real event data")
 
 st.markdown(
     """
@@ -140,6 +138,4 @@ if submit and user_query.strip():
 # Footer
 # ---------------------------------------------------------------------------
 st.divider()
-st.caption(
-    "Powered by DuckDB VSS · MotherDuck · Anthropic Claude · Opik observability"
-)
+st.caption("Powered by DuckDB VSS · MotherDuck · Anthropic Claude · Opik observability")

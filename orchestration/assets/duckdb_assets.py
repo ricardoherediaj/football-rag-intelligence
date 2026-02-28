@@ -58,9 +58,7 @@ def _load_matches_into(db: duckdb.DuckDBPyConnection, client: MinIOClient) -> in
 
 
 @asset(compute_kind="python")
-def raw_matches_bronze(
-    context: AssetExecutionContext, config: DuckDBConfig
-) -> int:
+def raw_matches_bronze(context: AssetExecutionContext, config: DuckDBConfig) -> int:
     """Load raw JSON from MinIO into DuckDB bronze_matches (idempotent).
 
     Writes to local lakehouse.duckdb always. If MOTHERDUCK_TOKEN is set,
@@ -76,9 +74,7 @@ def raw_matches_bronze(
     # Sync to MotherDuck if token is available (enables cloud CI)
     motherduck_token = os.getenv("MOTHERDUCK_TOKEN")
     if motherduck_token:
-        md_db = duckdb.connect(
-            f"md:football_rag?motherduck_token={motherduck_token}"
-        )
+        md_db = duckdb.connect(f"md:football_rag?motherduck_token={motherduck_token}")
         _load_matches_into(md_db, client)
         md_db.close()
         context.log.info(f"Bronze: synced {count} matches to MotherDuck")

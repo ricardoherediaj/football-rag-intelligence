@@ -45,7 +45,9 @@ def query(
     # Viz path — identify match first, then render
     match_ctx = pipeline._identify_match(user_query)
     if not match_ctx:
-        return {"error": "Could not identify match for visualization. Please mention team names."}
+        return {
+            "error": "Could not identify match for visualization. Please mention team names."
+        }
 
     tool = intent["tool"]
     viz_type = intent["viz_type"]
@@ -60,7 +62,9 @@ def query(
             )
         elif tool == "generate_team_viz":
             team_name = _extract_team(user_query, match_ctx)
-            chart_path = viz_tools.generate_team_viz(match_ctx.match_id, team_name, viz_type)
+            chart_path = viz_tools.generate_team_viz(
+                match_ctx.match_id, team_name, viz_type
+            )
         elif tool == "generate_match_viz":
             chart_path = viz_tools.generate_match_viz(match_ctx.match_id, viz_type)
         else:
