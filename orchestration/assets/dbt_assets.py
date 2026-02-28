@@ -1,4 +1,5 @@
 """dbt transformation assets orchestrated by Dagster."""
+
 import subprocess
 from pathlib import Path
 
@@ -13,9 +14,9 @@ DBT_PROJECT_DIR = Path(__file__).parents[2] / "dbt_project"
     group_name="transformations",
 )
 def dbt_silver_models(context: AssetExecutionContext) -> None:
-    """Run dbt Silver layer transformations (silver_events, silver_team_metrics)."""
+    """Run dbt Silver layer transformations (silver_events only)."""
     result = subprocess.run(
-        ["uv", "run", "dbt", "run", "--select", "silver.*"],
+        ["uv", "run", "dbt", "run", "--select", "silver_events"],
         cwd=DBT_PROJECT_DIR,
         capture_output=True,
         text=True,
@@ -30,7 +31,7 @@ def dbt_silver_models(context: AssetExecutionContext) -> None:
 
 
 @asset(
-    deps=["dbt_silver_models"],
+    deps=["dbt_silver_models", "silver_team_metrics"],
     compute_kind="dbt",
     group_name="transformations",
 )

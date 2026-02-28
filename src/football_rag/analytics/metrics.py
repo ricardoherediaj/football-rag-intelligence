@@ -141,6 +141,19 @@ def calculate_all_metrics(
         ]
     )
 
+    home_goals = len(
+        events_df[
+            (events_df["team_id"] == home_team_id)
+            & (events_df["type_display_name"] == "Goal")
+        ]
+    )
+    away_goals = len(
+        events_df[
+            (events_df["team_id"] == away_team_id)
+            & (events_df["type_display_name"] == "Goal")
+        ]
+    )
+
     return {
         # Passing & Progression
         "home_progressive_passes": home_pp,
@@ -169,6 +182,8 @@ def calculate_all_metrics(
         "away_xg": round(away_xg, 2),
         "home_shots_on_target": home_sot,
         "away_shots_on_target": away_sot,
+        "home_goals": home_goals,
+        "away_goals": away_goals,
         # Positioning
         "home_position": home_pos,
         "away_position": away_pos,
@@ -201,16 +216,18 @@ def count_progressive_passes(df: pd.DataFrame, team_id: int) -> int:
     if len(team_passes) == 0:
         return 0
 
-    # Calculate distance to goal before and after pass
+    # Calculate distance to goal before and after pass.
+    # WhoScored coordinate system: 0-100 × 0-100 (goal at x=100, y=50).
+    # Threshold scaled from UEFA 9.11m × (100/105) ≈ 8.68 WhoScored units.
     team_passes["dist_before"] = np.sqrt(
-        (105 - team_passes["x"]) ** 2 + (34 - team_passes["y"]) ** 2
+        (100 - team_passes["x"]) ** 2 + (50 - team_passes["y"]) ** 2
     )
     team_passes["dist_after"] = np.sqrt(
-        (105 - team_passes["end_x"]) ** 2 + (34 - team_passes["end_y"]) ** 2
+        (100 - team_passes["end_x"]) ** 2 + (50 - team_passes["end_y"]) ** 2
     )
     team_passes["progression"] = team_passes["dist_before"] - team_passes["dist_after"]
 
-    return len(team_passes[team_passes["progression"] >= 9.11])
+    return len(team_passes[team_passes["progression"] >= 8.68])
 
 
 def calculate_pass_accuracy(df: pd.DataFrame, team_id: int) -> float:
@@ -365,7 +382,8 @@ def calculate_compactness(defense_line: float, forward_line: float) -> float:
     if forward_line <= defense_line:
         return 100.0
 
-    return round((1 - ((forward_line - defense_line) / 120)) * 100, 2)
+    # WhoScored field length is 100 units (not StatsBomb's 120).
+    return round((1 - ((forward_line - defense_line) / 100)) * 100, 2)
 
 
 def calculate_field_tilt(
@@ -393,9 +411,11 @@ def calculate_field_tilt(
 def classify_metrics(metrics: dict) -> dict:
     """Translate raw metric values into qualitative football labels (Wordalisation).
 
-    Converts numerical metrics into English descriptive labels before passing to the LLM.
-    The LLM receives labels only — never raw numbers. This produces football language,
-    not data recitation.
+    Converts numerical metrics into descriptive labels that describe *what the team
+    did* in context — not catch-all terms. Labels follow the PMDS principle: describe
+    Position, Moment, Direction, Speed of team actions rather than vague adjectives.
+
+    Thresholds calibrated from Eredivisie 2024-25 real distributions (p25/p75).
 
     Args:
         metrics: Dict of raw metric values (output of calculate_all_metrics or
@@ -405,68 +425,93 @@ def classify_metrics(metrics: dict) -> dict:
         Flat dict of string labels suitable for prompt template interpolation.
     """
 
+    # --- Pressing & defensive approach (PPDA: lower = more aggressive) ---
+    # Eredivisie: p25=6.0, p50=7.4, p75=9.2
     def _press_style(ppda: float) -> str:
-        if ppda < 3.5:
-            return "high_press_intensity"
-        if ppda <= 5.5:
-            return "mid_block_press"
-        return "low_block"
+        if ppda <= 6.0:
+            return "pressed_aggressively_allowing_few_passes"
+        if ppda <= 9.2:
+            return "moderate_press_in_mid_block"
+        return "sat_deep_with_minimal_pressing"
 
+    # High press actions in final third: p25=5, p50=6, p75=8
     def _high_press_label(count: float) -> str:
-        if count > 5:
-            return "sustained_high_press"
-        if count >= 2:
-            return "occasional_high_press"
-        return "no_high_press"
+        if count >= 8:
+            return "pressed_frequently_in_opponent_third"
+        if count >= 5:
+            return "occasional_pressing_triggers_high_up"
+        return "rarely_engaged_in_opponent_third"
 
+    # --- Attacking output ---
     def _goal_efficiency(xg: float, score: int) -> str:
         if xg <= 0:
-            return "no_clear_chances"
+            return "created_no_clear_chances"
         if xg > score * 2:
-            return "major_wastefulness"
+            return "wasted_chances_repeatedly"
         if xg > score * 1.3:
-            return "slight_underperformance"
+            return "slightly_wasteful_in_front_of_goal"
         if score > xg * 1.5:
-            return "clinical_finishing"
-        return "normal_conversion"
+            return "clinical_finishing_from_limited_chances"
+        return "converted_at_expected_rate"
 
+    # Shots: p25=12, p50=16, p75=20
     def _shot_volume(shots: float) -> str:
-        if shots > 20:
-            return "high_shot_volume"
+        if shots >= 20:
+            return "generated_high_shot_volume"
         if shots >= 12:
-            return "normal_volume"
-        return "limited_chances"
+            return "created_regular_attempts"
+        return "struggled_to_create_shooting_opportunities"
 
     def _shot_quality(xg: float, shots: float) -> str:
         if shots == 0:
-            return "no_shots"
+            return "no_shots_attempted"
         xg_per_shot = xg / shots
         if xg_per_shot > 0.15:
-            return "high_quality_chances"
+            return "found_high_quality_chances_close_to_goal"
         if xg_per_shot >= 0.08:
-            return "average_quality"
-        return "low_quality_shots"
+            return "mixed_shot_quality"
+        return "forced_shots_from_difficult_positions"
 
+    # --- Territorial & positional shape ---
+    # Median position: p25=43.6, p50=47.4, p75=54.0
     def _field_position(pos: float) -> str:
-        if pos > 55:
-            return "very_advanced"
-        if pos >= 45:
-            return "balanced"
-        return "deep_positioning"
+        if pos >= 54.0:
+            return "operated_high_up_the_pitch"
+        if pos >= 43.6:
+            return "held_a_central_position_on_the_pitch"
+        return "sat_deep_in_own_half"
 
+    # Defense line (p25 of def actions): p25=9.4, p50=11.1, p75=13.5
     def _defensive_line(def_line: float) -> str:
-        if def_line > 15:
-            return "high_line"
-        if def_line >= 10:
-            return "mid_line"
-        return "deep_block"
+        if def_line >= 13.5:
+            return "defended_with_a_high_line"
+        if def_line >= 9.4:
+            return "held_a_mid_block_defensive_shape"
+        return "dropped_into_a_deep_block"
 
+    # Compactness: p25=33.0, p50=35.8, p75=38.0
+    def _compactness(compact: float) -> str:
+        if compact >= 38.0:
+            return "stretched_shape_between_lines"
+        if compact >= 33.0:
+            return "compact_defensive_block"
+        return "very_narrow_distances_between_lines"
+
+    # Field tilt (final third touches): p25=46.5, p50=57.7, p75=67.9
+    def _field_tilt(tilt: float) -> str:
+        if tilt >= 67.9:
+            return "dominated_the_opponent_final_third"
+        if tilt >= 46.5:
+            return "shared_territorial_presence"
+        return "penned_back_in_own_half"
+
+    # Possession: data-driven
     def _possession_style(poss: float) -> str:
-        if poss > 58:
-            return "possession_dominance"
+        if poss >= 58:
+            return "controlled_possession_extensively"
         if poss >= 45:
-            return "balanced_possession"
-        return "direct_play"
+            return "shared_possession"
+        return "conceded_the_ball_played_without_it"
 
     # Extract values — supports both full keys (calculate_all_metrics)
     # and short keys (TacticalMetrics.to_prompt_variables)
@@ -487,22 +532,33 @@ def classify_metrics(metrics: dict) -> dict:
     home_poss = metrics.get("home_possession", 50.0)
     home_pp = metrics.get("home_progressive_passes", metrics.get("home_pp", 0))
     away_pp = metrics.get("away_progressive_passes", metrics.get("away_pp", 0))
+    home_compact = metrics.get("home_compactness", metrics.get("home_compact", 36.0))
+    away_compact = metrics.get("away_compactness", metrics.get("away_compact", 36.0))
+    home_tilt = metrics.get("home_field_tilt", metrics.get("home_tilt", 50.0))
+    away_tilt = metrics.get("away_field_tilt", metrics.get("away_tilt", 50.0))
 
     # Press dominance: which team pressed more intensely
     ppda_diff = home_ppda - away_ppda  # negative = home pressed harder
-    if abs(ppda_diff) > 1.5:
+    if abs(ppda_diff) > 2.0:
         press_dominance = (
-            "home_press_dominance" if ppda_diff < 0 else "away_press_dominance"
+            "home_pressed_harder_than_opponent"
+            if ppda_diff < 0
+            else "away_pressed_harder_than_opponent"
         )
     else:
-        press_dominance = "balanced_press"
+        press_dominance = "similar_pressing_intensity"
 
-    # Progression advantage
-    pp_diff = home_pp - away_pp
-    if abs(pp_diff) > 20:
-        progression_advantage = "home" if pp_diff > 0 else "away"
+    # Progression advantage: percentage-based (>15% relative difference)
+    avg_pp = (home_pp + away_pp) / 2 if (home_pp + away_pp) > 0 else 1
+    pp_diff_pct = abs(home_pp - away_pp) / avg_pp
+    if pp_diff_pct > 0.15:
+        progression_advantage = (
+            "home_progressed_the_ball_more_effectively"
+            if home_pp > away_pp
+            else "away_progressed_the_ball_more_effectively"
+        )
     else:
-        progression_advantage = "balanced"
+        progression_advantage = "similar_ball_progression"
 
     # Result fairness: did xG support the outcome?
     if home_score > away_score:
@@ -513,13 +569,13 @@ def classify_metrics(metrics: dict) -> dict:
         winner_xg, loser_xg = None, None
 
     if winner_xg is None:
-        result_fairness = "draw_fair"
+        result_fairness = "draw_reflected_the_balance_of_play"
     elif winner_xg >= loser_xg:
-        result_fairness = "deserved_result"
+        result_fairness = "result_supported_by_chances_created"
     elif loser_xg > winner_xg * 1.5:
-        result_fairness = "surprise_result"
+        result_fairness = "result_against_the_run_of_play"
     else:
-        result_fairness = "marginal_result"
+        result_fairness = "tight_margins_decided_the_outcome"
 
     return {
         "home_press_style": _press_style(home_ppda),
@@ -536,6 +592,10 @@ def classify_metrics(metrics: dict) -> dict:
         "away_field_position": _field_position(away_pos),
         "home_defensive_line": _defensive_line(home_def),
         "away_defensive_line": _defensive_line(away_def),
+        "home_compactness": _compactness(home_compact),
+        "away_compactness": _compactness(away_compact),
+        "home_territorial_dominance": _field_tilt(home_tilt),
+        "away_territorial_dominance": _field_tilt(away_tilt),
         "home_possession_style": _possession_style(home_poss),
         "result_fairness": result_fairness,
         "progression_advantage": progression_advantage,

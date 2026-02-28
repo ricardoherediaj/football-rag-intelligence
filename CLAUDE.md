@@ -160,7 +160,7 @@ Read lessons at session start. Check before repeating similar patterns.
 
 ## 9. Skills
 
-`/quick-test` · `/row-counts` · `/plan-status` · `/diary` · `/audit-structure` · `/code-review` · `/explain-code`
+`/session-brief` · `/quick-test` · `/row-counts` · `/plan-status` · `/diary` · `/audit-structure` · `/code-review` · `/explain-code`
 
 ---
 

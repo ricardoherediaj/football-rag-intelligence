@@ -37,6 +37,12 @@ _METRICS_COLS = [
     "away_position",
     "home_defense_line",
     "away_defense_line",
+    "home_compactness",
+    "away_compactness",
+    "home_field_tilt",
+    "away_field_tilt",
+    "home_possession",
+    "away_possession",
 ]
 
 
@@ -46,7 +52,7 @@ class FootballRAGPipeline:
         provider: str = "anthropic",
         api_key: Optional[str] = None,
         db_path: str = "data/lakehouse.duckdb",
-        prompt_version: str = "v4.0_tactical",
+        prompt_version: str = "v4.1_scout",
     ):
         """Initialize pipeline with DuckDB VSS access."""
         self.provider = provider
@@ -184,7 +190,10 @@ class FootballRAGPipeline:
                 away_total_xg        AS away_xg,
                 home_median_position AS home_position,
                 away_median_position AS away_position,
-                home_defense_line,       away_defense_line
+                home_defense_line,       away_defense_line,
+                home_compactness,        away_compactness,
+                home_field_tilt,         away_field_tilt,
+                home_possession,         away_possession
             FROM main_main.gold_match_summaries
             WHERE match_id = ?
             """,
