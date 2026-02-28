@@ -2,38 +2,48 @@
 Data Contract for Football RAG.
 Defines the 'Golden Schema' for match data processing.
 """
-from typing import Optional
+
 from pydantic import BaseModel, Field, validator
+
 
 class TeamMatchStats(BaseModel):
     """Strict schema for a single team's performance metrics in one match."""
+
     team_name: str
     team_id: int
-    
+
     # --- Passing & Progression ---
-    progressive_passes: int = Field(..., description="Passes moving ball ≥9.11m towards goal")
+    progressive_passes: int = Field(
+        ..., description="Passes moving ball ≥9.11m towards goal"
+    )
     total_passes: int
     pass_accuracy: float = Field(..., ge=0, le=100, description="Completion percentage")
-    verticality: float = Field(..., description="Percentage of forward movement in passing")
-    
+    verticality: float = Field(
+        ..., description="Percentage of forward movement in passing"
+    )
+
     # --- Defensive Pressure ---
     ppda: float = Field(..., description="Passes Per Defensive Action")
-    high_press_events: int = Field(..., description="Defensive actions in opp. final third")
+    high_press_events: int = Field(
+        ..., description="Defensive actions in opp. final third"
+    )
     defensive_actions: int
     tackles: int
     interceptions: int
-    
+
     # --- Attacking ---
     shots: int
     shots_on_target: int
     xg: float = Field(..., description="Expected Goals")
-    
+
     # --- Positioning ---
     median_position: float = Field(..., description="Average x-coordinate of touches")
     defense_line: float = Field(..., description="Average height of defensive actions")
     forward_line: float = Field(..., description="Average height of attacking actions")
-    compactness: float = Field(..., description="Distance between def and fwd lines (normalized)")
-    
+    compactness: float = Field(
+        ..., description="Distance between def and fwd lines (normalized)"
+    )
+
     # --- Match Context / Physical ---
     possession: float = Field(..., ge=0, le=100)
     field_tilt: float = Field(..., description="Share of final third possession")
@@ -41,34 +51,38 @@ class TeamMatchStats(BaseModel):
     aerials_won: int
     fouls: int
 
+
 class MatchMetadata(BaseModel):
     """Immutable identity data for the match."""
+
     match_id: str = Field(..., description="WhoScored Match ID")
     fotmob_id: str
     match_date: str
     season: str = "2025-2026"
     league: str = "eredivisie"
-    
+
     # Data Quality Flags
     has_tracking_data: bool = True
     has_fotmob_xg: bool = True
 
+
 class MatchProfile(BaseModel):
     """
-    The Golden Record. 
+    The Golden Record.
     This object represents a fully processed, validated match ready for RAG.
     """
+
     metadata: MatchMetadata
-    
+
     # Core Results
     home_score: int
     away_score: int
-    
+
     # Team Data (Nested for clean structure)
     home_team: TeamMatchStats
     away_team: TeamMatchStats
-    
-    @validator('home_score')
+
+    @validator("home_score")
     def validate_score_integrity(cls, v, values):
         """Sanity check: Score shouldn't be negative."""
         if v < 0:

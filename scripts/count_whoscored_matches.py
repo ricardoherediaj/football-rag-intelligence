@@ -25,11 +25,11 @@ async def main():
             match_urls = await collect_all_season_matches(page, exclude_match_ids=None, limit=None)
 
             print(f"\n✅ Found {len(match_urls)} finished matches on WhoScored")
-            print(f"📅 Season: August 2025 - February 2026")
+            print("📅 Season: August 2025 - February 2026")
 
             # Show sample
             if match_urls:
-                print(f"\n📋 Sample matches:")
+                print("\n📋 Sample matches:")
                 for url in match_urls[:3]:
                     print(f"  - {url}")
 

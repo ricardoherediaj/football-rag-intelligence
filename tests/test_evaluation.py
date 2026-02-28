@@ -229,7 +229,7 @@ def run_evaluation():
             print("   - Relevancy needs improvement")
 
     print(f"\nDataset: {len(TEST_QUERIES)} queries (5 with full RAG, 3 with LLM judge)")
-    print(f"Target: Hit@5 ≥ 60%, MRR ≥ 0.50, Faithfulness ≥ 70%, Relevancy ≥ 70%")
+    print("Target: Hit@5 ≥ 60%, MRR ≥ 0.50, Faithfulness ≥ 70%, Relevancy ≥ 70%")
     print("=" * 60)
 
     return {

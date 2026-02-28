@@ -18,7 +18,7 @@ def check_data_status():
         print(f"\n✅ WhoScored: {len(whoscored_files)} matches")
         print(f"   Location: {whoscored_dir}")
     else:
-        print(f"\n❌ WhoScored: No data found")
+        print("\n❌ WhoScored: No data found")
         print(f"   Expected: {whoscored_dir}")
 
     # Check Fotmob matches
@@ -36,23 +36,23 @@ def check_data_status():
             print(f"\n   Sample match: {data.get('home_team')} vs {data.get('away_team')}")
             print(f"   Shots: {len(data.get('shots', []))}")
     else:
-        print(f"\n❌ Fotmob: No data found")
+        print("\n❌ Fotmob: No data found")
         print(f"   Expected: {fotmob_dir}")
 
     # Check legacy CSV/JSON files
     legacy_csv = Path("data/raw/eredivisie_2025_2026_whoscored.csv")
     legacy_json = Path("data/raw/eredivisie_2025_2026_fotmob.json")
 
-    print(f"\n📁 Legacy files:")
+    print("\n📁 Legacy files:")
     if legacy_csv.exists():
         print(f"   ✅ WhoScored CSV: {legacy_csv.stat().st_size / 1024 / 1024:.1f}MB")
     else:
-        print(f"   ❌ WhoScored CSV: Not found")
+        print("   ❌ WhoScored CSV: Not found")
 
     if legacy_json.exists():
         print(f"   ✅ Fotmob JSON: {legacy_json.stat().st_size / 1024 / 1024:.1f}MB")
     else:
-        print(f"   ❌ Fotmob JSON: Not found")
+        print("   ❌ Fotmob JSON: Not found")
 
     print("\n" + "=" * 60)
 

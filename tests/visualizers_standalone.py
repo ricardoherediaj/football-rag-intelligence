@@ -25,10 +25,8 @@ from visualizers import (
     calculate_team_metrics,
     plot_enhanced_network,
     calculate_player_defensive_positions,
-    plot_shot_map_with_stats,
     plot_xt_momentum,
     calculate_match_stats,
-    plot_match_stats_styled,
     filter_defensive_actions,
     defensive_block,
     draw_progressive_pass_map
@@ -200,7 +198,7 @@ def test_passing_network(df_events, team_id, team_players, player_names, team_na
 def test_shot_map(fotmob_shots, team_ids, team_names, output_file):
     """Test shot map visualization."""
     try:
-        print(f"\nTesting shot map...")
+        print("\nTesting shot map...")
 
         if len(fotmob_shots) == 0:
             print("  ⚠ No shot data available")
@@ -280,7 +278,7 @@ def test_defensive_heatmap(df_events, team_id, team_players, player_names, team_
 def test_xt_momentum(df_events, xT_grid, output_file):
     """Test xT momentum visualization."""
     try:
-        print(f"\nTesting xT momentum...")
+        print("\nTesting xT momentum...")
 
         # Create team ID to name mapping
         team_id_to_name = {
@@ -313,7 +311,7 @@ def test_xt_momentum(df_events, xT_grid, output_file):
 
 def create_dashboard_match_report(df_events, team_ids, team_players, player_names, xT_grid, output_path, team_names, fotmob_shots):
     """Create professional 3x3 dashboard: full match report like notebook."""
-    print(f"\nCreating 3x3 dashboard match report...")
+    print("\nCreating 3x3 dashboard match report...")
 
     # Create 3x3 grid
     fig, axs = plt.subplots(3, 3, figsize=(24, 18), facecolor='#0e1117')
@@ -663,11 +661,11 @@ def test_full_match_report(df_events, team_ids, team_players, player_names, xT_g
             print("MATCH REPORT SUMMARY")
             print(f"{'='*60}")
             print(f"Match: {team_names[868]} vs {team_names[870]}")
-            print(f"✓ Generated 3x3 dashboard match report")
+            print("✓ Generated 3x3 dashboard match report")
             print(f"\nReport file: {composite_path}")
             return True
         else:
-            print(f"  ✗ Failed to generate dashboard")
+            print("  ✗ Failed to generate dashboard")
             return False
 
     except Exception as e:
@@ -770,7 +768,7 @@ def main():
     log_file = OUTPUT_DIR / "test_log.txt"
     with open(log_file, 'w') as f:
         f.write(f"Test run: {datetime.now()}\n")
-        f.write(f"Match: Heracles vs PEC Zwolle (1904034)\n\n")
+        f.write("Match: Heracles vs PEC Zwolle (1904034)\n\n")
         f.write("Results:\n")
         for test_name, passed in results.items():
             f.write(f"  {test_name}: {'PASS' if passed else 'FAIL'}\n")

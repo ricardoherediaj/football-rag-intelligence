@@ -5,10 +5,10 @@ import json
 import re
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional, Set
 
 import duckdb
-from dagster import AssetExecutionContext, Config, Output, asset
+from dagster import AssetExecutionContext, Output, asset
 
 from orchestration.assets.duckdb_assets import DuckDBConfig
 
@@ -26,11 +26,11 @@ def normalize_team_name(team_name: Optional[str]) -> str:
         return ""
     normalized = team_name.lower()
     # Remove common club abbreviations
-    normalized = re.sub(r'\b(fc|sc|ajax|psv|az)\b', '', normalized)
+    normalized = re.sub(r"\b(fc|sc|ajax|psv|az)\b", "", normalized)
     # Remove special characters
-    normalized = re.sub(r'[^\w\s]', '', normalized)
+    normalized = re.sub(r"[^\w\s]", "", normalized)
     # Normalize whitespace
-    normalized = re.sub(r'\s+', ' ', normalized).strip()
+    normalized = re.sub(r"\s+", " ", normalized).strip()
     return normalized
 
 
@@ -68,7 +68,7 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
     ws_team_map = {}
     with open(csv_path) as f:
         for row in csv.DictReader(f):
-            ws_team_map[int(row['whoscored_id'])] = row['team_name']
+            ws_team_map[int(row["whoscored_id"])] = row["team_name"]
     context.log.info(f"📊 Loaded {len(ws_team_map)} WhoScored team mappings")
 
     # Load FotMob matches from Bronze
@@ -101,12 +101,12 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
     fotmob_matches = db.execute(fotmob_query).fetchall()
     fotmob_data = [
         {
-            'match_id': str(row[0]),
-            'home_team': row[1],
-            'away_team': row[2],
-            'home_team_id': row[3],
-            'away_team_id': row[4],
-            'match_date': row[5] or ''
+            "match_id": str(row[0]),
+            "home_team": row[1],
+            "away_team": row[2],
+            "home_team_id": row[3],
+            "away_team_id": row[4],
+            "match_date": row[5] or "",
         }
         for row in fotmob_matches
         if row[1] and row[2]  # Filter out matches with missing team names
@@ -129,12 +129,14 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
 
     for ws_id, ws_data_json in ws_matches:
         ws_data = json.loads(ws_data_json)
-        events = ws_data.get('events', [])
+        events = ws_data.get("events", [])
 
         # Extract team IDs from events
-        ws_team_ids = {e['team_id'] for e in events if 'team_id' in e}
+        ws_team_ids = {e["team_id"] for e in events if "team_id" in e}
         if len(ws_team_ids) != 2:
-            context.log.warning(f"❌ {ws_id}: Expected 2 teams, found {len(ws_team_ids)}")
+            context.log.warning(
+                f"❌ {ws_id}: Expected 2 teams, found {len(ws_team_ids)}"
+            )
             continue
 
         # Convert to team names
@@ -147,8 +149,8 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
         # Find exact match in FotMob
         fm_match = None
         for fm in fotmob_data:
-            if {fm['home_team'], fm['away_team']} == ws_team_names:
-                if fm['match_id'] not in matched_fotmob:
+            if {fm["home_team"], fm["away_team"]} == ws_team_names:
+                if fm["match_id"] not in matched_fotmob:
                     fm_match = fm
                     break
 
@@ -158,24 +160,26 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
             for ws_tid in ws_team_ids:
                 name = ws_team_map[ws_tid]
                 team_id_map[str(ws_tid)] = (
-                    fm_match['home_team_id']
-                    if name == fm_match['home_team']
-                    else fm_match['away_team_id']
+                    fm_match["home_team_id"]
+                    if name == fm_match["home_team"]
+                    else fm_match["away_team_id"]
                 )
 
             mappings[str(ws_id)] = {
                 "whoscored_id": str(ws_id),
                 "whoscored_team_ids": sorted([int(tid) for tid in ws_team_ids]),
-                "fotmob_id": fm_match['match_id'],
-                "fotmob_home_team_id": fm_match['home_team_id'],
-                "fotmob_away_team_id": fm_match['away_team_id'],
+                "fotmob_id": fm_match["match_id"],
+                "fotmob_home_team_id": fm_match["home_team_id"],
+                "fotmob_away_team_id": fm_match["away_team_id"],
                 "ws_to_fotmob_team_mapping": team_id_map,
-                "home_team": fm_match['home_team'],
-                "away_team": fm_match['away_team'],
-                "match_date": fm_match['match_date']
+                "home_team": fm_match["home_team"],
+                "away_team": fm_match["away_team"],
+                "match_date": fm_match["match_date"],
             }
-            matched_fotmob.add(fm_match['match_id'])
-            context.log.info(f"✅ {ws_id}: {fm_match['home_team']} vs {fm_match['away_team']}")
+            matched_fotmob.add(fm_match["match_id"])
+            context.log.info(
+                f"✅ {ws_id}: {fm_match['home_team']} vs {fm_match['away_team']}"
+            )
 
     stage1_count = len(mappings)
     context.log.info(f"\n📊 Stage 1 complete: {stage1_count} exact matches")
@@ -187,17 +191,19 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
         for ws_id, ws_data_json in ws_matches
         if str(ws_id) not in mappings
     ]
-    unmapped_fm = [fm for fm in fotmob_data if fm['match_id'] not in matched_fotmob]
+    unmapped_fm = [fm for fm in fotmob_data if fm["match_id"] not in matched_fotmob]
 
-    context.log.info(f"🔍 Fuzzy matching {len(unmapped_ws)} unmapped WhoScored matches...")
+    context.log.info(
+        f"🔍 Fuzzy matching {len(unmapped_ws)} unmapped WhoScored matches..."
+    )
     fuzzy_threshold = 0.85
 
     for ws_id, ws_data_json in unmapped_ws:
         ws_data = json.loads(ws_data_json)
-        events = ws_data.get('events', [])
+        events = ws_data.get("events", [])
 
         # Extract team names
-        ws_team_ids = {e['team_id'] for e in events if 'team_id' in e}
+        ws_team_ids = {e["team_id"] for e in events if "team_id" in e}
         if len(ws_team_ids) != 2:
             continue
 
@@ -213,12 +219,12 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
         for fm in unmapped_fm:
             # Try both orientations
             score1 = (
-                calculate_similarity(ws_team_names[0], fm['home_team']) +
-                calculate_similarity(ws_team_names[1], fm['away_team'])
+                calculate_similarity(ws_team_names[0], fm["home_team"])
+                + calculate_similarity(ws_team_names[1], fm["away_team"])
             ) / 2
             score2 = (
-                calculate_similarity(ws_team_names[0], fm['away_team']) +
-                calculate_similarity(ws_team_names[1], fm['home_team'])
+                calculate_similarity(ws_team_names[0], fm["away_team"])
+                + calculate_similarity(ws_team_names[1], fm["home_team"])
             ) / 2
             final_score = max(score1, score2)
 
@@ -232,26 +238,27 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
             for ws_tid in ws_team_ids:
                 name = ws_team_map[ws_tid]
                 # Determine which FotMob team this maps to
-                home_sim = calculate_similarity(name, best_match['home_team'])
-                away_sim = calculate_similarity(name, best_match['away_team'])
+                home_sim = calculate_similarity(name, best_match["home_team"])
+                away_sim = calculate_similarity(name, best_match["away_team"])
                 team_id_map[str(ws_tid)] = (
-                    best_match['home_team_id'] if home_sim > away_sim
-                    else best_match['away_team_id']
+                    best_match["home_team_id"]
+                    if home_sim > away_sim
+                    else best_match["away_team_id"]
                 )
 
             mappings[str(ws_id)] = {
                 "whoscored_id": str(ws_id),
                 "whoscored_team_ids": sorted([int(tid) for tid in ws_team_ids]),
-                "fotmob_id": best_match['match_id'],
-                "fotmob_home_team_id": best_match['home_team_id'],
-                "fotmob_away_team_id": best_match['away_team_id'],
+                "fotmob_id": best_match["match_id"],
+                "fotmob_home_team_id": best_match["home_team_id"],
+                "fotmob_away_team_id": best_match["away_team_id"],
                 "ws_to_fotmob_team_mapping": team_id_map,
-                "home_team": best_match['home_team'],
-                "away_team": best_match['away_team'],
-                "match_date": best_match['match_date'],
-                "fuzzy_score": round(best_score, 3)
+                "home_team": best_match["home_team"],
+                "away_team": best_match["away_team"],
+                "match_date": best_match["match_date"],
+                "fuzzy_score": round(best_score, 3),
             }
-            matched_fotmob.add(best_match['match_id'])
+            matched_fotmob.add(best_match["match_id"])
             context.log.info(
                 f"✅ {ws_id}: {best_match['home_team']} vs {best_match['away_team']} "
                 f"(fuzzy score: {best_score:.3f})"
@@ -262,7 +269,7 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
 
     # Save to JSON file for dbt seed compatibility
     output_path = base_dir / "data" / "match_mapping.json"
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(mappings, f, indent=2)
     context.log.info(f"💾 Saved mapping to {output_path}")
 
@@ -284,19 +291,22 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
 
     # Insert mappings from Python dict
     for mapping in mappings.values():
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO match_mapping VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, [
-            mapping['whoscored_id'],
-            mapping['fotmob_id'],
-            mapping['whoscored_team_ids'][0],
-            mapping['whoscored_team_ids'][1],
-            mapping['fotmob_home_team_id'],
-            mapping['fotmob_away_team_id'],
-            mapping['home_team'],
-            mapping['away_team'],
-            mapping.get('match_date', '')
-        ])
+        """,
+            [
+                mapping["whoscored_id"],
+                mapping["fotmob_id"],
+                mapping["whoscored_team_ids"][0],
+                mapping["whoscored_team_ids"][1],
+                mapping["fotmob_home_team_id"],
+                mapping["fotmob_away_team_id"],
+                mapping["home_team"],
+                mapping["away_team"],
+                mapping.get("match_date", ""),
+            ],
+        )
 
     row_count = db.execute("SELECT COUNT(*) FROM match_mapping").fetchone()[0]
     context.log.info(f"✅ Created match_mapping table with {row_count} rows")
@@ -310,27 +320,31 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
 
     if unmapped_final:
         report_path = base_dir / "data" / "unmapped_matches_report.csv"
-        with open(report_path, 'w', newline='') as f:
+        with open(report_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(['whoscored_id', 'team_names', 'unmapped_count'])
+            writer.writerow(["whoscored_id", "team_names", "unmapped_count"])
             for ws_id, ws_data_json in unmapped_final:
                 ws_data = json.loads(ws_data_json)
-                events = ws_data.get('events', [])
-                ws_team_ids = {e['team_id'] for e in events if 'team_id' in e}
+                events = ws_data.get("events", [])
+                ws_team_ids = {e["team_id"] for e in events if "team_id" in e}
                 try:
                     team_names = [ws_team_map[tid] for tid in ws_team_ids]
-                    writer.writerow([ws_id, ' vs '.join(team_names), 1])
+                    writer.writerow([ws_id, " vs ".join(team_names), 1])
                 except KeyError:
-                    writer.writerow([ws_id, 'Unknown teams', 1])
+                    writer.writerow([ws_id, "Unknown teams", 1])
 
-        context.log.warning(f"⚠️  {len(unmapped_final)} matches unmapped (see {report_path})")
+        context.log.warning(
+            f"⚠️  {len(unmapped_final)} matches unmapped (see {report_path})"
+        )
 
     db.close()
 
     # Summary
     total_ws = len(ws_matches)
     coverage_pct = (row_count / total_ws * 100) if total_ws > 0 else 0
-    context.log.info(f"\n✅ Mapped {row_count}/{total_ws} matches ({coverage_pct:.1f}% coverage)")
+    context.log.info(
+        f"\n✅ Mapped {row_count}/{total_ws} matches ({coverage_pct:.1f}% coverage)"
+    )
     context.log.info(f"   - Stage 1 (exact): {stage1_count}")
     context.log.info(f"   - Stage 2 (fuzzy): {stage2_count}")
     context.log.info(f"   - Unmapped: {len(unmapped_final)}")
@@ -342,6 +356,6 @@ def match_mapping(context: AssetExecutionContext, config: DuckDBConfig) -> Outpu
             "stage1_exact": stage1_count,
             "stage2_fuzzy": stage2_count,
             "unmapped": len(unmapped_final),
-            "coverage_percent": round(coverage_pct, 1)
-        }
+            "coverage_percent": round(coverage_pct, 1),
+        },
     )

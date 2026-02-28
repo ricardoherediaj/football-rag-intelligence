@@ -94,7 +94,7 @@ def main():
     print("⚽ MINI BATCH EVALUATION")
     print("=" * 60)
     print(f"Test queries: {len(TEST_QUERIES)}")
-    print(f"Goal: Verify providers work before deployment")
+    print("Goal: Verify providers work before deployment")
     print("=" * 60)
 
     all_results = []

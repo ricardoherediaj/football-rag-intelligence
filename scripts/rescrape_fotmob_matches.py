@@ -3,7 +3,6 @@
 import asyncio
 import json
 from pathlib import Path
-from typing import List, Dict, Any
 
 from playwright.async_api import async_playwright
 
@@ -92,7 +91,7 @@ async def main():
 
     # Summary report
     print(f"\n{'='*60}")
-    print(f"📊 Re-scraping Summary")
+    print("📊 Re-scraping Summary")
     print(f"{'='*60}")
     print(f"✅ Successfully scraped: {success_count}/{len(targets)} matches")
     print(f"💾 Local files: {output_dir}")
@@ -110,9 +109,9 @@ async def main():
             json.dump(failed_matches, f, indent=2)
         print(f"\n📝 Failure report: {fail_report}")
 
-    print(f"\n✅ Re-scraping complete!")
-    print(f"Next step: Reload Bronze layer with:")
-    print(f"  uv run dagster asset materialize -m orchestration.defs --select raw_matches_bronze")
+    print("\n✅ Re-scraping complete!")
+    print("Next step: Reload Bronze layer with:")
+    print("  uv run dagster asset materialize -m orchestration.defs --select raw_matches_bronze")
 
 
 if __name__ == "__main__":

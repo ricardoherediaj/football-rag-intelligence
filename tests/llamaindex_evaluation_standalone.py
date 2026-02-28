@@ -9,7 +9,6 @@ import logging
 from typing import List, Tuple
 
 from llama_index.core.evaluation import RetrieverEvaluator
-from llama_index.core.schema import QueryBundle
 from llama_index.core.evaluation import EmbeddingQAFinetuneDataset
 
 from football_rag.models.rag_pipeline import RAGPipeline
@@ -111,7 +110,7 @@ async def run_llamaindex_evaluation(rag: RAGPipeline, dataset: EmbeddingQAFinetu
     hit_rate = sum(r.metric_vals_dict["hit_rate"] for r in eval_results) / len(eval_results)
     mrr = sum(r.metric_vals_dict["mrr"] for r in eval_results) / len(eval_results)
 
-    logger.info(f"LlamaIndex Evaluation Results:")
+    logger.info("LlamaIndex Evaluation Results:")
     logger.info(f"  Hit Rate@5: {hit_rate:.1%}")
     logger.info(f"  MRR: {mrr:.3f}")
 
@@ -133,17 +132,17 @@ def compare_with_baseline(llamaindex_metrics: dict, num_queries_evaluated: int):
     logger.info("COMPARISON: LlamaIndex vs Custom Baseline")
     logger.info("="*60)
 
-    logger.info(f"Dataset:")
-    logger.info(f"  Total queries:       10")
+    logger.info("Dataset:")
+    logger.info("  Total queries:       10")
     logger.info(f"  Evaluated queries:   {num_queries_evaluated} (queries with relevant docs)")
     logger.info(f"  Filtered out:        {10 - num_queries_evaluated} (no ground truth)")
 
-    logger.info(f"\nHit Rate@5:")
-    logger.info(f"  Custom (10q):     100.0%")
+    logger.info("\nHit Rate@5:")
+    logger.info("  Custom (10q):     100.0%")
     logger.info(f"  LlamaIndex ({num_queries_evaluated}q): {llamaindex_metrics['hit_rate']:.1%}")
 
-    logger.info(f"\nMRR:")
-    logger.info(f"  Custom (10q):     0.875")
+    logger.info("\nMRR:")
+    logger.info("  Custom (10q):     0.875")
     logger.info(f"  LlamaIndex ({num_queries_evaluated}q): {llamaindex_metrics['mrr']:.3f}")
 
     # Validation
