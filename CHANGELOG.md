@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Metric Audit + v4.1 Scout] — 2026-02-28 — Bug Fixes, Migration, Recalibration (COMPLETE)
+
+### Fixed
+- `count_progressive_passes`: goal coordinates (105,34)→(100,50) to match WhoScored 0-100 system; threshold 9.11→8.68
+- `calculate_compactness`: field length divisor 120→100 (WhoScored units, not StatsBomb)
+- Goals counting added to `calculate_all_metrics()` — was missing, caused NULL `home_goals`/`away_goals` in gold layer
+
+### Added
+- `orchestration/assets/metrics_assets.py` — Python Dagster asset replacing dbt `silver_team_metrics.sql` as single source of truth for metric calculations
+- `tests/test_metrics.py` — 20 unit tests + 3 local_data range guards covering all metric functions
+- `prompts/prompt_versions.yaml` — `v4.1_scout`: scout notebook style replacing editorial prose. Rules: 3 paragraphs, each sentence = one finding, banned rhetorical cliches
+- `classify_metrics()` — 3 new dimensions: compactness, territorial_dominance, possession_style
+- `TacticalMetrics` schema — 6 new fields (compactness, field_tilt, possession for home/away)
+
+### Changed
+- `classify_metrics()` — rewritten with Eredivisie p25/p75 data-driven thresholds + PMDS-informed descriptive labels (e.g. `"pressed_aggressively_allowing_few_passes"` replaces `"high_press_intensity"`)
+- `gold_match_summaries.sql` — `ref('silver_team_metrics')` → `source('football_rag', 'silver_team_metrics')`
+- `rag_pipeline.py` — default prompt version `v4.0_tactical` → `v4.1_scout`; SQL query + `_METRICS_COLS` updated for new columns
+- `dbt_assets.py` — `dbt_silver_models` select narrowed to `silver_events`; `dbt_gold_models` depends on `silver_team_metrics` Python asset
+- `schedules.py` — `silver_team_metrics` inserted into `transform_job` between dbt_silver and dbt_gold
+
+### Removed
+- `dbt_project/models/silver/silver_team_metrics.sql` — replaced by Python Dagster asset
+- `dbt_project/models/silver/schema.yml` — removed silver_team_metrics model block (174 lines)
+
+### Verified
+- 20/20 unit tests pass, pre-commit hooks pass
+- Pipeline: Python metrics asset (428 rows) → dbt gold (214 matches) → embeddings (214 vectors)
+- LLM smoke test: v4.1_scout output is dense scout-style prose, no rhetorical filler
+
 ## [Wordalisation v4.0] — 2026-02-28 — Football Language Pipeline (COMPLETE)
 
 ### Added
