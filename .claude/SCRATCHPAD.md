@@ -7,27 +7,29 @@
 
 ## Current State (2026-02-28)
 
-**Branch**: `main`
-**Status**: Wordalisation v4.0 COMPLETE — uncommitted changes staged, ready to commit
+**Branch**: `fix/metric-audit-and-migration` (PR #10 open)
+**Status**: Metric Audit + v4.1 Scout COMPLETE — committed, pushed, PR created
 
 ### Pipeline Status
 | Layer | Status | Count |
 |---|---|---|
 | Bronze | ✅ | 430 matches in MinIO + MotherDuck |
 | Match Mapping | ✅ | 214/214 (100% coverage) |
-| dbt Silver | ✅ | 279,104 events, 378 team performances |
+| dbt Silver | ✅ | 279,104 events (silver_events only — silver_team_metrics is now Python asset) |
+| **Python Metrics** | ✅ | **428 rows in main.silver_team_metrics (Dagster asset)** |
 | dbt Gold | ✅ | 214 match summaries in MotherDuck |
-| GitHub Actions | ✅ | lint + unit-tests jobs, 17 passed, 62 deselected |
+| GitHub Actions | ⏳ | PR #10 CI running |
 | Embeddings | ✅ | 214 match embeddings, 768-dim HNSW index |
 | RAG Engine | ✅ | DuckDB VSS, orchestrator wired, viz dispatch working |
 | Observability | ✅ | `@opik.track` on orchestrator + rag_pipeline + generate |
 | EDD Eval Harness | ✅ | 28 pytest tests, 4 scorers, 13-case golden dataset (v4) |
-| Wordalisation | ✅ | `classify_metrics()` + `v4.0_tactical` + football prose output |
-| **HF Spaces** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
-| **BYOK + Rate Limit** | ✅ | **5 free queries/session, unlimited with own API key** |
-| **Hybrid Automation** | ✅ | **dagster-daemon auto-starts at login via launchd** |
-| **HF Deploy Assets** | ✅ | **hf_lakehouse_upload + hf_space_restart in deploy_job** |
-| **MLOps Foundation** | ✅ | **pytest markers + pre-commit + detect-secrets + CI split + skills** |
+| Wordalisation | ✅ | **v4.1_scout — dense scout prose, PMDS labels, data-driven thresholds** |
+| HF Spaces | ✅ | Live at https://rheredia8-football-rag-intelligence.hf.space/ |
+| BYOK + Rate Limit | ✅ | 5 free queries/session, unlimited with own API key |
+| Hybrid Automation | ✅ | dagster-daemon auto-starts at login via launchd |
+| HF Deploy Assets | ✅ | hf_lakehouse_upload + hf_space_restart in deploy_job |
+| MLOps Foundation | ✅ | pytest markers + pre-commit + detect-secrets + CI split + skills |
+| **Tests** | ✅ | **20 unit + 3 local_data range guards for metrics** |
 
 ### Automated Flow (now working end-to-end)
 ```
@@ -42,25 +44,27 @@ macOS login → launchd → dagster-daemon (background)
 
 ## Next Session — TODO (priority order)
 
-### 1. Commit this session's work
-- 7 modified files + 2 new skills + 1 new diary — commit as `feat(wordalisation): v4.0 classify_metrics + v4.0_tactical prompt + 13-case EDD`
-- Then check CI is green (`gh run list --limit 1`)
+### 1. Merge PR #10
+- Check CI passes → squash merge `fix/metric-audit-and-migration` → main
+- Then delete the branch
 
 ### 2. First Formal Release — v0.4.0
-- Use `/release` skill to tag Phase 4a + MLOps Foundation + Wordalisation as `v0.4.0`
-- **Do not tag until CI is green after above commit**
+- Use `/release` skill to tag Phase 4a + MLOps + Wordalisation + Metric Audit as `v0.4.0`
+- **Do not tag until CI is green after merge**
 
-### 3. Run Full EDD — Score v4.0_tactical
+### 3. Run Full EDD — Score v4.1_scout
 - `uv run pytest tests/test_edd.py -v -m edd --run-edd`
-- Update `v4.0_tactical: score:` in `prompt_versions.yaml` with actual result
-- If `tactical_insight` < 0.75 on any case → use `/prompt-workshop` to iterate
+- Update `v4.1_scout: score:` in `prompt_versions.yaml` with actual result
+- Bump `GOLDEN_DATASET_NAME` in `test_edd.py` before running
 
-### 4. EDD in CI (GitHub Actions)
-- Add `workflow_dispatch`-gated job to CI workflow
-- Requires `ANTHROPIC_API_KEY` + `MOTHERDUCK_TOKEN` + `OPIK_API_KEY` as GitHub secrets
+### 4. Fix xG data gap
+- All `home_total_xg`/`away_total_xg` = 0 for many matches — fotmob shot matching issue
+- Investigate match_mapping joins for missing fotmob_match_ids
 
-### 5. HF_TOKEN in GitHub Secrets
-- deploy_job needs HF_TOKEN — add to repo secrets so CI can also trigger deploys
+### 5. David's feedback: "One idea done very well"
+- Think about what single insight/question the app answers best
+- Consider: "How did pressing shape influence the result?" as the core question
+- Build pitch visuals around that insight (not a dashboard)
 
 ---
 
@@ -94,6 +98,7 @@ Full session logs in engineering diary:
 - [2026-02-26](docs/engineering_diary/2026-02-26-phase4a-end-to-end-verified.md) — Phase 4a complete: hybrid pipeline + workspace.yaml fix
 - [2026-02-27](docs/engineering_diary/2026-02-27-mlops-foundation.md) — MLOps foundation: markers + pre-commit + CI split + skills
 - [2026-02-28](docs/engineering_diary/2026-02-28-wordalisation-v4-football-language.md) — Wordalisation v4.0: classify_metrics + v4.0_tactical prompt + 13-case EDD + prompt-workshop skill
+- [2026-02-28](docs/engineering_diary/2026-02-28-metric-audit-v41-scout.md) — Metric audit: 2 bug fixes, dbt→Python migration, PMDS recalibration, v4.1_scout prompt
 
 **Last Updated**: 2026-02-28
 

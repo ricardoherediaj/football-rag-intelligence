@@ -164,25 +164,25 @@ def generate_tactical_summary(stats: Dict[str, Any]) -> str:
     interpretations = []
 
     # Core metrics (always present)
-    if 'verticality' in stats:
-        style = interpret_verticality(stats['verticality'])
+    if "verticality" in stats:
+        style = interpret_verticality(stats["verticality"])
         interpretations.append(f"Used {style}")
 
-    if 'xg_per_shot' in stats:
-        quality = interpret_shot_quality(stats['xg_per_shot'])
+    if "xg_per_shot" in stats:
+        quality = interpret_shot_quality(stats["xg_per_shot"])
         interpretations.append(f"{quality}")
 
-    if 'possession' in stats:
-        poss = interpret_possession(stats['possession'])
+    if "possession" in stats:
+        poss = interpret_possession(stats["possession"])
         interpretations.append(f"{poss}")
 
     # Optional metrics
-    if 'defense_line' in stats:
-        defense = interpret_defensive_line(stats['defense_line'])
+    if "defense_line" in stats:
+        defense = interpret_defensive_line(stats["defense_line"])
         interpretations.append(f"with {defense}")
 
-    if 'compactness' in stats:
-        compact = interpret_compactness(stats['compactness'])
+    if "compactness" in stats:
+        compact = interpret_compactness(stats["compactness"])
         interpretations.append(f"maintaining {compact}")
 
     # Combine with proper punctuation
@@ -211,40 +211,42 @@ def validate_thresholds_match_viz(stats: Dict[str, Any]) -> Dict[str, bool]:
     checks = {}
 
     # Verticality check
-    if 'verticality' in stats:
-        vert = stats['verticality']
+    if "verticality" in stats:
+        vert = stats["verticality"]
         interpretation = interpret_verticality(vert)
 
         # Check interpretation matches expected visual
         if vert > 50:
-            checks['verticality_visual'] = 'direct' in interpretation
+            checks["verticality_visual"] = "direct" in interpretation
         elif vert > 35:
-            checks['verticality_visual'] = 'balanced' in interpretation
+            checks["verticality_visual"] = "balanced" in interpretation
         else:
-            checks['verticality_visual'] = 'possession' in interpretation
+            checks["verticality_visual"] = "possession" in interpretation
 
     # Defensive line check
-    if 'defense_line' in stats:
-        def_line = stats['defense_line']
+    if "defense_line" in stats:
+        def_line = stats["defense_line"]
         interpretation = interpret_defensive_line(def_line)
 
         if def_line > 55:
-            checks['defense_visual'] = 'high' in interpretation or 'aggressive' in interpretation
+            checks["defense_visual"] = (
+                "high" in interpretation or "aggressive" in interpretation
+            )
         elif def_line > 48:
-            checks['defense_visual'] = 'mid' in interpretation
+            checks["defense_visual"] = "mid" in interpretation
         else:
-            checks['defense_visual'] = 'deep' in interpretation
+            checks["defense_visual"] = "deep" in interpretation
 
     # Shot quality check
-    if 'xg_per_shot' in stats:
-        xg = stats['xg_per_shot']
+    if "xg_per_shot" in stats:
+        xg = stats["xg_per_shot"]
         interpretation = interpret_shot_quality(xg)
 
         if xg > 0.15:
-            checks['shot_quality_visual'] = 'high-quality' in interpretation
+            checks["shot_quality_visual"] = "high-quality" in interpretation
         elif xg > 0.10:
-            checks['shot_quality_visual'] = 'decent' in interpretation
+            checks["shot_quality_visual"] = "decent" in interpretation
         else:
-            checks['shot_quality_visual'] = 'low-quality' in interpretation
+            checks["shot_quality_visual"] = "low-quality" in interpretation
 
     return checks

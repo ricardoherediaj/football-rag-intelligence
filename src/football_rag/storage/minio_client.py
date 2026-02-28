@@ -45,16 +45,22 @@ class MinIOClient:
         """Upload a dict as a JSON object."""
         body = json.dumps(data).encode("utf-8")
         self.s3.put_object(
-            Bucket=bucket, Key=key, Body=body,
-            ContentLength=len(body), ContentType="application/json",
+            Bucket=bucket,
+            Key=key,
+            Body=body,
+            ContentLength=len(body),
+            ContentType="application/json",
         )
 
     def upload_raw(self, bucket: str, key: str, raw: str) -> None:
         """Upload a raw string (preserves original formatting)."""
         body = raw.encode("utf-8")
         self.s3.put_object(
-            Bucket=bucket, Key=key, Body=body,
-            ContentLength=len(body), ContentType="application/json",
+            Bucket=bucket,
+            Key=key,
+            Body=body,
+            ContentLength=len(body),
+            ContentType="application/json",
         )
 
     def download_json(self, bucket: str, key: str) -> dict:

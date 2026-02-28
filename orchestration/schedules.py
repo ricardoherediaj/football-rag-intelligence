@@ -30,6 +30,7 @@ transform_job = define_asset_job(
     selection=AssetSelection.assets(
         "match_mapping",
         "dbt_silver_models",
+        "silver_team_metrics",
         "dbt_gold_models",
         "gold_match_embeddings",
     ),
@@ -46,6 +47,7 @@ deploy_job = define_asset_job(
 # --- League Schedules ---
 
 # --- Sensor: auto-trigger transform after successful scrape ---
+
 
 @run_status_sensor(
     run_status=DagsterRunStatus.SUCCESS,

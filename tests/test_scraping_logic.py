@@ -1,7 +1,9 @@
-
 import pytest
 from unittest.mock import AsyncMock
-from football_rag.data.whoscored_scraper import collect_all_season_matches, extract_match_id
+from football_rag.data.whoscored_scraper import (
+    collect_all_season_matches,
+    extract_match_id,
+)
 
 HTML_THREE_MATCHES = """
 <html>

@@ -72,6 +72,9 @@ versions:
         shot_volume: {home_shot_volume}
         field_position: {home_field_position}
         defensive_line: {home_defensive_line}
+        compactness: {home_compactness}
+        territorial_dominance: {home_territorial_dominance}
+        possession: {home_possession_style}
       away:
         press_style: {away_press_style}
         high_press: {away_high_press_label}
@@ -80,6 +83,8 @@ versions:
         shot_volume: {away_shot_volume}
         field_position: {away_field_position}
         defensive_line: {away_defensive_line}
+        compactness: {away_compactness}
+        territorial_dominance: {away_territorial_dominance}
       context:
         result_fairness: {result_fairness}
         progression_advantage: {progression_advantage}
@@ -113,3 +118,60 @@ versions:
       Explain WHY things happened using the tactical labels as your evidence base.
       Do not cite the labels directly — translate them into natural football language.
       </instructions>
+
+  v4.1_scout:
+    score: null
+    model: claude-sonnet-4-6
+    system: |
+      You are a tactical analyst at a professional football club. Write post-match notes
+      in the style of a scout's internal report — not a newspaper column.
+
+      RULES (hard):
+      - 3 paragraphs, 2-3 sentences each. No headers.
+      - Each sentence must carry one specific tactical observation. No rhetorical flourishes.
+      - Do not explain what tactics "mean" in general — describe what THIS team did in THIS game.
+      - No cliches: "paradox", "non-obvious", "at the heart of", "remains", "ultimately".
+      - The final sentence is the sharpest observation in the report — not a conclusion, a finding.
+      - Football terminology, not statistical language. Never cite raw numbers.
+
+    user_prompt: |
+      Match: {home_team} vs {away_team}  ({home_score}-{away_score})
+
+      <tactical_labels>
+      home:
+        press_style: {home_press_style}
+        high_press: {home_high_press_label}
+        goal_efficiency: {home_goal_efficiency}
+        shot_quality: {home_shot_quality}
+        shot_volume: {home_shot_volume}
+        field_position: {home_field_position}
+        defensive_line: {home_defensive_line}
+        compactness: {home_compactness}
+        territorial_dominance: {home_territorial_dominance}
+        possession: {home_possession_style}
+      away:
+        press_style: {away_press_style}
+        high_press: {away_high_press_label}
+        goal_efficiency: {away_goal_efficiency}
+        shot_quality: {away_shot_quality}
+        shot_volume: {away_shot_volume}
+        field_position: {away_field_position}
+        defensive_line: {away_defensive_line}
+        compactness: {away_compactness}
+        territorial_dominance: {away_territorial_dominance}
+      context:
+        result_fairness: {result_fairness}
+        progression_advantage: {progression_advantage}
+        press_dominance: {press_dominance}
+      </tactical_labels>
+
+      <reference_style>
+      Zwolle dominated territorial presence and pressed aggressively in the opponent half, but the
+      chances they manufactured were largely from low-probability areas — volume without penetration.
+      Heracles sat in a compact mid-to-low block, rarely leaving their own half, and were unable to
+      build any coherent attacking phase once they recovered the ball. The xG gap was smaller than
+      the scoreline implies: Zwolle won through accumulated pressure, not through quality finishing.
+      Heracles's defensive shape held for long stretches but had no plan B when it broke down.
+      </reference_style>
+
+      Write the tactical report. No filler. Each sentence is a finding.

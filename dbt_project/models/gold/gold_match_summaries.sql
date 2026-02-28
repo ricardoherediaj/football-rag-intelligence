@@ -57,7 +57,7 @@ home_metrics AS (
         stm.clearances AS home_clearances,
         stm.aerials_won AS home_aerials_won,
         stm.fouls AS home_fouls
-    FROM {{ ref('silver_team_metrics') }} stm
+    FROM {{ source('football_rag', 'silver_team_metrics') }} stm
     JOIN match_metadata mm
         ON stm.match_id = mm.match_id
         AND stm.team_id = mm.home_whoscored_id
@@ -89,7 +89,7 @@ away_metrics AS (
         stm.clearances AS away_clearances,
         stm.aerials_won AS away_aerials_won,
         stm.fouls AS away_fouls
-    FROM {{ ref('silver_team_metrics') }} stm
+    FROM {{ source('football_rag', 'silver_team_metrics') }} stm
     JOIN match_metadata mm
         ON stm.match_id = mm.match_id
         AND stm.team_id = mm.away_whoscored_id

@@ -63,6 +63,9 @@ markers = [
 ]
 addopts = "-m 'not integration and not local_data and not edd'"
 
+[tool.ruff]
+extend-exclude = ["archive", "scripts", "tests/visualizers_standalone.py", "tests/test_router_simple.py", "tests/llamaindex_evaluation_standalone.py", "tests/eval_mini.py"]
+
 [dependency-groups]
 dev = [
     "detect-secrets>=1.5.0",

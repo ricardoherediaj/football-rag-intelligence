@@ -205,9 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("--league_id", type=int, default=57)
     args = parser.parse_args()
 
-    matches = asyncio.run(
-        scrape_fotmob_season(args.league_id, args.mode, args.limit)
-    )
+    matches = asyncio.run(scrape_fotmob_season(args.league_id, args.mode, args.limit))
 
     if matches:
         save_fotmob_matches_locally(matches)

@@ -57,7 +57,7 @@ class VectorStore:
             logger.info(
                 f"✓ Collection '{collection_name}' has {self.collection.count()} documents"
             )
-        except Exception as e:
+        except Exception:
             logger.error(f"Collection '{collection_name}' not found. Create it first.")
             raise
 

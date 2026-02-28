@@ -93,4 +93,4 @@ if __name__ == "__main__":
         print(f"{i}. {m['whoscored_id']}: {m['score']} ({m['shots']} shots)")
 
     Path("data/evaluation_matches.json").write_text(json.dumps(selected, indent=2))
-    print(f"\n✅ Saved to data/evaluation_matches.json")
+    print("\n✅ Saved to data/evaluation_matches.json")

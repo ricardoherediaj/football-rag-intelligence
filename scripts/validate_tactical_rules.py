@@ -62,11 +62,11 @@ def validate_rule_consistency(matches):
         }
 
         # Apply tactical rules
-        print(f"\nStats:")
+        print("\nStats:")
         for key, val in stats.items():
             print(f"  {key}: {val}")
 
-        print(f"\nInterpretations:")
+        print("\nInterpretations:")
         print(f"  Verticality: {interpret_verticality(stats['verticality'])}")
         print(f"  Shot Quality: {interpret_shot_quality(stats['xg_per_shot'])}")
         print(f"  Possession: {interpret_possession(stats['possession'])}")
@@ -74,12 +74,12 @@ def validate_rule_consistency(matches):
 
         # Generate full summary
         summary = generate_tactical_summary(stats)
-        print(f"\n📝 Tactical Summary:")
+        print("\n📝 Tactical Summary:")
         print(f"  {summary}")
 
         # Validate visual consistency
         checks = validate_thresholds_match_viz(stats)
-        print(f"\n✓ Visual Consistency Checks:")
+        print("\n✓ Visual Consistency Checks:")
         all_passed = True
         for check_name, passed_check in checks.items():
             status = "✅" if passed_check else "❌"
@@ -94,9 +94,9 @@ def validate_rule_consistency(matches):
 
         if all_passed:
             passed += 1
-            print(f"\n✅ PASS: All checks consistent")
+            print("\n✅ PASS: All checks consistent")
         else:
-            print(f"\n❌ FAIL: Visual inconsistencies detected")
+            print("\n❌ FAIL: Visual inconsistencies detected")
 
     # Summary report
     print("\n" + "=" * 100)
@@ -112,7 +112,7 @@ def validate_rule_consistency(matches):
             print(f"  Check: {issue['check']}")
             print(f"  Stats: {issue['stats']}")
     else:
-        print(f"\n✅ All tactical rules are visually consistent!")
+        print("\n✅ All tactical rules are visually consistent!")
 
     return passed == len(matches)
 
@@ -206,12 +206,12 @@ def cross_metric_validation():
             print(f"   ⚠️  WARNING: {test['warning']}")
             warnings.append(test['name'])
         else:
-            print(f"   ✅ Consistent")
+            print("   ✅ Consistent")
 
     if warnings:
         print(f"\n⚠️  {len(warnings)} warnings (not failures, just unusual patterns)")
     else:
-        print(f"\n✅ All cross-metric relationships are consistent")
+        print("\n✅ All cross-metric relationships are consistent")
 
     return True  # Warnings don't fail validation
 

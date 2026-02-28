@@ -33,7 +33,9 @@ def hf_lakehouse_upload(context: AssetExecutionContext) -> None:
         raise EnvironmentError("HF_TOKEN env var not set — cannot upload to HF Dataset")
 
     size_mb = DUCKDB_PATH.stat().st_size / (1024 * 1024)
-    context.log.info(f"Uploading {DUCKDB_PATH.name} ({size_mb:.1f} MB) → {HF_DATASET_REPO}")
+    context.log.info(
+        f"Uploading {DUCKDB_PATH.name} ({size_mb:.1f} MB) → {HF_DATASET_REPO}"
+    )
 
     api = HfApi(token=token)
     api.upload_file(
@@ -64,4 +66,6 @@ def hf_space_restart(context: AssetExecutionContext) -> None:
     context.log.info(f"Restarting HF Space: {HF_SPACE_REPO}")
     api = HfApi(token=token)
     api.restart_space(repo_id=HF_SPACE_REPO, token=token)
-    context.log.info(f"✅ Space restart triggered — {HF_SPACE_REPO} will reload fresh data")
+    context.log.info(
+        f"✅ Space restart triggered — {HF_SPACE_REPO} will reload fresh data"
+    )

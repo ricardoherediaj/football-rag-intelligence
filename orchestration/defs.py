@@ -1,5 +1,13 @@
 from dagster import Definitions, load_assets_from_modules
-from orchestration.assets import dbt_assets, duckdb_assets, embeddings_assets, hf_deploy_assets, match_mapping_asset, scrapers
+from orchestration.assets import (
+    dbt_assets,
+    duckdb_assets,
+    embeddings_assets,
+    hf_deploy_assets,
+    match_mapping_asset,
+    metrics_assets,
+    scrapers,
+)
 from orchestration.schedules import (
     eredivisie_scrape_schedule,
     post_scrape_transform_sensor,
@@ -10,7 +18,15 @@ from orchestration.schedules import (
 )
 
 all_assets = load_assets_from_modules(
-    [dbt_assets, duckdb_assets, embeddings_assets, hf_deploy_assets, match_mapping_asset, scrapers]
+    [
+        dbt_assets,
+        duckdb_assets,
+        embeddings_assets,
+        hf_deploy_assets,
+        match_mapping_asset,
+        metrics_assets,
+        scrapers,
+    ]
 )
 
 defs = Definitions(

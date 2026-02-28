@@ -29,39 +29,49 @@ def classify_intent(query: str) -> Dict[str, Optional[str]]:
     # Priority 1: Analysis questions
     is_question = any(
         q.startswith(word)
-        for word in ['what', 'how', 'why', 'explain', 'analyze', 'describe']
+        for word in ["what", "how", "why", "explain", "analyze", "describe"]
     )
 
     if is_question:
-        return {'tool': None, 'viz_type': None}
+        return {"tool": None, "viz_type": None}
 
     # Priority 2: Dashboard (highest viz priority)
-    if any(word in q for word in ['dashboard', 'full report', 'complete', 'everything', 'all viz', '3x3']):
-        return {'tool': 'generate_dashboard', 'viz_type': None}
+    if any(
+        word in q
+        for word in [
+            "dashboard",
+            "full report",
+            "complete",
+            "everything",
+            "all viz",
+            "3x3",
+        ]
+    ):
+        return {"tool": "generate_dashboard", "viz_type": None}
 
     # Priority 3: Explicit viz commands
-    has_viz_command = any(cmd in q for cmd in ['show', 'display', 'generate', 'create'])
+    has_viz_command = any(cmd in q for cmd in ["show", "display", "generate", "create"])
 
     if has_viz_command:
         # Team visualizations
-        if any(word in q for word in ['passing', 'network', 'pass map']):
-            return {'tool': 'generate_team_viz', 'viz_type': 'passing_network'}
+        if any(word in q for word in ["passing", "network", "pass map"]):
+            return {"tool": "generate_team_viz", "viz_type": "passing_network"}
 
-        if any(word in q for word in ['defensive', 'defense', 'heatmap']):
-            return {'tool': 'generate_team_viz', 'viz_type': 'defensive_heatmap'}
+        if any(word in q for word in ["defensive", "defense", "heatmap"]):
+            return {"tool": "generate_team_viz", "viz_type": "defensive_heatmap"}
 
-        if any(word in q for word in ['progressive', 'forward pass']):
-            return {'tool': 'generate_team_viz', 'viz_type': 'progressive_passes'}
+        if any(word in q for word in ["progressive", "forward pass"]):
+            return {"tool": "generate_team_viz", "viz_type": "progressive_passes"}
 
         # Match visualizations
-        if any(word in q for word in ['shot', 'shots', 'shooting']):
-            return {'tool': 'generate_match_viz', 'viz_type': 'shot_map'}
+        if any(word in q for word in ["shot", "shots", "shooting"]):
+            return {"tool": "generate_match_viz", "viz_type": "shot_map"}
 
-        if any(word in q for word in ['momentum', 'xt', 'threat', 'flow']):
-            return {'tool': 'generate_match_viz', 'viz_type': 'xt_momentum'}
+        if any(word in q for word in ["momentum", "xt", "threat", "flow"]):
+            return {"tool": "generate_match_viz", "viz_type": "xt_momentum"}
 
-        if any(word in q for word in ['stats', 'statistics', 'comparison', 'compare']):
-            return {'tool': 'generate_match_viz', 'viz_type': 'match_stats'}
+        if any(word in q for word in ["stats", "statistics", "comparison", "compare"]):
+            return {"tool": "generate_match_viz", "viz_type": "match_stats"}
 
     # Default: text analysis
-    return {'tool': None, 'viz_type': None}
+    return {"tool": None, "viz_type": None}
