@@ -20,13 +20,12 @@ from typing import Any
 
 import pytest
 from dotenv import load_dotenv
-
-load_dotenv()
-
 from opik import Opik
 from opik.evaluation import evaluate
 from opik.evaluation.metrics import AnswerRelevance
 from opik.evaluation.metrics.score_result import ScoreResult
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +35,11 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 EVAL_PATH = PROJECT_ROOT / "data" / "eval_datasets" / "tactical_analysis_eval.json"
-TACTICAL_THRESHOLD = 0.7      # 7/10 production threshold from EDD article
+TACTICAL_THRESHOLD = 0.7  # 7/10 production threshold from EDD article
 OPIK_PROJECT = os.getenv("OPIK_PROJECT_NAME", "football-rag-intelligence")
 
 # Golden dataset version — bump when eval queries change to avoid stale item accumulation
-GOLDEN_DATASET_NAME = "football-rag-golden-v3"
+GOLDEN_DATASET_NAME = "football-rag-golden-v4"
 
 # ---------------------------------------------------------------------------
 # Provider configuration — swap via env vars, no code changes needed
@@ -103,10 +102,12 @@ def retrieval_accuracy(dataset_item: dict, task_outputs: dict) -> ScoreResult:
 def tactical_insight(dataset_item: dict, task_outputs: dict) -> ScoreResult:
     """CoT LLM judge for domain-specific tactical quality.
 
-    Scores 3 components (weights from EDD article):
-    - specificity      (0.40): concrete metrics, exact numbers, player IDs
-    - visual_grounding (0.40): references actual viz data (shots, xG, PPDA, etc.)
-    - terminology      (0.20): correct football language (PPDA, high line, xG, pressing)
+    Scores 4 components (equal weights — v4.0_tactical Wordalisation scorer):
+    - specificity      (0.25): interprets tactical patterns with evidence, avoids vague claims
+    - visual_grounding (0.25): correctly reads the underlying data patterns
+    - terminology      (0.25): correct football language (pressing, high line, transitions, etc.)
+    - football_language (0.25): scouting-style prose without citing raw numbers (no xG=2.42,
+                                no PPDA=3.72) — reads like a human analyst, not a data dashboard
 
     Uses json.loads (not regex) to parse structured output.
     Few-shot calibrated to prevent score drift.
@@ -120,7 +121,7 @@ def tactical_insight(dataset_item: dict, task_outputs: dict) -> ScoreResult:
     response_length = len(commentary.split())
 
     prompt = f"""You are a senior football analyst auditing an automated match report.
-Your task: score the report on 3 components. Think step by step before scoring.
+Your task: score the report on 4 components. Think step by step before scoring.
 
 {_FEW_SHOT}
 
@@ -137,23 +138,29 @@ Your task: score the report on 3 components. Think step by step before scoring.
 Think through each component carefully, then output JSON.
 
 Components:
-1. specificity (0.0-1.0): Does the report cite concrete metrics with exact numbers from the \
-ground truth? Penalise vague claims like "they dominated" without evidence.
-2. visual_grounding (0.0-1.0): Does it correctly interpret the actual data (shots, xG, PPDA, \
-defensive line, progressive passes)? Penalise misquoted or missing key stats.
-3. terminology (0.0-1.0): Does it use correct football tactical language (PPDA, xG, high press, \
-defensive line, progressive passes, verticality)? Penalise generic sports commentary.
+1. specificity (0.0-1.0): Does the report interpret tactical patterns with evidence? \
+Penalise vague claims like "they dominated" without any grounding in what happened.
+2. visual_grounding (0.0-1.0): Does it correctly read the underlying data patterns \
+(who pressed more, who had more chances, who was clinical)? Penalise factual errors.
+3. terminology (0.0-1.0): Does it use correct football tactical language (pressing, high line, \
+transitions, deep block, progressive play)? Penalise generic sports commentary.
+4. football_language (0.0-1.0): Does it read like a scouting report written by a human analyst? \
+Score HIGH if: no raw numbers cited (no "xG=2.42", no "PPDA=3.72", no "12 shots"), \
+prose is continuous and editorial. Score LOW if: reads like a data dashboard or metric recitation.
 
 Output ONLY valid JSON, no markdown:
 {{
   "reasoning": "your step-by-step analysis",
   "specificity": <float 0.0-1.0>,
   "visual_grounding": <float 0.0-1.0>,
-  "terminology": <float 0.0-1.0>
+  "terminology": <float 0.0-1.0>,
+  "football_language": <float 0.0-1.0>
 }}"""
 
     try:
-        raw = generate_with_llm(prompt, provider=JUDGE_PROVIDER, temperature=0, max_tokens=2048)
+        raw = generate_with_llm(
+            prompt, provider=JUDGE_PROVIDER, temperature=0, max_tokens=2048
+        )
         # Strip markdown code fences that some models wrap around JSON output
         clean = raw.strip()
         if clean.startswith("```"):
@@ -163,21 +170,29 @@ Output ONLY valid JSON, no markdown:
             clean = clean.rsplit("```", 1)[0].strip()
         parsed = json.loads(clean)
         score = (
-            parsed["specificity"] * 0.40
-            + parsed["visual_grounding"] * 0.40
-            + parsed["terminology"] * 0.20
+            parsed["specificity"] * 0.25
+            + parsed["visual_grounding"] * 0.25
+            + parsed["terminology"] * 0.25
+            + parsed["football_language"] * 0.25
         )
         reason = (
             f"specificity={parsed['specificity']:.2f}, "
             f"visual_grounding={parsed['visual_grounding']:.2f}, "
-            f"terminology={parsed['terminology']:.2f} | "
+            f"terminology={parsed['terminology']:.2f}, "
+            f"football_language={parsed['football_language']:.2f} | "
             f"response_words={response_length} | "
             f"{parsed.get('reasoning', '')[:200]}"
         )
-        return ScoreResult(name="tactical_insight", value=round(score, 3), reason=reason)
+        return ScoreResult(
+            name="tactical_insight", value=round(score, 3), reason=reason
+        )
     except (json.JSONDecodeError, KeyError) as e:
-        logger.warning("tactical_insight judge parse error: %s | clean=%s", e, clean[:200])
-        return ScoreResult(name="tactical_insight", value=0.5, reason=f"parse_error: {e}")
+        logger.warning(
+            "tactical_insight judge parse error: %s | clean=%s", e, clean[:200]
+        )
+        return ScoreResult(
+            name="tactical_insight", value=0.5, reason=f"parse_error: {e}"
+        )
     except Exception as e:
         logger.error("tactical_insight judge failed: %s", e)
         return ScoreResult(name="tactical_insight", value=0.5, reason=f"error: {e}")
@@ -212,7 +227,9 @@ def _load_opik_dataset() -> Any:
         for tc in raw["test_cases"]
     ]
     dataset.insert(items)
-    logger.info("Loaded %d items into Opik dataset '%s'", len(items), GOLDEN_DATASET_NAME)
+    logger.info(
+        "Loaded %d items into Opik dataset '%s'", len(items), GOLDEN_DATASET_NAME
+    )
     return dataset
 
 
@@ -256,7 +273,7 @@ class TestEDD:
     2. test_retrieval_*      — fast parametrized assertions against stored scores.
     """
 
-    _scores: dict[str, dict] = {}   # test_id → {metric: value}
+    _scores: dict[str, dict] = {}  # test_id → {metric: value}
 
     @pytest.fixture(autouse=True)
     def require_edd_flag(self, request):
@@ -285,7 +302,7 @@ class TestEDD:
                 "judge_provider": JUDGE_PROVIDER,
                 "judge_model_opik": JUDGE_MODEL_OPIK,
             },
-            task_threads=1,   # sequential — avoids rate limits
+            task_threads=1,  # sequential — avoids rate limits
             verbose=1,
         )
 
@@ -296,15 +313,31 @@ class TestEDD:
             scores = {s.name: s.value for s in (test_result.score_results or [])}
             TestEDD._scores[tid] = scores
 
-        assert len(TestEDD._scores) == 10, "Expected 10 evaluated cases"
-        logger.info("Opik experiment '%s' complete — %d cases", EXPERIMENT_NAME, len(TestEDD._scores))
+        assert len(TestEDD._scores) == 13, "Expected 13 evaluated cases"
+        logger.info(
+            "Opik experiment '%s' complete — %d cases",
+            EXPERIMENT_NAME,
+            len(TestEDD._scores),
+        )
 
-    @pytest.mark.parametrize("test_id", [
-        "match_01_blowout", "match_02_high_scoring", "match_03_stalemate",
-        "match_04_narrow_win", "match_05_upset", "match_06_efficiency_study",
-        "match_07_defensive_struggle", "match_08_counter_attack",
-        "match_09_defensive_dominance", "match_10_tight_margins",
-    ])
+    @pytest.mark.parametrize(
+        "test_id",
+        [
+            "match_01_blowout",
+            "match_02_high_scoring",
+            "match_03_stalemate",
+            "match_04_narrow_win",
+            "match_05_upset",
+            "match_06_efficiency_study",
+            "match_07_defensive_struggle",
+            "match_08_counter_attack",
+            "match_09_defensive_dominance",
+            "match_10_tight_margins",
+            "match_11_language_quality_press",
+            "match_12_language_quality_xg",
+            "match_13_language_quality_narrative",
+        ],
+    )
     def test_retrieval_exact_match(self, test_id: str):
         """Hard assertion: retrieval must be exact (Recall@1 = 1.0)."""
         scores = TestEDD._scores.get(test_id, {})
@@ -314,12 +347,24 @@ class TestEDD:
             "Check DuckDB VSS index and query embedding."
         )
 
-    @pytest.mark.parametrize("test_id", [
-        "match_01_blowout", "match_02_high_scoring", "match_03_stalemate",
-        "match_04_narrow_win", "match_05_upset", "match_06_efficiency_study",
-        "match_07_defensive_struggle", "match_08_counter_attack",
-        "match_09_defensive_dominance", "match_10_tight_margins",
-    ])
+    @pytest.mark.parametrize(
+        "test_id",
+        [
+            "match_01_blowout",
+            "match_02_high_scoring",
+            "match_03_stalemate",
+            "match_04_narrow_win",
+            "match_05_upset",
+            "match_06_efficiency_study",
+            "match_07_defensive_struggle",
+            "match_08_counter_attack",
+            "match_09_defensive_dominance",
+            "match_10_tight_margins",
+            "match_11_language_quality_press",
+            "match_12_language_quality_xg",
+            "match_13_language_quality_narrative",
+        ],
+    )
     def test_tactical_insight_threshold(self, test_id: str):
         """Soft assertion: tactical insight must meet production threshold (≥0.7)."""
         scores = TestEDD._scores.get(test_id, {})

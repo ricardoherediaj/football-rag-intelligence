@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Wordalisation v4.0] — 2026-02-28 — Football Language Pipeline (COMPLETE)
+
+### Added
+- `src/football_rag/analytics/metrics.py` — `classify_metrics(metrics: dict) -> dict`: translates raw metric values into qualitative English football labels (Wordalisation pattern). 17 labels covering press style, shot quality, field position, defensive line, result fairness, progression advantage, press dominance
+- `prompts/prompt_versions.yaml` — `v4.0_tactical` version: continuous prose system prompt (scouting-report style), XML-tagged user prompt with YAML tactical labels, two post-match few-shot examples (no headers, no raw numbers)
+- `data/eval_datasets/tactical_analysis_eval.json` — 3 new EDD cases (`match_11_language_quality_press`, `match_12_language_quality_xg`, `match_13_language_quality_narrative`) targeting football language quality specifically
+- `.claude/skills/prompt-workshop/SKILL.md` — new skill for rapid prompt iteration without running full EDD: baseline → diagnose → one change → side-by-side comparison → commit or discard
+- `.claude/skills/session-brief/SKILL.md` — new skill for token-efficient session onboarding
+
+### Changed
+- `src/football_rag/models/rag_pipeline.py` — wired `classify_metrics` into `run()` pipeline; default `prompt_version` changed to `v4.0_tactical`; LLM now receives qualitative labels, never raw numbers
+- `src/football_rag/models/generate.py` — model changed from `claude-haiku-4-5-20251001` to `claude-sonnet-4-6` for richer narrative prose
+- `tests/test_edd.py` — `GOLDEN_DATASET_NAME` bumped to `football-rag-golden-v4`; `tactical_insight` scorer extended to 4 equal-weight components (0.25 each): specificity, visual_grounding, terminology, football_language; parametrized lists updated to 13 cases; count assertion updated to 13
+- `CLAUDE.md` — added `/session-brief` to skills list
+
+### Verified
+- Smoke test: "Analyze the Heracles vs PEC Zwolle match" — output is continuous prose, full football language, zero raw numbers visible
+- `uv run pytest` (unit tier): all passing
+
 ## [MLOps Foundation] — 2026-02-27 — Developer Experience Hardening (COMPLETE)
 
 ### Added

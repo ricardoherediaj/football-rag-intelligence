@@ -12,6 +12,7 @@ import duckdb
 import opik
 from sentence_transformers import SentenceTransformer
 
+from football_rag.analytics.metrics import classify_metrics
 from football_rag.models.generate import generate_with_llm
 from football_rag.prompts_loader import load_prompt
 from football_rag.data.schemas import MatchContext, TacticalMetrics
@@ -20,14 +21,22 @@ logger = logging.getLogger(__name__)
 
 # Column order returned by _fetch_tactical_metrics SQL — must match TacticalMetrics fields
 _METRICS_COLS = [
-    "home_progressive_passes", "away_progressive_passes",
-    "home_total_passes", "away_total_passes",
-    "home_ppda", "away_ppda",
-    "home_high_press", "away_high_press",
-    "home_shots", "away_shots",
-    "home_xg", "away_xg",
-    "home_position", "away_position",
-    "home_defense_line", "away_defense_line",
+    "home_progressive_passes",
+    "away_progressive_passes",
+    "home_total_passes",
+    "away_total_passes",
+    "home_ppda",
+    "away_ppda",
+    "home_high_press",
+    "away_high_press",
+    "home_shots",
+    "away_shots",
+    "home_xg",
+    "away_xg",
+    "home_position",
+    "away_position",
+    "home_defense_line",
+    "away_defense_line",
 ]
 
 
@@ -37,7 +46,7 @@ class FootballRAGPipeline:
         provider: str = "anthropic",
         api_key: Optional[str] = None,
         db_path: str = "data/lakehouse.duckdb",
-        prompt_version: str = "v3.5_balanced",
+        prompt_version: str = "v4.0_tactical",
     ):
         """Initialize pipeline with DuckDB VSS access."""
         self.provider = provider
@@ -47,10 +56,24 @@ class FootballRAGPipeline:
         self._model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
 
         self.known_teams = [
-            "Feyenoord", "PSV Eindhoven", "Ajax", "AZ Alkmaar", "FC Groningen",
-            "NEC Nijmegen", "FC Twente", "Fortuna Sittard", "FC Utrecht",
-            "Go Ahead Eagles", "Sparta Rotterdam", "SC Heerenveen", "FC Volendam",
-            "Telstar", "NAC Breda", "PEC Zwolle", "Excelsior", "Heracles",
+            "Feyenoord",
+            "PSV Eindhoven",
+            "Ajax",
+            "AZ Alkmaar",
+            "FC Groningen",
+            "NEC Nijmegen",
+            "FC Twente",
+            "Fortuna Sittard",
+            "FC Utrecht",
+            "Go Ahead Eagles",
+            "Sparta Rotterdam",
+            "SC Heerenveen",
+            "FC Volendam",
+            "Telstar",
+            "NAC Breda",
+            "PEC Zwolle",
+            "Excelsior",
+            "Heracles",
         ]
 
         logger.info(f"Football RAG Ready | Provider: {provider} | DB: {self.db_path}")
@@ -71,6 +94,7 @@ class FootballRAGPipeline:
             return {"error": f"Found match {match_name} but missing tactical metrics."}
 
         prompt_variables = metrics_model.to_prompt_variables(match_context)
+        labels = classify_metrics(prompt_variables)
 
         logger.info(
             f"Data check for {match_name}: "
@@ -78,7 +102,9 @@ class FootballRAGPipeline:
             f"xG={prompt_variables['home_xg']} vs {prompt_variables['away_xg']}"
         )
 
-        formatted_prompt = self.prompts["user_template"].format(**prompt_variables)
+        formatted_prompt = self.prompts["user_template"].format(
+            **prompt_variables, **labels
+        )
 
         response = generate_with_llm(
             prompt=formatted_prompt,

@@ -36,3 +36,80 @@ versions:
       PPDA: {home_ppda} vs {away_ppda} | High Press Events: {home_press} vs {away_press}
       Shots: {home_shots} vs {away_shots} | xG: {home_xg} vs {away_xg}
       Team Position: {home_pos}m vs {away_pos}m | Defense Line: {home_def}m vs {away_def}m
+
+  v4.0_tactical:
+    score: null
+    model: claude-sonnet-4-6
+    system: |
+      You are a senior tactical football analyst specialising in post-match reports for
+      European football. Your mission: write continuous prose analysis — no headers, no bullet
+      points — in the style of a high-level scouting report. Use football language, not
+      statistical language. Never cite raw numbers. Interpret what patterns mean tactically.
+      Length: 200-250 words. Tone: editorial, concrete, no filler.
+
+      RULES:
+      - The qualitative labels you receive already encode the data — use them as the basis for
+        your judgements, but translate them into natural football language
+      - Prioritise WHY over WHAT
+      - Connect patterns to each other (e.g. deep block + limited_chances = expected)
+      - Cover both teams with balanced perspective
+      - End with a non-obvious tactical conclusion
+
+      Ask yourself internally: "Am I describing what happened or explaining why it happened?"
+
+    user_prompt: |
+      <match_context>
+      Match: {home_team} vs {away_team}
+      Score: {home_score}-{away_score}
+      </match_context>
+
+      <tactical_labels>
+      home:
+        press_style: {home_press_style}
+        high_press: {home_high_press_label}
+        goal_efficiency: {home_goal_efficiency}
+        shot_quality: {home_shot_quality}
+        shot_volume: {home_shot_volume}
+        field_position: {home_field_position}
+        defensive_line: {home_defensive_line}
+      away:
+        press_style: {away_press_style}
+        high_press: {away_high_press_label}
+        goal_efficiency: {away_goal_efficiency}
+        shot_quality: {away_shot_quality}
+        shot_volume: {away_shot_volume}
+        field_position: {away_field_position}
+        defensive_line: {away_defensive_line}
+      context:
+        result_fairness: {result_fairness}
+        progression_advantage: {progression_advantage}
+        press_dominance: {press_dominance}
+      </tactical_labels>
+
+      <few_shot_examples>
+      EXAMPLE 1 — Post-match report (target style):
+      "Two teams with opposing tactical identities. The home side built patiently from the back,
+      maintaining the ball in intermediate zones without finding the verticality needed to unlock
+      a well-organised away block. The visitors surrendered possession deliberately, looking to
+      exploit the space behind a high defensive line on the transition. The scoreline reflects
+      that contrast almost perfectly: dominating territory is not the same as generating genuine
+      danger. What decided the game was not quality on the ball, but the courage to play direct
+      when the right moment came — something the away side executed more convincingly in the
+      final third."
+
+      EXAMPLE 2 — Post-match report (target style):
+      "A match that exposed the fragility of playing a high line without the pressing intensity
+      to justify it. The home team's defensive structure sat deep and narrow, inviting the
+      opposition to circulate in wide areas — which they did, patiently. The problem was the
+      final product: despite sustained territorial superiority, the visitors created from wide
+      positions where they had numerical advantages but lacked the combination play to break down
+      a compact shape. The home side's counter-attacking threat proved more dangerous per action
+      than anything the visitors constructed through possession. Winning without the ball remains,
+      paradoxically, the more efficient tactical plan on this evidence."
+      </few_shot_examples>
+
+      <instructions>
+      Write the post-match tactical report. Continuous prose. No headers. Football language.
+      Explain WHY things happened using the tactical labels as your evidence base.
+      Do not cite the labels directly — translate them into natural football language.
+      </instructions>

@@ -5,10 +5,10 @@
 
 ---
 
-## Current State (2026-02-27)
+## Current State (2026-02-28)
 
 **Branch**: `main`
-**Status**: Phase 4a + MLOps Foundation COMPLETE
+**Status**: Wordalisation v4.0 COMPLETE — uncommitted changes staged, ready to commit
 
 ### Pipeline Status
 | Layer | Status | Count |
@@ -21,7 +21,8 @@
 | Embeddings | ✅ | 214 match embeddings, 768-dim HNSW index |
 | RAG Engine | ✅ | DuckDB VSS, orchestrator wired, viz dispatch working |
 | Observability | ✅ | `@opik.track` on orchestrator + rag_pipeline + generate |
-| EDD Eval Harness | ✅ | 21 pytest tests, 3 scorers, 10-case golden dataset |
+| EDD Eval Harness | ✅ | 28 pytest tests, 4 scorers, 13-case golden dataset (v4) |
+| Wordalisation | ✅ | `classify_metrics()` + `v4.0_tactical` + football prose output |
 | **HF Spaces** | ✅ | **Live at https://rheredia8-football-rag-intelligence.hf.space/** |
 | **BYOK + Rate Limit** | ✅ | **5 free queries/session, unlimited with own API key** |
 | **Hybrid Automation** | ✅ | **dagster-daemon auto-starts at login via launchd** |
@@ -41,21 +42,24 @@ macOS login → launchd → dagster-daemon (background)
 
 ## Next Session — TODO (priority order)
 
-### 1. First Formal Release — v0.4.0
-- Use `/release` skill to tag Phase 4a + MLOps Foundation as `v0.4.0`
-- CHANGELOG already updated. Only missing: `git tag -a v0.4.0` + `gh release create`
-- **Do not tag until CI is green** (always check `gh run list --limit 1` first)
+### 1. Commit this session's work
+- 7 modified files + 2 new skills + 1 new diary — commit as `feat(wordalisation): v4.0 classify_metrics + v4.0_tactical prompt + 13-case EDD`
+- Then check CI is green (`gh run list --limit 1`)
 
-### 2. Prompt v4.0_tactical
-- Current LLM recites metrics instead of interpreting them tactically
-- Edit `prompts/prompt_versions.yaml` — new system prompt emphasizing "why" over "what"
-- Re-run EDD to measure improvement on `tactical_insight` (currently 0.91)
+### 2. First Formal Release — v0.4.0
+- Use `/release` skill to tag Phase 4a + MLOps Foundation + Wordalisation as `v0.4.0`
+- **Do not tag until CI is green after above commit**
 
-### 3. EDD in CI (GitHub Actions)
+### 3. Run Full EDD — Score v4.0_tactical
+- `uv run pytest tests/test_edd.py -v -m edd --run-edd`
+- Update `v4.0_tactical: score:` in `prompt_versions.yaml` with actual result
+- If `tactical_insight` < 0.75 on any case → use `/prompt-workshop` to iterate
+
+### 4. EDD in CI (GitHub Actions)
 - Add `workflow_dispatch`-gated job to CI workflow
 - Requires `ANTHROPIC_API_KEY` + `MOTHERDUCK_TOKEN` + `OPIK_API_KEY` as GitHub secrets
 
-### 4. HF_TOKEN in GitHub Secrets
+### 5. HF_TOKEN in GitHub Secrets
 - deploy_job needs HF_TOKEN — add to repo secrets so CI can also trigger deploys
 
 ---
@@ -89,8 +93,9 @@ Full session logs in engineering diary:
 - [2026-02-23](docs/engineering_diary/2026-02-23-phase3b-streamlit-deploy.md) — Phase 3b complete: Streamlit + HF deploy
 - [2026-02-26](docs/engineering_diary/2026-02-26-phase4a-end-to-end-verified.md) — Phase 4a complete: hybrid pipeline + workspace.yaml fix
 - [2026-02-27](docs/engineering_diary/2026-02-27-mlops-foundation.md) — MLOps foundation: markers + pre-commit + CI split + skills
+- [2026-02-28](docs/engineering_diary/2026-02-28-wordalisation-v4-football-language.md) — Wordalisation v4.0: classify_metrics + v4.0_tactical prompt + 13-case EDD + prompt-workshop skill
 
-**Last Updated**: 2026-02-27
+**Last Updated**: 2026-02-28
 
 ---
 

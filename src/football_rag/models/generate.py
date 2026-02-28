@@ -94,7 +94,7 @@ def _generate_anthropic(
 
     client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=max_tokens,
         temperature=temperature,
         system=system_prompt or "",
