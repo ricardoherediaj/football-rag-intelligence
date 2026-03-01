@@ -120,7 +120,7 @@ versions:
       </instructions>
 
   v4.1_scout:
-    score: null
+    score: 7.2
     model: claude-sonnet-4-6
     system: |
       You are a tactical analyst at a professional football club. Write post-match notes

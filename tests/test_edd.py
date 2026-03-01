@@ -39,7 +39,7 @@ TACTICAL_THRESHOLD = 0.7  # 7/10 production threshold from EDD article
 OPIK_PROJECT = os.getenv("OPIK_PROJECT_NAME", "football-rag-intelligence")
 
 # Golden dataset version — bump when eval queries change to avoid stale item accumulation
-GOLDEN_DATASET_NAME = "football-rag-golden-v4"
+GOLDEN_DATASET_NAME = "football-rag-golden-v5"
 
 # ---------------------------------------------------------------------------
 # Provider configuration — swap via env vars, no code changes needed
@@ -70,16 +70,21 @@ EXPERIMENT_NAME = f"{PIPELINE_PROVIDER}-baseline-v1"
 _FEW_SHOT = """
 CALIBRATION EXAMPLE 1 (score: high — 0.85)
 Query: "Analyze PEC Zwolle's dominant performance"
-Report: "PEC Zwolle produced a stunning 8-2 demolition of Heracles. Their 24 shots overwhelmed \
-a Heracles side that managed only 7 attempts. The xG overperformance (1.14 xG → 8 goals) reflects \
-clinical finishing rather than luck. Heracles' PPDA of 5.8 showed passive defending."
-Why high: cites exact metrics, explains xG paradox, uses correct tactical terminology.
+Report: "Zwolle dominated territorial presence and pressed aggressively in the opponent half, but \
+the chances they manufactured were largely from low-probability areas — volume without penetration. \
+Heracles sat in a compact mid-to-low block, rarely leaving their own half, and were unable to \
+build any coherent attacking phase once they recovered the ball. Zwolle won through accumulated \
+pressure, not through quality finishing. Heracles's defensive shape held for long stretches but \
+had no plan B when it broke down."
+Why high: interprets tactical patterns (volume vs penetration, compact block, no plan B), correct \
+football language, no raw numbers cited, reads like a scouting report.
 
 CALIBRATION EXAMPLE 2 (score: low — 0.25)
 Query: "Analyze the shot efficiency paradox in Heracles vs AZ"
 Report: "It was an exciting match. Both teams fought hard. Heracles won 2-1 despite having fewer \
 chances. The game was decided by individual brilliance."
-Why low: no specific metrics cited, no xG analysis, no tactical explanation, generic language.
+Why low: no tactical interpretation, no mention of pressing/positioning/structure, generic sports \
+commentary with no analytical depth.
 """
 
 # ---------------------------------------------------------------------------
@@ -102,12 +107,12 @@ def retrieval_accuracy(dataset_item: dict, task_outputs: dict) -> ScoreResult:
 def tactical_insight(dataset_item: dict, task_outputs: dict) -> ScoreResult:
     """CoT LLM judge for domain-specific tactical quality.
 
-    Scores 4 components (equal weights — v4.0_tactical Wordalisation scorer):
-    - specificity      (0.25): interprets tactical patterns with evidence, avoids vague claims
+    Scores 4 components (equal weights — v4.1_scout Wordalisation scorer):
+    - specificity      (0.25): interprets tactical patterns with specific observations
     - visual_grounding (0.25): correctly reads the underlying data patterns
     - terminology      (0.25): correct football language (pressing, high line, transitions, etc.)
-    - football_language (0.25): scouting-style prose without citing raw numbers (no xG=2.42,
-                                no PPDA=3.72) — reads like a human analyst, not a data dashboard
+    - football_language (0.25): dense scout-style prose — each sentence a finding, no raw numbers,
+                                no editorial flourishes
 
     Uses json.loads (not regex) to parse structured output.
     Few-shot calibrated to prevent score drift.
@@ -138,15 +143,18 @@ Your task: score the report on 4 components. Think step by step before scoring.
 Think through each component carefully, then output JSON.
 
 Components:
-1. specificity (0.0-1.0): Does the report interpret tactical patterns with evidence? \
-Penalise vague claims like "they dominated" without any grounding in what happened.
+1. specificity (0.0-1.0): Does the report interpret tactical patterns with specific observations? \
+Penalise vague claims like "they dominated" without describing HOW (pressing shape, territorial \
+control, transition speed). Reward pattern identification even without citing numbers.
 2. visual_grounding (0.0-1.0): Does it correctly read the underlying data patterns \
-(who pressed more, who had more chances, who was clinical)? Penalise factual errors.
+(who pressed more, who had more chances, who was clinical)? Penalise factual errors \
+or contradictions with the ground truth metrics.
 3. terminology (0.0-1.0): Does it use correct football tactical language (pressing, high line, \
-transitions, deep block, progressive play)? Penalise generic sports commentary.
-4. football_language (0.0-1.0): Does it read like a scouting report written by a human analyst? \
-Score HIGH if: no raw numbers cited (no "xG=2.42", no "PPDA=3.72", no "12 shots"), \
-prose is continuous and editorial. Score LOW if: reads like a data dashboard or metric recitation.
+transitions, deep block, progressive play, compact shape)? Penalise generic sports commentary.
+4. football_language (0.0-1.0): Does it read like an internal scouting report — dense, analytical, \
+each sentence carrying one finding? Score HIGH if: no raw numbers cited (no "xG=2.42", \
+no "PPDA=3.72", no "12 shots"), prose is continuous and purposeful. Score LOW if: reads \
+like a data dashboard, recites statistics, or uses editorial flourishes and rhetorical filler.
 
 Output ONLY valid JSON, no markdown:
 {{

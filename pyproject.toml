@@ -42,6 +42,7 @@ dependencies = [
     "sentence-transformers==2.5.1",
     "mplsoccer>=1.6.1",
     "opik>=1.10.18",
+    "cerebras-cloud-sdk>=1.67.0",
 ]
 
 [project.scripts]

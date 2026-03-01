@@ -4,8 +4,10 @@ import os
 from typing import Optional
 
 import opik
-
+from dotenv import load_dotenv
 from football_rag.custom_logging import get_logger
+
+load_dotenv()
 
 logger = get_logger(__name__)
 
@@ -22,7 +24,7 @@ def generate_with_llm(
 
     Args:
         prompt: User query/prompt
-        provider: 'ollama', 'anthropic', 'openai', or 'gemini'
+        provider: 'ollama', 'anthropic', 'openai', 'gemini', or 'cerebras'
         api_key: API key for cloud providers (required for non-Ollama)
         system_prompt: System instruction
         temperature: Sampling temperature (0-1)
@@ -44,6 +46,10 @@ def generate_with_llm(
         return _generate_openai(prompt, api_key, system_prompt, temperature, max_tokens)
     elif provider == "gemini":
         return _generate_gemini(prompt, api_key, system_prompt, temperature, max_tokens)
+    elif provider == "cerebras":
+        return _generate_cerebras(
+            prompt, api_key, system_prompt, temperature, max_tokens
+        )
     else:
         raise ValueError(f"Unknown provider: {provider}")
 
@@ -164,3 +170,41 @@ def _generate_gemini(
         },
     )
     return response.text.strip()
+
+
+@opik.track(name="llm_generation", tags=["provider:cerebras"])
+def _generate_cerebras(
+    prompt: str,
+    api_key: Optional[str],
+    system_prompt: Optional[str],
+    temperature: float,
+    max_tokens: int,
+) -> str:
+    """Generate using Cerebras Cloud (native SDK)."""
+    key = api_key or os.getenv("CEREBRAS_API_KEY")
+    if not key:
+        raise ValueError("CEREBRAS_API_KEY required")
+
+    try:
+        from cerebras.cloud.sdk import Cerebras
+    except ImportError:
+        raise ImportError("Install cerebras-cloud-sdk: uv add cerebras-cloud-sdk")
+
+    client = Cerebras(api_key=key)
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    response = client.chat.completions.create(
+        model=os.getenv("CEREBRAS_MODEL", "llama3.1-8b"),
+        messages=messages,
+        temperature=temperature,
+        max_completion_tokens=max_tokens,
+    )
+    content = response.choices[0].message.content
+    if content is None:
+        raise RuntimeError(
+            f"Cerebras returned empty response (model={os.getenv('CEREBRAS_MODEL', 'llama3.1-8b')})"
+        )
+    return content.strip()

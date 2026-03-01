@@ -56,7 +56,13 @@ class FootballRAGPipeline:
     ):
         """Initialize pipeline with DuckDB VSS access."""
         self.provider = provider
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        _key_env = {
+            "anthropic": "ANTHROPIC_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "gemini": "GEMINI_API_KEY",
+            "cerebras": "CEREBRAS_API_KEY",
+        }
+        self.api_key = api_key or os.getenv(_key_env.get(provider, "ANTHROPIC_API_KEY"))
         self.db_path = Path(db_path).resolve()
         self.prompts = load_prompt(prompt_version)
         self._model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
