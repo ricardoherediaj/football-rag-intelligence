@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.0] — 2026-03-04 — Phase 3b v1.5: Streamlit Cloud + Editorial UI + Cerebras
+
+### Added
+- `src/football_rag/app/main.py` — full UI rewrite: three-panel drill-down (Team Grid → Match List → Match Report) via `st.session_state` routing
+- `src/football_rag/app/styles.py` — CSS injection: dark editorial theme (Playfair Display headers, Lora body, green `#2d9e4f` accent, square buttons)
+- `.streamlit/config.toml` — dark theme committed to repo root; auto-read by Streamlit Cloud on deploy
+- `ensure_lakehouse()` — `@st.cache_resource` bootstrap: downloads `lakehouse.duckdb` (536MB) from HF Dataset on cold start
+- `data/raw/xT_grid.csv` — tracked in repo (was gitignored, caused Dashboard failures on Streamlit Cloud)
+- `docs/assets/streamlit_cloud_v1.5_panel1.png` + `panel3.png` — new UI screenshots in README
+- `docs/engineering_diary/2026-03-04-v1.5-streamlit-cloud-deploy.md` — full session log including DuckDB debugging
+
+### Changed
+- Default LLM provider changed from Anthropic to Cerebras (`llama3.1-8b`, free, 1MM tokens/day)
+- Removed 5-query demo rate limit — Cerebras free tier is sufficient; BYOK is unlimited
+- `rag_pipeline.py` SQL: unqualified `schema.table` → fully qualified `lakehouse.schema.table` (3-part names) to fix MotherDuck context collision
+- README v2.0: football-first framing, problem statement before demo, updated tech stack (Cerebras + Streamlit Cloud), removed Modal, removed Quick Start Python snippet
+- `.gitignore`: track `data/raw/` and `docs/assets/` with surgical exceptions
+
+### Fixed
+- `CatalogException: Table with name gold_match_summaries does not exist` on Streamlit Cloud — root cause: `_get_md_conn()` attaches MotherDuck first, making it the default DB context for the whole process; fixed with 3-part `lakehouse.schema.table` names in all RAG SQL
+- Dashboard plot failure: `xT_grid.csv` was gitignored, not present on Streamlit Cloud — fixed by adding `.gitignore` exception and committing the file
+- `unsafe_allow_html` blocked by Streamlit Cloud security policy — removed all HTML injection from UI
+
+### Deployment
+- **Migrated from HF Spaces to Streamlit Cloud** — auto-deploys on `git push main`, no pinned Streamlit version, supports `use_container_width`
+- Live at: `https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app`
+
 ## [v0.4.0] — 2026-03-01 — Phase 4a Complete: Pipeline Automation + Wordalisation + Metric Audit
 
 ### Metric Audit + v4.1 Scout (2026-02-28)
