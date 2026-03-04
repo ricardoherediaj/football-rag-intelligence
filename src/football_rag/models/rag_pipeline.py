@@ -146,10 +146,13 @@ class FootballRAGPipeline:
         query_emb = self._model.encode(query).tolist()
         team_filter = self._build_team_filter(query)
 
-        env_backup = os.environ.pop("motherduck_token", None)
+        _md_lc = os.environ.pop("motherduck_token", None)
+        _md_uc = os.environ.pop("MOTHERDUCK_TOKEN", None)
         db = duckdb.connect(str(self.db_path))
-        if env_backup is not None:
-            os.environ["motherduck_token"] = env_backup
+        if _md_lc is not None:
+            os.environ["motherduck_token"] = _md_lc
+        if _md_uc is not None:
+            os.environ["MOTHERDUCK_TOKEN"] = _md_uc
         db.execute("INSTALL vss")
         db.execute("LOAD vss")
 
@@ -186,10 +189,13 @@ class FootballRAGPipeline:
     @opik.track(name="metrics_fetch")
     def _fetch_tactical_metrics(self, match_id: str) -> Optional[TacticalMetrics]:
         """Fetch tactical metrics from gold_match_summaries for the given match."""
-        env_backup = os.environ.pop("motherduck_token", None)
+        _md_lc = os.environ.pop("motherduck_token", None)
+        _md_uc = os.environ.pop("MOTHERDUCK_TOKEN", None)
         db = duckdb.connect(str(self.db_path))
-        if env_backup is not None:
-            os.environ["motherduck_token"] = env_backup
+        if _md_lc is not None:
+            os.environ["motherduck_token"] = _md_lc
+        if _md_uc is not None:
+            os.environ["MOTHERDUCK_TOKEN"] = _md_uc
         row = db.execute(
             """
             SELECT
