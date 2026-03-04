@@ -3,9 +3,33 @@
 [![Streamlit App](https://img.shields.io/badge/Streamlit-Cloud-FF4B4B?logo=streamlit&logoColor=white)](https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
 
-**An active sports analytics engineering project.** Browse Eredivisie 2025–26 teams and matches, then generate AI-powered tactical reports grounded in real match data — no hallucinations, no generic commentary.
+**A self-hosted data platform that turns match event data into natural language.** Browse Eredivisie 2025–26 teams and matches, and get AI-powered tactical reports grounded in real event data — built for analysts and scouts who need fast, reliable post-match insights without the tab-switching.
 
 🚀 **[Try the Live Demo](https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app)**
+
+---
+
+## The Problem
+
+After a match, coaches, scouts, and analysts bounce between WhoScored, FotMob, and spreadsheets to reconstruct what happened. Generic LLMs don't help — they fabricate statistics instead of retrieving them:
+
+- ❌ "PSV dominated possession" (actual: 45%)
+- ❌ "Heracles created few chances" (actual: 24 shots)
+- ❌ Tactical commentary with no grounding in real data
+
+**This project fixes that.** A production RAG pipeline retrieves actual match metrics — xG, PPDA, progressive passes, field tilt, compactness — from a live data warehouse and feeds them to an LLM that writes from the numbers, not around them. The result: scout-style reports in seconds, grounded in real event data, with full traceability from query to source.
+
+---
+
+## Demo
+
+### Tactical Report — Excelsior vs AZ Alkmaar
+![Tactical Report](docs/assets/streamlit_cloud_v1.5_panel1.png)
+
+### Dashboard — Excelsior vs AZ Alkmaar
+![Dashboard with passing networks and heatmaps](docs/assets/streamlit_cloud_v1.5_panel3.png)
+
+---
 
 > **Status:** 🟢 **Phase 1–4a COMPLETE + v1.5 UI on Streamlit Cloud**
 > - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
@@ -29,52 +53,6 @@
 | **Tests** | 57 passing, 0 failing | End-to-end pipeline + RAG + observability |
 
 **Baseline:** 10 tactical analysis test cases evaluated via opik.evaluate(), all metrics locked in production.
-
----
-
-## The Problem
-
-Coaches, scouts, and analysts spend time bouncing between WhoScored, FotMob, and other tools to reconstruct what happened in a match. Traditional LLMs can't help because they fabricate stats instead of retrieving them:
-
-- ❌ "PSV dominated possession" (actual: 45%)
-- ❌ "Heracles created few chances" (actual: 24 shots)
-- ❌ Generic tactical commentary with no grounding
-
-Pick a team → pick a match → get a report built from real event data. The RAG pipeline retrieves actual metrics (xG, PPDA, progressive passes, field tilt) and the LLM writes from them, not around them.
-
----
-
-## Demo
-
-### Tactical Report — Excelsior vs AZ Alkmaar
-![Tactical Report](docs/assets/streamlit_cloud_v1.5_panel1.png)
-
-### Dashboard — Excelsior vs AZ Alkmaar
-![Dashboard with passing networks and heatmaps](docs/assets/streamlit_cloud_v1.5_panel3.png)
-
----
-
-## Quick Start (3 Examples)
-
-Run locally (Phase 2 engine working today):
-
-```python
-from football_rag.orchestrator import query
-
-# 1️⃣ Tactical analysis (semantic RAG)
-result = query("Why did PSV Eindhoven edge Excelsior 2-1 despite their high press?")
-print(result["text"])  # → grounded commentary with xG, position, PPDA stats
-
-# 2️⃣ Statistical query (exact metric retrieval)
-result = query("Which team had the highest PPDA in their last match?")
-print(result["viz_metrics"])  # → {"team": "...", "ppda": 8.2, ...}
-
-# 3️⃣ Visualization request (routing to chart engine)
-result = query("Show me the shot map from the Ajax vs Feyenoord match")
-print(result["chart_path"])  # → PNG with both teams' shots by xG
-```
-
-**Each query is grounded:** Retrieved match data → Claude generates → metrics validated against DuckDB (no hallucination).
 
 ---
 
@@ -137,11 +115,11 @@ print(result["chart_path"])  # → PNG with both teams' shots by xG
  │   DuckDB VSS        fetch df_events from DuckDB                 │
  │   (array_distance)  visualizers.py → PNG                        │
  │   @opik.track       @opik.track                                 │
- │   → LLM (Claude)    → generate_with_llm()                       │
+ │   → LLM (Cerebras)  → generate_with_llm()                       │
  │         │                │                                      │
  │         └───────┬────────┘                                      │
  │                 ▼                                               │
- │         {"text": ..., "viz_metrics": ...}                       │
+ │         {"commentary": ..., "metrics_used": ...}               │
  └─────────────────────────────────────────────────────────────────┘
                       │
                       ▼
@@ -171,20 +149,34 @@ print(result["chart_path"])  # → PNG with both teams' shots by xG
 
 ## Tech Stack
 
-| Layer | Tool | Why |
+| Layer | Tool | Notes |
 |---|---|---|
-| Language | Python 3.10+ via `uv` | |
+| Language | Python 3.12 via `uv` | |
 | Orchestration | Dagster (Software-Defined Assets) | Asset lineage, sensor-chained jobs, daemon as macOS LaunchAgent |
 | Object storage | MinIO | S3-compatible, single Docker container (Bronze JSON only) |
 | Analytics DB | DuckDB + MotherDuck | Same SQL dialect local and cloud |
 | Transformation | dbt Core (`dbt-duckdb`) | SQL version control, tested models |
 | Embeddings | `sentence-transformers/all-mpnet-base-v2` | 768-dim, semantic match retrieval |
 | Vector search | DuckDB VSS (`array_distance`) | No external vector DB needed |
-| LLM | Anthropic Claude (primary) | Multi-provider via `generate.py` |
+| LLM (default) | Cerebras — `llama3.1-8b` | 1MM free tokens/day, ~1s inference |
+| LLM (fallback) | Anthropic Claude | BYOK via sidebar |
+| Frontend | Streamlit Cloud | Auto-deploys on `git push main` |
 | CI/CD | GitHub Actions | `dbt run --target prod` Mon/Thu |
-| Observability | Opik (Phase 3a DONE) | `@opik.track` end-to-end, EDD harness with 3 metrics |
-| Evaluation | opik.evaluate() + custom scorers | retrieval_accuracy (1.0), tactical_insight (0.91), answer_relevance (0.84) |
-| Cloud inference | Modal (Phase 4 planned) | Serverless GPU for open-source models |
+| Observability | Opik | `@opik.track` end-to-end, EDD harness with 3 metrics |
+| Evaluation | `opik.evaluate()` + custom scorers | retrieval_accuracy (1.0), tactical_insight (0.91), answer_relevance (0.84) |
+
+---
+
+## LLM Providers
+
+No vendor lock-in — swap via `provider` parameter or sidebar:
+
+| Provider | Model | Notes |
+|---|---|---|
+| **Cerebras** (default) | `llama3.1-8b` | Free, 1MM tokens/day, no key needed |
+| Anthropic | `claude-sonnet-4-6` | BYOK |
+| OpenAI | `gpt-4o-mini` | BYOK |
+| Google | `gemini-1.5-flash` | BYOK |
 
 ---
 
@@ -215,29 +207,13 @@ Sources: WhoScored (event-level) + FotMob (xG + shot data), cross-linked via `ma
 
 ---
 
-## LLM Providers
+## Why This Stack
 
-No vendor lock-in — swap via `provider` parameter:
-
-| Provider | Model |
-|---|---|
-| Anthropic (default) | `claude-haiku-4-5` |
-| OpenAI | `gpt-4o-mini` |
-| Google | `gemini-1.5-flash` |
-| Ollama (local) | `llama3.2:1b` |
-
----
-
-## Why This Project Matters
-
-Every component answers a production question:
-
-- **Data pipeline (Dagster → dbt → DuckDB/MotherDuck):** Scales from Eredivisie → Championship → Brasileirão with zero code changes. Parameterized by league. Multi-source deduplication via match_mapping.
-- **Vector search without vendor lock-in (DuckDB HNSW):** No Pinecone, Weaviate, or Milvus. `array_distance()` on FLOAT[768]. Embedding updates are SQL transactions, not API calls.
-- **Observability as infrastructure (Opik @opik.track + EDD):** Not a dashboard bolt-on. LLM calls traced from orchestrator → rag_pipeline → generate. 3 domain-specific scorers with custom CoT reasoning.
-- **Metrics locked, not tuned (retrieval=1.0, insight=0.91):** Each metric answers "is this production ready?" Not vibes. Baseline committed, thresholds in code.
-- **Multi-provider LLM routing (Claude/OpenAI/Gemini/Ollama):** One `provider` parameter. No vendor dependency. Cost optimization and model experiments are one-line changes.
-- **CI/CD on data quality (GitHub Actions + dbt testing):** Data tests automated. Pipeline broken? Workflow fails before MotherDuck updates. Same rigor as app code.
+- **DuckDB VSS instead of a vector DB:** No Pinecone, Weaviate, or Milvus. `array_distance()` on FLOAT[768]. Embedding updates are SQL transactions, not API calls. The same file that stores events also stores vectors.
+- **dbt for transformations:** SQL version-controlled, testable, re-runnable. Bronze/Silver/Gold medallion scales to any league — parameterized by league from day one.
+- **Opik observability as infrastructure:** LLM calls traced from orchestrator → rag_pipeline → generate. 3 domain-specific scorers with CoT reasoning. Metrics locked, not vibes — baseline committed, thresholds in code.
+- **Cerebras as default LLM:** 1MM free tokens/day, ~1s inference. No key required to use the app. Claude as fallback for longer context or BYOK users.
+- **Dagster sensor chain:** End-to-end pipeline automation without a managed workflow service. Runs on a laptop, survives sleep, auto-starts at login.
 
 ---
 
@@ -246,30 +222,36 @@ Every component answers a production question:
 ```
 football-rag-intelligence/
 ├── orchestration/              # Dagster assets, schedules, sensors
-│   ├── assets/                 # bronze, silver, gold, embeddings
+│   ├── assets/                 # bronze, silver, gold, embeddings, metrics
 │   └── definitions.py
 ├── dbt_project/                # dbt models
 │   ├── models/
 │   │   ├── sources.yml
-│   │   ├── silver/             # silver_events, silver_team_metrics
+│   │   ├── silver/             # silver_events
 │   │   └── gold/               # gold_match_summaries
 │   └── profiles.yml            # dev (local DuckDB) + prod (MotherDuck)
 ├── src/football_rag/
+│   ├── app/
+│   │   ├── main.py             # Streamlit UI — three-panel drill-down
+│   │   └── styles.py           # CSS injection — dark editorial theme
 │   ├── models/
-│   │   ├── rag_pipeline.py     # RAG orchestration [Phase 2]
+│   │   ├── rag_pipeline.py     # RAG orchestration (VSS + metrics fetch)
 │   │   └── generate.py         # LLM provider abstraction
+│   ├── analytics/
+│   │   └── metrics.py          # classify_metrics() — tactical labels
 │   ├── router.py               # Intent classification
 │   ├── visualizers.py          # Matplotlib plot functions
 │   ├── viz_tools.py            # Viz API (dashboard/team/match)
 │   ├── data/schemas.py         # Pydantic models
 │   └── prompts_loader.py
+├── data/
+│   └── raw/xT_grid.csv         # Static Expected Threat grid (1KB)
 ├── scripts/
 │   ├── materialize_embeddings.py   # Regenerate HNSW index
 │   └── test_vector_search.py       # Verify VSS queries
 ├── tests/
-├── docs/
-│   ├── engineering_diary/      # Session-by-session build log
-│   └── motherduck-setup.md     # Cloud DB operational reference
+├── docs/assets/                # README screenshots
+├── .streamlit/config.toml      # Dark theme — read by Streamlit Cloud
 ├── ARCHITECTURE.md
 ├── SCRATCHPAD.md               # Active session state
 └── CLAUDE.md                   # AI assistant instructions
@@ -315,7 +297,7 @@ uv run pytest
 | **EDD Eval (Phase 3a)** | ✅ DONE | 3 scorers (retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84), 21 pytest tests locked |
 | **Streamlit UI (Phase 3b)** | ✅ DONE | v1.5 three-panel browsable UI (Team → Match → Report), Cerebras default, deployed on Streamlit Cloud |
 | **Pipeline Automation (Phase 4a)** | ✅ DONE | scrape → dbt → embed → HF deploy chained via Dagster sensors. dagster-daemon as macOS LaunchAgent (auto-starts at login). Mon/Thu 7am UTC schedule. |
-| **Modal Inference (Phase 4b)** | 📋 Planned | Serverless wrapper for generate_with_llm(), open-source model inference |
+| **Extended Inference (Phase 4b)** | 📋 Planned | Additional open-source model providers, EDD evaluation in CI |
 
 ---
 
@@ -330,13 +312,12 @@ uv run pytest
 - DuckDB VSS retrieval (no external vector DB)
 - Intent router: semantic text → LLM, viz requests → charts
 - `orchestrator.query()` as single entry point
-- Multi-provider LLM support (Claude/OpenAI/Gemini/Ollama)
+- Multi-provider LLM support (Cerebras/Claude/OpenAI/Gemini)
 
 **Phase 3a — Observability** ✅ COMPLETE
 - `@opik.track` end-to-end (orchestrator → rag_pipeline → generate)
 - EDD harness: 3 scorers, 21 pytest tests, 10 golden eval cases
 - Metrics locked in Opik (baseline: retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84)
-- Maintenance: Version dataset names (v3 → v4) when eval queries change
 
 **Phase 3b — Streamlit UI + Deploy** ✅ COMPLETE
 - v1.5 three-panel drill-down: Team Grid → Match List → Match Report
@@ -348,15 +329,15 @@ uv run pytest
 
 **Phase 4a — Hybrid Pipeline Automation** ✅ COMPLETE
 - Dagster sensor chain: `scrape_and_load_job` → `transform_job` → `deploy_job` (fully automatic)
-- `deploy_job`: uploads lakehouse.duckdb (536MB) to HF Dataset + restarts Space
+- `deploy_job`: uploads lakehouse.duckdb (536MB) to HF Dataset
 - `dagster-daemon` as macOS LaunchAgent — auto-starts at login, survives laptop sleep
 - SQLite-backed local Dagster home (no Docker dependency for orchestration)
 - Mon/Thu 7am UTC schedule via `eredivisie_post_matchday`
 
-**Phase 4b — Prompt Tuning + Inference** *(planned)*
-- Prompt v4.0: tactical interpretation over metric recitation
+**Phase 4b — Extended Inference** *(planned)*
+- Additional open-source model providers
 - EDD evaluation in CI (GitHub Actions)
-- Open-source model inference via Modal (Llama 3 / vLLM, optional)
+- Prompt versioning tied to eval scores
 
 ---
 
