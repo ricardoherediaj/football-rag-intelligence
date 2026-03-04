@@ -26,11 +26,8 @@
 !**/.gitkeep
 /tests/temp/*
 
-# Archive (Legacy)
-/archive/*
-!archive/notebooks/
-!archive/scripts/
-!archive/submission.txt
+# Archive (private — not for remote)
+/archive/
 
 # Data (Strictly Ignored)
 /data/*
@@ -55,15 +52,16 @@
 # AI tooling
 /agent-os/
 
+# Docs (private — engineering diary, architecture notes)
+/docs/
+
 # Python
 *.py[cod]
 __pycache__/
 *.duckdb
 
-# Claude Code (track lessons and skills, ignore sessions/plans)
-.claude/*
-!.claude/lessons.md
-!.claude/skills/
+# Claude Code (private — not for remote)
+.claude/
 
 # OS
 .DS_Store
