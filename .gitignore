@@ -34,6 +34,9 @@
 !data/minio/
 !data/chroma/
 !data/.gitkeep
+!data/raw/
+/data/raw/*
+!data/raw/xT_grid.csv
 
 # Docker volumes
 /data_lake/
