@@ -156,10 +156,10 @@ class FootballRAGPipeline:
         sql = f"""
             SELECT s.match_id, s.home_team, s.away_team,
                    s.home_goals, s.away_goals, s.match_date
-            FROM main_main.gold_match_summaries s
+            FROM lakehouse.main_main.gold_match_summaries s
             JOIN (
                 SELECT match_id, array_distance(embedding, ?::FLOAT[768]) AS dist
-                FROM gold_match_embeddings
+                FROM lakehouse.main.gold_match_embeddings
                 ORDER BY dist
                 LIMIT 5
             ) ranked USING (match_id)
@@ -206,7 +206,7 @@ class FootballRAGPipeline:
                 home_compactness,        away_compactness,
                 home_field_tilt,         away_field_tilt,
                 home_possession,         away_possession
-            FROM main_main.gold_match_summaries
+            FROM lakehouse.main_main.gold_match_summaries
             WHERE match_id = ?
             """,
             [match_id],
