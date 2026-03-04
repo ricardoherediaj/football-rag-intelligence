@@ -146,7 +146,10 @@ class FootballRAGPipeline:
         query_emb = self._model.encode(query).tolist()
         team_filter = self._build_team_filter(query)
 
-        db = duckdb.connect(str(self.db_path), config={"motherduck_token": ""})
+        env_backup = os.environ.pop("motherduck_token", None)
+        db = duckdb.connect(str(self.db_path))
+        if env_backup is not None:
+            os.environ["motherduck_token"] = env_backup
         db.execute("INSTALL vss")
         db.execute("LOAD vss")
 
@@ -183,7 +186,10 @@ class FootballRAGPipeline:
     @opik.track(name="metrics_fetch")
     def _fetch_tactical_metrics(self, match_id: str) -> Optional[TacticalMetrics]:
         """Fetch tactical metrics from gold_match_summaries for the given match."""
-        db = duckdb.connect(str(self.db_path), config={"motherduck_token": ""})
+        env_backup = os.environ.pop("motherduck_token", None)
+        db = duckdb.connect(str(self.db_path))
+        if env_backup is not None:
+            os.environ["motherduck_token"] = env_backup
         row = db.execute(
             """
             SELECT
