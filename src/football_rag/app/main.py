@@ -16,6 +16,7 @@ from typing import Any
 import duckdb
 import pandas as pd
 import streamlit as st
+from huggingface_hub import hf_hub_download
 
 from football_rag.orchestrator import query as rag_query
 
@@ -41,6 +42,27 @@ st.set_page_config(
     page_icon="⚽",
     layout="wide",
 )
+
+
+# ---------------------------------------------------------------------------
+# lakehouse.duckdb bootstrap — download from HF Dataset if not present
+# ---------------------------------------------------------------------------
+@st.cache_resource(show_spinner="Downloading match database (first load only)…")
+def ensure_lakehouse() -> Path:
+    """Download lakehouse.duckdb from HF Dataset if not already on disk."""
+    db_path = Path("data/lakehouse.duckdb")
+    if db_path.exists():
+        return db_path
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    hf_token = os.environ.get("HF_TOKEN")
+    downloaded = hf_hub_download(
+        repo_id="rheredia8/football-rag-data",
+        filename="lakehouse.duckdb",
+        repo_type="dataset",
+        token=hf_token,
+        local_dir=str(db_path.parent),
+    )
+    return Path(downloaded)
 
 
 # ---------------------------------------------------------------------------
@@ -290,6 +312,7 @@ def render_match_report(
 def main() -> None:
     _init_state()
     provider, api_key = render_sidebar()
+    ensure_lakehouse()  # download once, cached for the process lifetime
 
     st.title("Football RAG Intelligence")
     st.caption("EREDIVISIE · 2025–26")
