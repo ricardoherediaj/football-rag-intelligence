@@ -1,7 +1,8 @@
-"""Football RAG Intelligence — The Underdoc.
+"""Football RAG Intelligence.
 
 Three-panel drill-down: Team Grid → Match List → Match Report.
-Dark editorial theme. Cerebras default provider (1MM free tokens/day).
+Dark editorial theme via .streamlit/config.toml.
+Cerebras default provider (1MM free tokens/day).
 
 Run locally:
     uv run streamlit run src/football_rag/app/main.py
@@ -16,7 +17,6 @@ import duckdb
 import pandas as pd
 import streamlit as st
 
-from football_rag.app.styles import inject_css
 from football_rag.orchestrator import query as rag_query
 
 logger = logging.getLogger(__name__)
@@ -38,11 +38,9 @@ PROVIDERS = ["cerebras", "anthropic", "openai", "gemini"]
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Football RAG Intelligence",
-    page_icon="●",
+    page_icon="⚽",
     layout="wide",
 )
-
-inject_css()
 
 
 # ---------------------------------------------------------------------------
@@ -118,44 +116,32 @@ def _init_state() -> None:
 def render_sidebar() -> tuple[str, str | None]:
     """Render sidebar, return (provider, api_key)."""
     with st.sidebar:
-        st.markdown(
-            '<div class="sidebar-wordmark">Football RAG<span> Intelligence</span></div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown('<hr class="red-rule">', unsafe_allow_html=True)
+        st.title("Football RAG Intelligence")
+        st.caption("Eredivisie 2025–26 · Tactical scouting powered by AI")
+        st.divider()
 
-        st.markdown(
-            '<div class="section-label">Intelligence</div>',
-            unsafe_allow_html=True,
-        )
         provider = st.selectbox(
-            "Provider",
+            "LLM Provider",
             options=PROVIDERS,
             index=0,
-            label_visibility="collapsed",
         )
 
         api_key = st.text_input(
-            "API Key",
+            "API Key (optional)",
             type="password",
-            placeholder="Your provider key (optional)",
-            label_visibility="collapsed",
+            placeholder="Your provider key",
             help="Bring your own key. Without one, Cerebras free tier is used.",
         )
 
         if provider == "cerebras" and not api_key:
-            st.caption("Cerebras · free · 1MM tokens/day")
+            st.caption("✓ Cerebras · free · ~1MM tokens/day")
         elif api_key:
-            st.caption(f"Using your {provider} key.")
-        elif provider == "gemini":
-            st.caption(f"{provider} · add key above")
+            st.caption(f"✓ Using your {provider} key")
         else:
             st.caption(f"{provider} · add key above")
 
         st.divider()
-        st.caption(
-            "Keys are session-only and sent directly to the provider. Never stored."
-        )
+        st.caption("Keys are session-only. Never stored.")
 
     return provider, api_key or None
 
@@ -164,18 +150,22 @@ def render_sidebar() -> tuple[str, str | None]:
 # Panel 1 — Team Grid
 # ---------------------------------------------------------------------------
 def render_team_grid(teams: pd.DataFrame) -> None:
-    st.markdown(
-        '<div class="section-label">Eredivisie 2025–26 · Select a team</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<hr class="red-rule">', unsafe_allow_html=True)
+    st.caption("EREDIVISIE 2025–26 · SELECT A TEAM")
+    st.divider()
 
     cols = st.columns(3)
     for i, row in teams.iterrows():
         col = cols[i % 3]
         with col:
+            ppda = f"{row['avg_ppda']}" if pd.notna(row["avg_ppda"]) else "—"
+            tilt = (
+                f"{row['avg_field_tilt']}%" if pd.notna(row["avg_field_tilt"]) else "—"
+            )
+            label = (
+                f"{row['team']}\n{row['matches']} matches · PPDA {ppda} · Tilt {tilt}"
+            )
             if st.button(
-                row["team"],
+                label,
                 key=f"team_{row['team']}",
                 use_container_width=True,
             ):
@@ -184,39 +174,19 @@ def render_team_grid(teams: pd.DataFrame) -> None:
                 st.session_state["report_result"] = None
                 st.rerun()
 
-            ppda_label = (
-                f"PPDA {row['avg_ppda']}" if pd.notna(row["avg_ppda"]) else "PPDA —"
-            )
-            tilt_label = (
-                f"Field tilt {row['avg_field_tilt']}%"
-                if pd.notna(row["avg_field_tilt"])
-                else ""
-            )
-            st.markdown(
-                f'<div class="team-card-meta">'
-                f"{row['matches']} matches · <strong>{ppda_label}</strong>"
-                f"{' · ' + tilt_label if tilt_label else ''}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
 
 # ---------------------------------------------------------------------------
 # Panel 2 — Match List
 # ---------------------------------------------------------------------------
 def render_match_list(team: str) -> None:
-    # Back link
     if st.button("← All teams", key="back_to_teams"):
         st.session_state["selected_team"] = None
         st.session_state["selected_match"] = None
         st.session_state["report_result"] = None
         st.rerun()
 
-    st.markdown(
-        f'<div class="section-label">{team.upper()}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<hr class="red-rule">', unsafe_allow_html=True)
+    st.subheader(team)
+    st.divider()
 
     with st.spinner("Loading matches…"):
         matches = load_matches_for_team(team)
@@ -233,18 +203,10 @@ def render_match_list(team: str) -> None:
         col_date, col_score, col_btn = st.columns([2, 5, 2])
 
         with col_date:
-            st.markdown(
-                f'<div class="match-date">{date_str}</div>',
-                unsafe_allow_html=True,
-            )
+            st.caption(date_str)
 
         with col_score:
-            st.markdown(
-                f'<div class="match-scoreline">'
-                f'{home} <span class="score">{hg} – {ag}</span> {away}'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+            st.write(f"**{home}** {hg} – {ag} **{away}**")
 
         with col_btn:
             if st.button("Open →", key=f"match_{row['match_id']}"):
@@ -259,11 +221,6 @@ def render_match_list(team: str) -> None:
                 st.session_state["active_report_tab"] = None
                 st.rerun()
 
-        st.markdown(
-            '<div style="border-bottom:1px solid #1e1e1e;margin:0.1rem 0;"></div>',
-            unsafe_allow_html=True,
-        )
-
 
 # ---------------------------------------------------------------------------
 # Panel 3 — Match Report
@@ -271,7 +228,6 @@ def render_match_list(team: str) -> None:
 def render_match_report(
     match: dict[str, Any], provider: str, api_key: str | None
 ) -> None:
-    # Back link
     if st.button("← Match list", key="back_to_matches"):
         st.session_state["selected_match"] = None
         st.session_state["report_result"] = None
@@ -279,17 +235,10 @@ def render_match_report(
 
     home, away = match["home"], match["away"]
 
-    st.markdown(
-        f'<div class="report-header">{home} vs {away}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div class="report-subhead">{match["date"]} · {match["score"]}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<hr class="red-rule">', unsafe_allow_html=True)
+    st.subheader(f"{home} vs {away}")
+    st.caption(f"{match['date']} · {match['score']}")
+    st.divider()
 
-    # Action buttons
     btn_cols = st.columns(len(REPORT_QUERIES))
     clicked_tab = None
     for col, tab_name in zip(btn_cols, REPORT_QUERIES):
@@ -300,23 +249,15 @@ def render_match_report(
     if clicked_tab:
         st.session_state["active_report_tab"] = clicked_tab
         query_str = REPORT_QUERIES[clicked_tab].format(home=home, away=away)
-
         with st.spinner(f"Generating {clicked_tab.lower()}…"):
             result = rag_query(query_str, provider=provider, api_key=api_key)
-
         st.session_state["report_result"] = result
 
-    # Render result
     result = st.session_state.get("report_result")
     active_tab = st.session_state.get("active_report_tab")
 
     if result is None:
-        st.markdown(
-            '<div style="color:#555;font-size:0.85rem;margin-top:1.5rem;">'
-            "Select a report type above to generate analysis."
-            "</div>",
-            unsafe_allow_html=True,
-        )
+        st.caption("Select a report type above to generate analysis.")
         return
 
     if "error" in result:
@@ -324,10 +265,7 @@ def render_match_report(
         return
 
     if active_tab:
-        st.markdown(
-            f'<div class="section-label" style="margin-top:1rem;">{active_tab.upper()}</div>',
-            unsafe_allow_html=True,
-        )
+        st.caption(active_tab.upper())
 
     if "commentary" in result:
         st.markdown(result["commentary"])
@@ -353,33 +291,17 @@ def main() -> None:
     _init_state()
     provider, api_key = render_sidebar()
 
-    # ── Header ──
-    col_title, col_meta = st.columns([3, 1])
-    with col_title:
-        st.markdown(
-            '<div class="underdoc-wordmark">Football RAG<span> Intelligence</span></div>',
-            unsafe_allow_html=True,
-        )
-    with col_meta:
-        st.markdown(
-            '<div style="text-align:right;color:#555;font-size:0.7rem;padding-top:0.3rem;">'
-            "EREDIVISIE · 2025–26"
-            "</div>",
-            unsafe_allow_html=True,
-        )
+    st.title("Football RAG Intelligence")
+    st.caption("EREDIVISIE · 2025–26")
+    st.divider()
 
-    st.markdown('<hr class="red-rule">', unsafe_allow_html=True)
-
-    # ── Routing ──
     selected_match = st.session_state.get("selected_match")
     selected_team = st.session_state.get("selected_team")
 
     if selected_match:
         render_match_report(selected_match, provider, api_key)
-
     elif selected_team:
         render_match_list(selected_team)
-
     else:
         with st.spinner("Loading league data…"):
             try:
@@ -389,14 +311,8 @@ def main() -> None:
                 return
         render_team_grid(teams)
 
-    # ── Footer ──
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        '<div style="color:#333;font-size:0.65rem;letter-spacing:0.08em;">'
-        "POWERED BY DUCKDB VSS · MOTHERDUCK · CEREBRAS · OPIK"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    st.divider()
+    st.caption("POWERED BY DUCKDB VSS · MOTHERDUCK · CEREBRAS · OPIK")
 
 
 if __name__ == "__main__":
