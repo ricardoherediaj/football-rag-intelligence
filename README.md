@@ -1,16 +1,17 @@
 # Football RAG Intelligence
 
+[![Streamlit App](https://img.shields.io/badge/Streamlit-Cloud-FF4B4B?logo=streamlit&logoColor=white)](https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/rheredia8/football-rag-intelligence)
 
-**An active sports analytics engineering project.** Natural language queries over real Eredivisie match data — grounded answers backed by a production data pipeline.
+**An active sports analytics engineering project.** Browse Eredivisie 2025–26 teams and matches, then generate AI-powered tactical reports grounded in real match data — no hallucinations, no generic commentary.
 
-🚀 **[Try the Live Demo](https://rheredia8-football-rag-intelligence.hf.space/)**
+🚀 **[Try the Live Demo](https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app)**
 
-> **Status:** 🟢 **Phase 1–4a COMPLETE — Live on HF Spaces, auto-refreshing**
+> **Status:** 🟢 **Phase 1–4a COMPLETE + v1.5 UI on Streamlit Cloud**
 > - Phase 1: Data pipeline (412 matches, 279k events, dbt + MotherDuck + CI)
 > - Phase 2: RAG engine (DuckDB VSS retrieval, Opik tracing, multi-path routing)
 > - Phase 3a: Evaluation locked (retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84)
-> - Phase 3b: **Streamlit UI deployed** — text analysis + 7 viz types live at public URL
+> - Phase 3b: **Streamlit UI v1.5** — three-panel browsable UI (Team → Match → Report), deployed on Streamlit Cloud
 > - Phase 4a: **Hybrid pipeline automation** — scrape → dbt → embed → HF deploy, fully chained via Dagster sensors. dagster-daemon auto-starts at macOS login via launchd.
 
 ---
@@ -31,25 +32,25 @@
 
 ---
 
-## Demo
-
-### Shot Map
-![Shot Map — Fortuna Sittard vs Go Ahead Eagles](docs/assets/newapp1.png)
-
-### Tactical Analysis
-![Text Analysis — Ajax vs Feyenoord](docs/assets/newapp2.png)
-
----
-
 ## The Problem
 
-Coaches, scouts, and analysts spend time bouncing between WhoScored, FotMob, and other tools to reconstruct what happened in a match. Traditional LLMs can't help because they can fabricate stats instead of retrieving them:
+Coaches, scouts, and analysts spend time bouncing between WhoScored, FotMob, and other tools to reconstruct what happened in a match. Traditional LLMs can't help because they fabricate stats instead of retrieving them:
 
 - ❌ "PSV dominated possession" (actual: 45%)
 - ❌ "Heracles created few chances" (actual: 24 shots)
 - ❌ Generic tactical commentary with no grounding
 
-The solution presented here is a RAG system built on real match data.
+Pick a team → pick a match → get a report built from real event data. The RAG pipeline retrieves actual metrics (xG, PPDA, progressive passes, field tilt) and the LLM writes from them, not around them.
+
+---
+
+## Demo
+
+### Tactical Report — Excelsior vs AZ Alkmaar
+![Tactical Report](docs/assets/streamlit_cloud_v1.5_panel1.png)
+
+### Dashboard — Excelsior vs AZ Alkmaar
+![Dashboard with passing networks and heatmaps](docs/assets/streamlit_cloud_v1.5_panel3.png)
 
 ---
 
@@ -156,11 +157,13 @@ print(result["chart_path"])  # → PNG with both teams' shots by xG
                       │
                       ▼
  ┌─────────────────────────────────────────────────────────────────┐
- │  UI  [Phase 3b — next]                                          │
+ │  UI  [Phase 3b — COMPLETE ✅]                                   │
  │                                                                 │
- │  Streamlit single-page app                                      │
- │  Query input → orchestrator.query() → commentary + chart        │
- │  MotherDuck read-only for match selection (optional)            │
+ │  Streamlit Cloud — three-panel browsable UI                     │
+ │  Team Grid → Match List → Match Report                          │
+ │  Panel 1+2: MotherDuck (team stats, match lists)                │
+ │  Panel 3: RAG pipeline (lakehouse.duckdb + Cerebras LLM)        │
+ │  4 report types: Tactical · Passing Network · Shot Map · Dash   │
  └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -310,7 +313,7 @@ uv run pytest
 | **Embeddings (Phase 1)** | ✅ Live | 205 × 768-dim sentences, HNSW index in DuckDB |
 | **RAG Engine (Phase 2)** | ✅ DONE | DuckDB VSS retrieval, multi-path routing (semantic + viz), @opik.track |
 | **EDD Eval (Phase 3a)** | ✅ DONE | 3 scorers (retrieval=1.0, tactical_insight=0.91, answer_relevance=0.84), 21 pytest tests locked |
-| **Streamlit UI (Phase 3b)** | ✅ DONE | Wide layout, BYOK API key, 5 free demo queries, deployed on HF Spaces |
+| **Streamlit UI (Phase 3b)** | ✅ DONE | v1.5 three-panel browsable UI (Team → Match → Report), Cerebras default, deployed on Streamlit Cloud |
 | **Pipeline Automation (Phase 4a)** | ✅ DONE | scrape → dbt → embed → HF deploy chained via Dagster sensors. dagster-daemon as macOS LaunchAgent (auto-starts at login). Mon/Thu 7am UTC schedule. |
 | **Modal Inference (Phase 4b)** | 📋 Planned | Serverless wrapper for generate_with_llm(), open-source model inference |
 
@@ -336,9 +339,11 @@ uv run pytest
 - Maintenance: Version dataset names (v3 → v4) when eval queries change
 
 **Phase 3b — Streamlit UI + Deploy** ✅ COMPLETE
-- Wide-layout Streamlit app on HF Spaces
-- BYOK (Bring Your Own Key) with rate-limited demo mode (5 free queries/session)
-- Shot maps, passing networks, dashboards + text analysis — all live at public URL
+- v1.5 three-panel drill-down: Team Grid → Match List → Match Report
+- Dark editorial theme (Playfair Display headers, green accent, square buttons)
+- Cerebras default (free, 1MM tokens/day), BYOK for any provider
+- Shot maps, passing networks, dashboards + tactical text — all live at public URL
+- Deployed on Streamlit Cloud (auto-deploys on `git push main`)
 - Cold start: downloads 536MB lakehouse.duckdb from private HF Dataset
 
 **Phase 4a — Hybrid Pipeline Automation** ✅ COMPLETE
